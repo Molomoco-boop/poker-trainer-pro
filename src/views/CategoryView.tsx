@@ -10,9 +10,7 @@ import {
   LayoutGrid,
   Percent,
   PieChart,
-  TrendingUp,
-  ListOrdered,
-  Trophy
+  TrendingUp
 } from 'lucide-react';
 import { CategoryId, SubcategoryId } from '../types/poker';
 import { StatsMistakesModal } from '../components/StatsMistakesModal';
@@ -62,13 +60,6 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
         { id: 'odds', title: 'Pot odds', icon: Percent },
         { id: 'equity', title: 'Outs', icon: PieChart },
         { id: 'ev', title: 'EV', icon: TrendingUp }
-      ]
-    },
-    fundamentals: {
-      title: 'Fundamentos',
-      subcategories: [
-        { id: 'hand_ranking', title: 'Jugadas', icon: ListOrdered },
-        { id: 'best_hand', title: 'Mejor mano', icon: Trophy }
       ]
     }
   };

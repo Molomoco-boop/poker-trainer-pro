@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { HandStep, FullHandScenario, SpotType, PracticeMode, DecisionVerdict } from '../types/poker';
+import { HandStep, SpotType, PracticeMode, DecisionVerdict, MistakeRecord, ReviewKind, PEDAGOGICAL_LEVEL_NAMES } from '../types/poker';
 import {
   generateFullHandScenario,
   generateSimulatorDrill,
   generatePotOddsDrill,
-  generateOutsDrill
+  generateOutsDrill,
+  generateSimilarStep
 } from '../utils/fullHandEngine';
 import { useGame } from '../context/useGame';
 import { PokerTable, RangeRequest } from '../components/PokerTable';
@@ -19,16 +20,41 @@ interface PracticeViewProps {
 }
 
 const DAILY_TOTAL = 10;
+/** Time a correct answer stays on screen so the why line can be read. */
+const AUTO_ADVANCE_MS = 2500;
+
+/** Review kinds that each mode can replay. */
+const MODE_REVIEWS: Record<PracticeMode, ReviewKind[]> = {
+  continuous: ['pre', 'post', 'odds', 'equity'],
+  daily: ['pre', 'post'],
+  full_hand: ['pre', 'post'],
+  preflop: ['pre'],
+  postflop: ['post'],
+  odds: ['odds'],
+  equity: ['equity'],
+  ev: ['ev']
+};
 
 export const PracticeView: React.FC<PracticeViewProps> = ({ mode, forcedSpot, onExit }) => {
-  const { stats, recordStepAnswer, toggleDisplayUnits } = useGame();
+  const { stats, recordStepAnswer, toggleDisplayUnits, levelNotice, clearLevelNotice } = useGame();
   const scenarioOpts = { positions: stats.preferences.trainingPositions };
   const isDrillMode = mode !== 'continuous' && mode !== 'full_hand' && mode !== 'daily';
 
-  const [currentScenario, setCurrentScenario] = useState<FullHandScenario>(() =>
-    generateFullHandScenario(stats.pedagogicalLevel, forcedSpot, scenarioOpts)
+  const freshStep = useCallback((): HandStep => {
+    const lvl = stats.pedagogicalLevel;
+    const opts = { positions: stats.preferences.trainingPositions };
+    if (isDrillMode) return generateSimulatorDrill(mode, lvl, opts);
+    if (mode === 'continuous' && Math.random() < 0.15) {
+      return Math.random() < 0.5 ? generatePotOddsDrill(lvl) : generateOutsDrill(lvl);
+    }
+    return generateFullHandScenario(lvl, forcedSpot, opts).steps[0];
+  }, [isDrillMode, mode, forcedSpot, stats.pedagogicalLevel, stats.preferences.trainingPositions]);
+
+  const [step, setStep] = useState<HandStep>(() =>
+    isDrillMode ? generateSimulatorDrill(mode, stats.pedagogicalLevel, scenarioOpts) : generateFullHandScenario(stats.pedagogicalLevel, forcedSpot, scenarioOpts).steps[0]
   );
-  const [stepIndex, setStepIndex] = useState(0);
+  const [nextInHand, setNextInHand] = useState<HandStep | null>(null);
+  const [endNote, setEndNote] = useState<string | undefined>(undefined);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showLevelSettings, setShowLevelSettings] = useState(false);
@@ -37,94 +63,86 @@ export const PracticeView: React.FC<PracticeViewProps> = ({ mode, forcedSpot, on
   const [sessionEv, setSessionEv] = useState(0);
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [currentDrillStep, setCurrentDrillStep] = useState<HandStep | null>(() =>
-    isDrillMode ? generateSimulatorDrill(mode, stats.pedagogicalLevel, scenarioOpts) : null
-  );
-
-  const activeStep: HandStep = isDrillMode && currentDrillStep
-    ? currentDrillStep
-    : currentScenario.steps[stepIndex] || currentScenario.steps[0];
-
   const dailyDone = mode === 'daily' && stats.dailyDrillCount >= DAILY_TOTAL && !isSubmitted;
 
   const { soundEnabled, volume } = stats.preferences;
   useEffect(() => {
     if (soundEnabled) playCardSound(volume);
-  }, [stepIndex, currentScenario.id, currentDrillStep?.id, soundEnabled, volume]);
+  }, [step.id, soundEnabled, volume]);
 
   useEffect(() => () => {
     if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
   }, []);
 
-  const resetAnswer = () => {
-    setSelectedOptionId(null);
-    setIsSubmitted(false);
-  };
+  useEffect(() => {
+    if (!levelNotice) return;
+    const t = setTimeout(clearLevelNotice, 3500);
+    return () => clearTimeout(t);
+  }, [levelNotice, clearLevelNotice]);
 
-  const nextScenario = useCallback(() => {
-    // spaced repetition: replay a due mistake now and then
-    const due = (stats.mistakeQueue || []).find(m => stats.totalHandsPlayed - m.failedAtHandIndex >= 3 && m.consecutiveSuccesses < 3);
-    if (due && Math.random() < 0.25) {
-      setCurrentScenario({
-        id: `review_${Date.now()}`,
-        title: 'Repaso',
-        pedagogicalLevel: stats.pedagogicalLevel,
-        spotType: due.step.spotType,
-        steps: [{ ...due.step, isReviewOfMistake: true, continueWith: undefined, contextNotice: `Repaso · ${due.step.contextNotice}` }]
-      });
-    } else if (mode === 'continuous' && Math.random() < 0.15) {
-      const drill = Math.random() < 0.5 ? generatePotOddsDrill(stats.pedagogicalLevel) : generateOutsDrill(stats.pedagogicalLevel);
-      setCurrentScenario({ id: `drill_${Date.now()}`, title: 'Drill', pedagogicalLevel: stats.pedagogicalLevel, spotType: drill.spotType, steps: [drill] });
-    } else {
-      setCurrentScenario(generateFullHandScenario(stats.pedagogicalLevel, forcedSpot, scenarioOpts));
-    }
-    setStepIndex(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stats.mistakeQueue, stats.totalHandsPlayed, stats.pedagogicalLevel, forcedSpot, mode, stats.preferences.trainingPositions]);
+  /** A due mistake of this mode, replayed as a similar spot with new cards. */
+  const dueReview = useCallback((): HandStep | null => {
+    const kinds = MODE_REVIEWS[mode];
+    const due: MistakeRecord | undefined = [...(stats.mistakeQueue || [])]
+      .filter(m => m.key && kinds.includes(m.key.kind) && m.dueAt <= stats.totalHandsPlayed)
+      .sort((a, b) => a.dueAt - b.dueAt)[0];
+    if (!due) return null;
+    const s = generateSimilarStep(due.key, stats.pedagogicalLevel);
+    return { ...s, isReviewOfMistake: true, reviewOf: due.id };
+  }, [mode, stats.mistakeQueue, stats.totalHandsPlayed, stats.pedagogicalLevel]);
 
   const advanceToNext = useCallback(() => {
     if (autoAdvanceTimer.current) {
       clearTimeout(autoAdvanceTimer.current);
       autoAdvanceTimer.current = null;
     }
-    resetAnswer();
-    if (isDrillMode) {
-      setCurrentDrillStep(generateSimulatorDrill(mode, stats.pedagogicalLevel, scenarioOpts));
+    setSelectedOptionId(null);
+    setIsSubmitted(false);
+    setEndNote(undefined);
+    if (nextInHand) {
+      setStep(nextInHand);
+      setNextInHand(null);
       return;
     }
-    const step = currentScenario.steps[stepIndex];
-    const continues = step?.continueWith && selectedOptionId === step.continueWith && stepIndex < currentScenario.steps.length - 1;
-    if (continues) setStepIndex(i => i + 1);
-    else nextScenario();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDrillMode, mode, stats.pedagogicalLevel, currentScenario, stepIndex, selectedOptionId, nextScenario]);
+    setStep(dueReview() || freshStep());
+  }, [nextInHand, dueReview, freshStep]);
+
+  const advanceToNextRef = useRef(advanceToNext);
+  useEffect(() => { advanceToNextRef.current = advanceToNext; }, [advanceToNext]);
 
   const handleSelectOption = (optId: string) => {
     if (isSubmitted || dailyDone) return;
     setSelectedOptionId(optId);
     setIsSubmitted(true);
-    const opt = activeStep.options.find(o => o.id === optId);
+    const opt = step.options.find(o => o.id === optId);
     setSession(s => [opt?.verdict || 'error', ...s]);
     setSessionEv(e => Math.round((e + (opt?.evDiffNum || 0)) * 100) / 100);
-    const { isCorrect } = recordStepAnswer(activeStep, optId, { daily: mode === 'daily' });
+    const { isCorrect } = recordStepAnswer(step, optId, { daily: mode === 'daily' });
+    if (isCorrect && step.advance && !isDrillMode) {
+      const res = step.advance(optId);
+      setNextInHand(res.next);
+      setEndNote(res.note);
+    } else {
+      setNextInHand(null);
+    }
     if (isCorrect) {
-      autoAdvanceTimer.current = setTimeout(() => advanceToNextRef.current(), 750);
+      autoAdvanceTimer.current = setTimeout(() => advanceToNextRef.current(), AUTO_ADVANCE_MS);
     }
   };
 
-  const advanceToNextRef = useRef(advanceToNext);
-  useEffect(() => { advanceToNextRef.current = advanceToNext; }, [advanceToNext]);
-
   const sessionCorrect = session.filter(v => v === 'optimal').length;
+  const noticeText = levelNotice
+    ? `Nivel ${levelNotice.level} · ${levelNotice.up ? PEDAGOGICAL_LEVEL_NAMES[levelNotice.level].desc : `baja a ${PEDAGOGICAL_LEVEL_NAMES[levelNotice.level].name}`}`
+    : null;
 
   return (
     <>
       <PokerTable
-        step={activeStep}
+        step={step}
+        endNote={endNote}
         stake={stats.stake}
         displayUnits={stats.preferences.displayUnits}
         deckColorMode={stats.preferences.deckColorMode}
-        showHandStrength={stats.preferences.showHandStrength}
         selectedOptionId={selectedOptionId}
         isSubmitted={isSubmitted}
         sessionHandsCount={session.length}
@@ -139,6 +157,15 @@ export const PracticeView: React.FC<PracticeViewProps> = ({ mode, forcedSpot, on
         onOpenLevelSettings={() => setShowLevelSettings(true)}
         onOpenRangeViewer={req => setRangeRequest(req)}
       />
+
+      {noticeText && (
+        <button
+          onClick={clearLevelNotice}
+          className={`level-notice fixed top-12 left-1/2 -translate-x-1/2 z-[65] h-10 px-4 rounded-full text-xs font-[800] shadow-lg whitespace-nowrap ${levelNotice?.up ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-black'}`}
+        >
+          {noticeText}
+        </button>
+      )}
 
       {dailyDone && (
         <div className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-4">

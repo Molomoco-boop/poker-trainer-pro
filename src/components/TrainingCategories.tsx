@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlaySquare, Calculator, GraduationCap, ChevronRight } from 'lucide-react';
+import { PlaySquare, Calculator, ChevronRight } from 'lucide-react';
 import { CategoryId } from '../types/poker';
 
 interface TrainingCategoriesProps {
@@ -17,11 +17,6 @@ export const TrainingCategories: React.FC<TrainingCategoriesProps> = ({ onSelect
       id: 'math' as CategoryId,
       title: 'Matemáticas',
       icon: Calculator
-    },
-    {
-      id: 'fundamentals' as CategoryId,
-      title: 'Fundamentos',
-      icon: GraduationCap
     }
   ];
 

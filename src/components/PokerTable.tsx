@@ -5,6 +5,7 @@ import { ArrowLeft, Lightbulb, Sliders, Check, X as CloseIcon, ArrowRight } from
 import { convertBBToEUR } from '../utils/difficultyEngine';
 import { PreflopSituation } from '../data/preflopRanges';
 import { cardsToHandLabel } from '../utils/handStrength';
+import { mixedLine } from '../utils/fullHandEngine';
 
 export interface RangeRequest {
   hand?: string;
@@ -15,10 +16,11 @@ export interface RangeRequest {
 
 interface PokerTableProps {
   step: HandStep;
+  /** What happened after a correct answer that ended the hand. */
+  endNote?: string;
   stake: StakeLevel;
   displayUnits: 'bb' | 'units';
   deckColorMode: '4color' | '2color';
-  showHandStrength: boolean;
   selectedOptionId: string | null;
   isSubmitted: boolean;
   sessionHandsCount: number;
@@ -74,7 +76,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   stake,
   displayUnits,
   deckColorMode,
-  showHandStrength,
+  endNote,
   selectedOptionId,
   isSubmitted,
   sessionHandsCount,
@@ -100,6 +102,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   const verdict = selectedOpt?.verdict || 'error';
   const isCorrectAnswer = selectedOpt?.isCorrect === true;
   const optimalLabels = step.options.filter(o => o.isCorrect).map(o => o.label).join(' / ');
+  const mixLine = isAction ? mixedLine(step.options) : null;
+  const needPct = (amount?: number) => (amount && step.pot > 0 ? Math.round((amount / (step.pot + amount)) * 100) : 0);
 
   const situation = step.street === 'preflop' ? SITUATION_BY_SPOT[step.spotType] : undefined;
   const opener = step.players
@@ -113,7 +117,10 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   };
 
   const barColor = (id: string) =>
-    id === 'fold' ? 'bg-slate-600' : id === 'call' || id === 'check' ? 'bg-emerald-600' : id === 'limp' ? 'bg-slate-500' : 'bg-blue-600';
+    id === 'fold' ? 'bg-slate-600' : id === 'call' || id === 'check' ? 'bg-emerald-600' : 'bg-blue-600';
+  const BAR_LABEL: Record<string, string> = {
+    fold: 'Fold', call: 'Pagar', check: 'Check', bet_small: 'Peq.', bet_big: 'Grande', raise: 'Subir', '3bet': '3-bet', '4bet': '4-bet', jam: 'All-in'
+  };
 
   return (
     <div className="w-full h-[100dvh] max-h-[100dvh] flex flex-col justify-between bg-[radial-gradient(circle_at_50%_35%,#0F172A_0%,#060913_100%)] text-slate-100 select-none overflow-hidden relative font-sans">
@@ -179,7 +186,10 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             </div>
 
             <div className="bg-[#0F172A]/85 border border-sky-400/25 px-3 py-1 rounded-[10px] text-center shadow-md max-w-[100%]">
-              <span className="text-[11px] font-semibold text-slate-200 leading-tight block truncate">{step.contextNotice}</span>
+              <span className="text-[11px] font-semibold text-slate-200 leading-tight block truncate">
+                {step.isReviewOfMistake && <span className="text-amber-300 font-[800]">Repaso · </span>}
+                {step.contextNotice}
+              </span>
             </div>
 
             <div className="flex flex-col items-center mt-1">
@@ -187,11 +197,6 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 <div className="flex items-center gap-2">
                   <CardView card={hero.cards[0]} size="hero" deckMode={deckColorMode} className="rotate-[-3deg]" />
                   <CardView card={hero.cards[1]} size="hero" deckMode={deckColorMode} className="rotate-[3deg]" />
-                </div>
-              )}
-              {showHandStrength && step.handStrengthName && (
-                <div className="mt-1 bg-black/60 border border-slate-700/50 px-2 py-0.5 rounded-full text-[10px] font-bold text-sky-300 truncate max-w-[180px]">
-                  {step.handStrengthName}
                 </div>
               )}
             </div>
@@ -251,10 +256,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             <div className={`grid gap-2 ${step.options.length <= 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
               {step.options.map(opt => {
                 const isPassive = opt.id === 'call' || opt.id === 'check';
-                const isAggro = !isPassive && opt.id !== 'fold' && opt.id !== 'limp';
+                const isAggro = !isPassive && opt.id !== 'fold';
                 let style = 'bg-[#111827] border-[1.5px] border-[#374151] text-[#F87171]';
                 if (!isAction) style = 'bg-[#121929] border-[1.5px] border-blue-500/40 text-blue-200';
-                else if (opt.id === 'limp') style = 'bg-[#111827] border-[1.5px] border-[#374151] text-slate-300';
                 else if (isPassive) style = 'bg-[#0F2942] border-[1.5px] border-[#2563EB] text-white';
                 else if (isAggro) style = 'bg-[#172554] border-[1.5px] border-[#3B82F6] text-[#60A5FA]';
                 const { main, sub } = labelFor(opt.label, opt.amountBB);
@@ -266,19 +270,27 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                   >
                     <span className="tracking-wide">{main}</span>
                     {sub && <span className="text-[10px] font-semibold opacity-75 tabular-nums">{sub}</span>}
+                    {isAction && opt.id === 'call' && needPct(opt.amountBB) > 0 && (
+                      <span className="need-pct text-[10px] font-semibold text-sky-300/90 tabular-nums">Necesitas {needPct(opt.amountBB)} %</span>
+                    )}
                   </button>
                 );
               })}
             </div>
           </div>
         ) : isCorrectAnswer ? (
-          <button onClick={onNext} className="w-full flex flex-col gap-1.5 animate-fadeIn text-left" aria-label="Siguiente">
-            <div className="w-full flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/40 rounded-xl p-2.5 min-h-[56px]">
-              <div className="w-7 h-7 rounded-full bg-emerald-500/25 flex items-center justify-center">
-                <Check className="w-4 h-4 text-emerald-400 stroke-[3]" />
+          <button onClick={onNext} className="correct-card w-full flex flex-col gap-1 animate-fadeIn text-left" aria-label="Siguiente">
+            <div className="w-full flex flex-col gap-1 bg-emerald-500/15 border border-emerald-500/40 rounded-xl px-2.5 py-2 min-h-[56px]">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 shrink-0 rounded-full bg-emerald-500/25 flex items-center justify-center">
+                  <Check className="w-4 h-4 text-emerald-400 stroke-[3]" />
+                </div>
+                <span className="text-sm font-[800] text-emerald-300">Correcto</span>
+                <span className="ml-auto text-[11px] text-emerald-400/80 tabular-nums truncate">{selectedOpt?.label}</span>
               </div>
-              <span className="text-sm font-[800] text-emerald-300">Correcto</span>
-              <span className="ml-auto text-[11px] text-emerald-400/80 tabular-nums">{selectedOpt?.label}</span>
+              {step.why && <span className="why-line text-[11px] leading-snug text-slate-200">{step.why}</span>}
+              {mixLine && <span className="mix-line text-[11px] leading-snug font-semibold text-amber-200">{mixLine}</span>}
+              {endNote && <span className="text-[11px] font-semibold text-sky-300">{endNote}</span>}
             </div>
             <div className="w-full h-0.5 bg-slate-800 rounded-full overflow-hidden">
               <div className="h-full bg-emerald-400 rounded-full animate-shrinkBar" />
@@ -292,7 +304,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             <div className="flex items-center justify-between gap-2">
               {verdict === 'mixed' ? (
                 <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-[800] whitespace-nowrap">
-                  Mixta {selectedOpt?.evDiff}
+                  Poco usada {selectedOpt?.evDiff}
                 </span>
               ) : (
                 <span className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[11px] font-[800] flex items-center gap-1 whitespace-nowrap">
@@ -313,11 +325,14 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                     style={{ width: `${o.frequencyGTO}%` }}
                     className={`h-full ${barColor(o.id)} flex items-center justify-center text-[9px] font-bold text-white whitespace-nowrap overflow-hidden`}
                   >
-                    {o.frequencyGTO >= 18 ? `${o.label.split(' ')[0]} ${o.frequencyGTO}%` : ''}
+                    {o.frequencyGTO >= 18 ? `${BAR_LABEL[o.id] || o.label.split(' ')[0]} ${o.frequencyGTO}%` : ''}
                   </div>
                 ))}
               </div>
             )}
+
+            {step.why && <div className="why-line text-[11px] leading-snug text-slate-200">{step.why}</div>}
+            {mixLine && <div className="mix-line text-[11px] leading-snug font-semibold text-amber-200">{mixLine}</div>}
 
             <div className="flex items-center gap-2 pt-0.5">
               {situation && hero.cards && (
@@ -374,13 +389,19 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               {isAction && (
                 <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-lg">
                   <span className="text-slate-400">Posición</span>
-                  <span className="font-bold text-sky-400">{step.hint.relativePosition}</span>
+                  <span className="font-bold text-sky-400">{step.hint.relativePosition === 'IP' ? 'Hablas último' : 'Hablas primero'}</span>
                 </div>
               )}
               {step.hint.potOddsPct > 0 && (
                 <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-lg">
-                  <span className="text-slate-400">Pot odds</span>
-                  <span className="font-bold text-emerald-400">{step.hint.potOddsPct}%</span>
+                  <span className="text-slate-400">Para pagar necesitas</span>
+                  <span className="font-bold text-emerald-400">{step.hint.potOddsPct} %</span>
+                </div>
+              )}
+              {step.hint.spr !== undefined && (
+                <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-lg">
+                  <span className="text-slate-400">SPR</span>
+                  <span className="font-bold text-slate-200">{step.hint.spr}</span>
                 </div>
               )}
               <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-lg gap-2">

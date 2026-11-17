@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { GameContext } from './useGame';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   UserStats,
   HandStep,
@@ -7,13 +6,34 @@ import {
   PedagogicalLevel,
   SpotType,
   SessionHandResult,
+  MistakeRecord,
+  ReviewKey,
   CLOCKWISE_POSITIONS
 } from '../types/poker';
 import { playSuccessSound, playErrorSound, playLevelUpSound, triggerHaptic } from '../utils/audio';
-import { evaluatePedagogicalDifficulty } from '../utils/difficultyEngine';
+import { evaluatePedagogicalDifficulty, LEVEL_WINDOW } from '../utils/difficultyEngine';
+import { GameContext, LevelNotice } from './useGame';
 
 const STORAGE_KEY = 'poker_trainer_pro_v5';
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
+
+/** Review intervals in decisions for stages 0, 1, 2. */
+const REVIEW_INTERVALS = [3, 10, 30];
+
+const sameKey = (a: ReviewKey, b: ReviewKey) =>
+  a.kind === b.kind && a.spot === b.spot && a.heroPos === b.heroPos && a.villainPos === b.villainPos &&
+  a.hand === b.hand && a.street === b.street && a.cls === b.cls && a.decision === b.decision;
+
+const STREET_LABEL: Record<string, string> = { flop: 'Flop', turn: 'Turn', river: 'River' };
+
+function keyLabel(k: ReviewKey): string {
+  if (k.kind === 'odds') return 'Pot odds';
+  if (k.kind === 'equity') return 'Outs';
+  if (k.kind === 'ev') return 'EV';
+  const vs = k.villainPos ? ` vs ${k.villainPos}` : '';
+  if (k.kind === 'pre') return `${k.heroPos}${vs} · ${k.hand}`;
+  return `${k.heroPos}${vs} · ${STREET_LABEL[k.street || 'flop']}`;
+}
 
 const todayKey = () => new Date().toLocaleDateString('sv-SE');
 
@@ -52,7 +72,6 @@ const DEFAULT_STATS: UserStats = {
     dailyReminder: true,
     displayUnits: 'bb',
     deckColorMode: '4color',
-    showHandStrength: true,
     trainingPositions: [...CLOCKWISE_POSITIONS]
   },
   categoryStats: { ...DEFAULT_CATEGORY_STATS },
@@ -62,6 +81,8 @@ const DEFAULT_STATS: UserStats = {
 
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [levelNotice, setLevelNotice] = useState<LevelNotice | null>(null);
+  const clearLevelNotice = useCallback(() => setLevelNotice(null), []);
   const [stats, setStats] = useState<UserStats>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -71,6 +92,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // step format changed: drop stored steps, keep totals and preferences
           parsed.mistakeQueue = [];
           parsed.sessionHands = [];
+          parsed.recentAnswers = [];
+          if (parsed.preferences) delete parsed.preferences.showHandStrength;
           parsed.schemaVersion = SCHEMA_VERSION;
           delete parsed.opponentProfile;
           delete parsed.xp;
@@ -137,71 +160,61 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Difficulty adjustment
-    const diffResult = evaluatePedagogicalDifficulty(
-      stats.pedagogicalLevel,
-      isCorrect,
-      stats.consecutiveCorrect,
-      stats.recentAnswers,
-      stats.autoAdjustDifficulty
-    );
-
-    if (diffResult.changed && diffResult.reason === 'level_up' && stats.preferences.soundEnabled) {
-      playLevelUpSound(stats.preferences.volume);
+    // Level: last 20 counted answers (easy correct folds do not count)
+    const counts = !(step.trivial && isCorrect);
+    const recent = counts ? [...stats.recentAnswers, isCorrect].slice(-LEVEL_WINDOW) : stats.recentAnswers;
+    const diffResult = evaluatePedagogicalDifficulty(stats.pedagogicalLevel, recent, stats.autoAdjustDifficulty);
+    if (diffResult.changed) {
+      setLevelNotice({ level: diffResult.newLevel, up: diffResult.reason === 'level_up' });
+      if (diffResult.reason === 'level_up' && stats.preferences.soundEnabled) playLevelUpSound(stats.preferences.volume);
     }
 
     setStats(prev => {
-      // Update Category Stats
       const spot = step.spotType;
       const prevCat = prev.categoryStats[spot] || { total: 0, correct: 0 };
       const updatedCatStats = {
         ...prev.categoryStats,
-        [spot]: {
-          total: prevCat.total + 1,
-          correct: prevCat.correct + (isCorrect ? 1 : 0)
-        }
+        [spot]: { total: prevCat.total + 1, correct: prevCat.correct + (isCorrect ? 1 : 0) }
       };
 
-      // Update Mistake Queue
-      let updatedQueue = [...(prev.mistakeQueue || [])];
-
-      if (step.isReviewOfMistake) {
-        // Find mistake in queue
-        const mistakeIndex = updatedQueue.findIndex(m => m.step.id === step.id);
-        if (mistakeIndex >= 0) {
-          if (isCorrect) {
-            updatedQueue[mistakeIndex].consecutiveSuccesses++;
-            if (updatedQueue[mistakeIndex].consecutiveSuccesses >= 3) {
-              // Mastered! Remove from queue
-              updatedQueue.splice(mistakeIndex, 1);
-            }
-          } else {
-            updatedQueue[mistakeIndex].consecutiveSuccesses = 0;
-            updatedQueue[mistakeIndex].repetitionCount++;
-          }
+      // Spaced repetition: errors come back 3, 10 and 30 decisions later
+      const now = prev.totalHandsPlayed + 1;
+      let queue: MistakeRecord[] = [...(prev.mistakeQueue || [])];
+      const correctOpt = [...step.options].sort((a, b) => b.frequencyGTO - a.frequencyGTO)[0];
+      const reviewed = step.reviewOf ? queue.find(m => m.id === step.reviewOf) : undefined;
+      if (reviewed) {
+        if (isCorrect) {
+          const stage = reviewed.stage + 1;
+          queue = stage >= REVIEW_INTERVALS.length
+            ? queue.filter(m => m.id !== reviewed.id)
+            : queue.map(m => (m.id === reviewed.id ? { ...m, stage, dueAt: now + REVIEW_INTERVALS[stage] } : m));
+        } else {
+          queue = queue.map(m => (m.id === reviewed.id
+            ? { ...m, stage: 0, dueAt: now + REVIEW_INTERVALS[0], repetitionCount: m.repetitionCount + 1, userAnswerId: selectedOptionId, userAnswerLabel: selectedOption?.label || selectedOptionId, correctAnswerLabel: correctOpt?.label || '', evLostBB: Math.abs(evDiffNum) }
+            : m));
         }
-      } else if (!isCorrect && verdict === 'error') {
-        const correctOpt = step.options.find(o => o.isCorrect);
-        updatedQueue.unshift({
-          id: `mistake_${Date.now()}`,
+      } else if (verdict === 'error') {
+        const existing = queue.find(m => sameKey(m.key, step.review));
+        const rec: MistakeRecord = {
+          id: existing?.id || `mistake_${Date.now()}`,
           timestamp: Date.now(),
-          step,
+          key: step.review,
+          stage: 0,
+          dueAt: now + REVIEW_INTERVALS[0],
           failedAtHandIndex: prev.totalHandsPlayed,
-          repetitionCount: 0,
-          consecutiveSuccesses: 0,
+          repetitionCount: existing ? existing.repetitionCount + 1 : 0,
+          label: keyLabel(step.review),
           userAnswerId: selectedOptionId,
           userAnswerLabel: selectedOption?.label || selectedOptionId,
-          correctAnswerLabel: correctOpt?.label || 'Jugada Óptima',
+          correctAnswerLabel: correctOpt?.label || '',
           evLostBB: Math.abs(evDiffNum)
-        });
-        if (updatedQueue.length > 50) updatedQueue.pop();
+        };
+        queue = [rec, ...queue.filter(m => m.id !== rec.id)].slice(0, 50);
       }
 
-      // Update Session Hands (capped at last 20 for memory)
-      const correctOpt = step.options.find(o => o.isCorrect);
       const sessionEntry: SessionHandResult = {
         id: `sess_${Date.now()}`,
-        handName: step.handStrengthName || step.contextNotice,
+        handName: step.contextNotice,
         position: step.heroPosition,
         street: step.street,
         verdict,
@@ -210,15 +223,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         correctAnswer: correctOpt?.label || 'Óptima'
       };
 
-      const updatedSession = [sessionEntry, ...prev.sessionHands].slice(0, 30);
-      const updatedRecentAnswers = [...prev.recentAnswers, isCorrect].slice(-5);
-
       return {
         ...prev,
         pedagogicalLevel: diffResult.newLevel,
-        consecutiveCorrect: diffResult.consecutiveCorrect,
-        recentAnswers: updatedRecentAnswers,
-        totalHandsPlayed: prev.totalHandsPlayed + 1,
+        consecutiveCorrect: isCorrect ? prev.consecutiveCorrect + 1 : 0,
+        recentAnswers: diffResult.changed ? [] : recent,
+        totalHandsPlayed: now,
         totalCorrectDecisions: prev.totalCorrectDecisions + (isCorrect ? 1 : 0),
         totalDecisions: prev.totalDecisions + 1,
         totalEvAccumulatedBB: Math.round((prev.totalEvAccumulatedBB + evDiffNum) * 100) / 100,
@@ -227,8 +237,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : (prev.dailyDrillDate === todayKey() ? prev.dailyDrillCount : 0),
         dailyDrillDate: todayKey(),
         categoryStats: updatedCatStats,
-        mistakeQueue: updatedQueue,
-        sessionHands: updatedSession
+        mistakeQueue: queue,
+        sessionHands: [sessionEntry, ...prev.sessionHands].slice(0, 30)
       };
     });
 
@@ -240,7 +250,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const setPedagogicalLevel = (lvl: PedagogicalLevel) => {
-    setStats(prev => ({ ...prev, pedagogicalLevel: lvl }));
+    setStats(prev => ({ ...prev, pedagogicalLevel: lvl, recentAnswers: [] }));
   };
 
   const setAutoAdjustDifficulty = (enabled: boolean) => {
@@ -299,7 +309,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateUserProfile,
         resetAllStats,
         clearMistakes,
-        getTopLeaks
+        getTopLeaks,
+        levelNotice,
+        clearLevelNotice
       }}
     >
       {children}

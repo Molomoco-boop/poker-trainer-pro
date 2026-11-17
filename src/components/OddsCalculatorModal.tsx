@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { X, RefreshCw } from 'lucide-react';
 import { Card, Rank, Suit } from '../types/poker';
-import { evaluateHand } from '../utils/pokerEvaluator';
 import { CardView } from './CardView';
 import { detectCleanOuts, calculatePotOddsPct } from '../utils/pokerMath';
 import { ModalPortal } from './ModalPortal';
@@ -46,7 +45,7 @@ export const OddsCalculatorModal: React.FC<OddsCalculatorModalProps> = ({ onClos
   const board = slots.slice(2).filter(Boolean) as Card[];
   const ready = hero.length === 2 && board.length >= 3 && board.length <= 4;
   const draws = ready ? detectCleanOuts([hero[0], hero[1]], board) : null;
-  const handName = hero.length === 2 && board.length >= 3 ? evaluateHand([...hero, ...board]).descr : '—';
+  const drawSummary = draws ? `${draws.drawLabels.join(' + ') || 'Sin proyecto'} · ${draws.totalCleanOutsCount} outs` : '—';
   const equity = draws ? draws.equityRiverPct : 0;
   const potOdds = calculatePotOddsPct(bet, pot + bet);
   const profitable = draws && bet > 0 && equity >= potOdds;
@@ -92,7 +91,7 @@ export const OddsCalculatorModal: React.FC<OddsCalculatorModalProps> = ({ onClos
               ))}
             </div>
             <div className="flex items-center justify-between text-[11px]">
-              <span className="text-sky-300 font-bold truncate">{handName}</span>
+              <span className="text-sky-300 font-bold truncate">{drawSummary}</span>
               {slots[active] && (
                 <button
                   onClick={() => { const n = [...slots]; n[active] = null; setSlots(n); }}

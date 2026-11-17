@@ -99,14 +99,12 @@ export const StatsMistakesModal: React.FC<StatsMistakesModalProps> = ({ onClose 
                   <div key={m.id} className="bg-[#121929] border border-slate-800 rounded-xl p-3 space-y-1.5 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-blue-400 uppercase text-[10px]">
-                        {m.step.spotType.replace(/_/g, ' ')} · {m.step.street.toUpperCase()}
+                        {m.label}
                       </span>
                       <span className="text-[10px] text-amber-400 font-semibold">
-                        Aciertos seguidos: {m.consecutiveSuccesses}/3
+                        Repaso {Math.min(m.stage + 1, 3)}/3
                       </span>
                     </div>
-
-                    <p className="font-semibold text-white">{m.step.contextNotice}</p>
 
                     <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/80 text-[11px]">
                       <div className="text-red-400">

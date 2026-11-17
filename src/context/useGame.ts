@@ -1,6 +1,8 @@
 import { createContext, useContext } from 'react';
 import { UserStats, HandStep, StakeLevel, PedagogicalLevel, SpotType } from '../types/poker';
 
+export interface LevelNotice { level: PedagogicalLevel; up: boolean }
+
 export interface GameContextType {
   stats: UserStats;
   recordStepAnswer: (step: HandStep, selectedOptionId: string, opts?: { daily?: boolean }) => { isCorrect: boolean; levelChanged?: boolean };
@@ -13,6 +15,8 @@ export interface GameContextType {
   resetAllStats: () => void;
   clearMistakes: () => void;
   getTopLeaks: () => Array<{ spotType: SpotType; accuracyPct: number; totalHands: number }>;
+  levelNotice: LevelNotice | null;
+  clearLevelNotice: () => void;
 }
 
 export const GameContext = createContext<GameContextType | undefined>(undefined);

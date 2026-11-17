@@ -6,53 +6,31 @@ export interface DifficultyAdjustmentResult {
   newLevel: PedagogicalLevel;
   changed: boolean;
   reason?: 'level_up' | 'level_down';
-  consecutiveCorrect: number;
 }
 
+/** Answers kept for the level decision. */
+export const LEVEL_WINDOW = 20;
+
+/**
+ * Level up: ≥80 % correct over the last 20 counted answers.
+ * Level down: <50 % over the last 10. `recent` already includes the current answer.
+ */
 export function evaluatePedagogicalDifficulty(
   currentLevel: PedagogicalLevel,
-  isCorrect: boolean,
-  consecutiveCorrect: number,
-  recentAnswers: boolean[], // last answers (including this one)
+  recent: boolean[],
   autoAdjust: boolean
 ): DifficultyAdjustmentResult {
-  if (!autoAdjust) {
-    return {
-      newLevel: currentLevel,
-      changed: false,
-      consecutiveCorrect: isCorrect ? consecutiveCorrect + 1 : 0
-    };
+  if (!autoAdjust) return { newLevel: currentLevel, changed: false };
+  const last = recent.slice(-LEVEL_WINDOW);
+  if (last.length >= LEVEL_WINDOW && currentLevel < 4) {
+    const pct = last.filter(Boolean).length / last.length;
+    if (pct >= 0.8) return { newLevel: (currentLevel + 1) as PedagogicalLevel, changed: true, reason: 'level_up' };
   }
-
-  const updatedStreak = isCorrect ? consecutiveCorrect + 1 : 0;
-  const last5 = [...recentAnswers, isCorrect].slice(-5);
-  const errorsInLast5 = last5.filter(ans => !ans).length;
-
-  // Level Up: 5 consecutive correct answers
-  if (updatedStreak >= 5 && currentLevel < 4) {
-    return {
-      newLevel: (currentLevel + 1) as PedagogicalLevel,
-      changed: true,
-      reason: 'level_up',
-      consecutiveCorrect: 0
-    };
+  const last10 = recent.slice(-10);
+  if (last10.length >= 10 && currentLevel > 1 && last10.filter(Boolean).length / 10 < 0.5) {
+    return { newLevel: (currentLevel - 1) as PedagogicalLevel, changed: true, reason: 'level_down' };
   }
-
-  // Level Down: 3 errors in last 5 answers
-  if (errorsInLast5 >= 3 && currentLevel > 1) {
-    return {
-      newLevel: (currentLevel - 1) as PedagogicalLevel,
-      changed: true,
-      reason: 'level_down',
-      consecutiveCorrect: 0
-    };
-  }
-
-  return {
-    newLevel: currentLevel,
-    changed: false,
-    consecutiveCorrect: updatedStreak
-  };
+  return { newLevel: currentLevel, changed: false };
 }
 
 // Convert BB to EUR for current stake

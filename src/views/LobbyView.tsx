@@ -4,6 +4,7 @@ import { TrainingCategories } from '../components/TrainingCategories';
 import { ToolsSection } from '../components/ToolsSection';
 import { RangeViewerModal } from '../components/RangeViewerModal';
 import { OddsCalculatorModal } from '../components/OddsCalculatorModal';
+import { HandsTableModal } from '../components/HandsTableModal';
 import { StatsMistakesModal } from '../components/StatsMistakesModal';
 import { CategoryId } from '../types/poker';
 import { Play } from 'lucide-react';
@@ -23,6 +24,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   const { stats } = useGame();
   const [showRangeViewer, setShowRangeViewer] = useState(false);
   const [showOddsCalculator, setShowOddsCalculator] = useState(false);
+  const [showHandsTable, setShowHandsTable] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
 
   const drillProgress = stats.dailyDrillCount || 0;
@@ -73,6 +75,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       <ToolsSection
         onOpenRangeViewer={() => setShowRangeViewer(true)}
         onOpenOddsCalculator={() => setShowOddsCalculator(true)}
+        onOpenHandsTable={() => setShowHandsTable(true)}
       />
 
       {/* Stats & Mistakes quick link */}
@@ -99,6 +102,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       {/* Modals */}
       {showRangeViewer && <RangeViewerModal onClose={() => setShowRangeViewer(false)} />}
       {showOddsCalculator && <OddsCalculatorModal onClose={() => setShowOddsCalculator(false)} />}
+      {showHandsTable && <HandsTableModal onClose={() => setShowHandsTable(false)} />}
       {showStatsModal && <StatsMistakesModal onClose={() => setShowStatsModal(false)} />}
     </div>
   );

@@ -123,9 +123,6 @@ export const ProfileView: React.FC = () => {
         <Row label="Baraja">
           <Segmented options={[{ id: '4color', label: '4 colores' }, { id: '2color', label: '2 colores' }]} value={prefs.deckColorMode} onChange={id => updatePreferences({ deckColorMode: id as '4color' | '2color' })} />
         </Row>
-        <Row label="Nombre de jugada" sub="En la mesa, bajo tus cartas">
-          <Toggle label="Nombre de jugada" on={prefs.showHandStrength} onClick={() => updatePreferences({ showHandStrength: !prefs.showHandStrength })} />
-        </Row>
         <Row label={`Volumen ${prefs.volume}%`}>
           <input type="range" min="0" max="100" value={prefs.volume} onChange={handleVolumeChange} aria-label="Volumen" className="w-36 h-10 cursor-pointer accent-[#2563EB]" />
         </Row>

@@ -12,7 +12,7 @@ export const CLOCKWISE_POSITIONS: Position[] = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 
 
 export type Street = 'preflop' | 'flop' | 'turn' | 'river';
 
-export type CategoryId = 'simulator' | 'math' | 'fundamentals';
+export type CategoryId = 'simulator' | 'math';
 
 export type SubcategoryId =
   | 'full_hand'
@@ -20,9 +20,7 @@ export type SubcategoryId =
   | 'postflop'
   | 'odds'
   | 'equity'
-  | 'ev'
-  | 'hand_ranking'
-  | 'best_hand';
+  | 'ev';
 
 export type PracticeMode = 'continuous' | 'daily' | SubcategoryId;
 
@@ -106,17 +104,32 @@ export interface HandStep {
   actionTicker: string;
   contextNotice: string; // Short pill inside table
   prompt: string; // e.g. "¿Cuál es tu jugada?"
-  questionType: 'action' | 'pot_odds' | 'outs' | 'ev' | 'hand_ranking' | 'best_hand';
+  questionType: 'action' | 'pot_odds' | 'outs' | 'ev';
   options: DecisionOption[];
   hint: {
     relativePosition: 'IP' | 'OOP';
     potOddsPct: number;
     boardTexture: string;
+    spr?: number;
   };
-  handStrengthName?: string;
+  /** One line explaining pot, probabilities or range for this decision. */
+  why: string;
+  /** Shown after the continuing answer when the hand ends there (e.g. "BTN foldea"). */
+  endNote?: string;
+  /** Describes the spot so a similar one can be generated for review. */
+  review: ReviewKey;
+  /** Easy preflop fold outside every open range: a correct answer does not count for level. */
+  trivial?: boolean;
   isReviewOfMistake?: boolean;
-  /** Option id the next street of the scenario assumes. Any other answer ends the hand. */
-  continueWith?: string;
+  reviewOf?: string;
+  /** Plays the chosen (correct) option and returns the next hero decision, or null when the hand ends. */
+  advance?: (optionId: string) => StepAdvance;
+}
+
+export interface StepAdvance {
+  next: HandStep | null;
+  /** What happened after hero's action when the hand ends (e.g. "BTN foldea"). */
+  note?: string;
 }
 
 export interface FullHandScenario {
@@ -127,13 +140,31 @@ export interface FullHandScenario {
   steps: HandStep[];
 }
 
+export type ReviewKind = 'pre' | 'post' | 'odds' | 'equity' | 'ev';
+
+export interface ReviewKey {
+  kind: ReviewKind;
+  /** Scenario spot used to generate it (preflop spot for 'pre', forced spot for 'post'). */
+  spot: SpotType;
+  heroPos: Position;
+  villainPos?: Position;
+  hand?: string;
+  street?: Street;
+  /** Postflop: strength class and decision type ('lead' | 'facing' | 'raise'). */
+  cls?: string;
+  decision?: 'lead' | 'facing' | 'raise';
+}
+
 export interface MistakeRecord {
   id: string;
   timestamp: number;
-  step: HandStep;
+  key: ReviewKey;
+  /** Review stage: 0 → due 3 decisions later, 1 → 10, 2 → 30; passing stage 2 removes it. */
+  stage: number;
+  dueAt: number;
   failedAtHandIndex: number;
   repetitionCount: number;
-  consecutiveSuccesses: number;
+  label: string;
   userAnswerId: string;
   userAnswerLabel: string;
   correctAnswerLabel: string;
@@ -158,7 +189,7 @@ export interface UserStats {
   pedagogicalLevel: PedagogicalLevel;
   autoAdjustDifficulty: boolean;
   consecutiveCorrect: number;
-  recentAnswers: boolean[]; // last 5 answers
+  recentAnswers: boolean[]; // last 20 counted answers (level progression)
   totalHandsPlayed: number;
   totalCorrectDecisions: number;
   totalDecisions: number;
@@ -175,7 +206,6 @@ export interface UserStats {
     dailyReminder: boolean;
     displayUnits: 'bb' | 'units'; // 'bb' | 'units' (€)
     deckColorMode: '4color' | '2color';
-    showHandStrength: boolean;
     trainingPositions: Position[];
   };
   categoryStats: Record<SpotType, { total: number; correct: number }>;

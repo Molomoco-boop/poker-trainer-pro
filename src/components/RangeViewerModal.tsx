@@ -24,10 +24,15 @@ const HERO_POSITIONS: Record<PreflopSituation, Position[]> = {
   VS_3BET: ['UTG', 'HJ', 'CO', 'BTN']
 };
 
-const OPENERS: Record<string, Position[]> = {
-  SB: ['UTG', 'HJ', 'CO', 'BTN'],
-  BB: ['UTG', 'HJ', 'CO', 'BTN', 'SB']
-};
+const ORDER: Position[] = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+
+/** Vs open: who opened (players before hero). Vs 3-bet: who 3-bets (players after hero). */
+function villainsFor(situation: PreflopSituation, position: Position): Position[] {
+  const i = ORDER.indexOf(position);
+  if (situation === 'VS_OPEN') return ORDER.slice(0, i);
+  if (situation === 'VS_3BET') return ORDER.slice(i + 1);
+  return [];
+}
 
 export const RangeViewerModal: React.FC<RangeViewerModalProps> = ({
   onClose,
@@ -47,8 +52,8 @@ export const RangeViewerModal: React.FC<RangeViewerModalProps> = ({
     if (!HERO_POSITIONS[s].includes(position)) setPosition(HERO_POSITIONS[s][HERO_POSITIONS[s].length - 1]);
   };
 
-  const openers = OPENERS[position] || [];
-  const effOpener = openers.includes(opener) ? opener : openers[openers.length - 1];
+  const openers = villainsFor(situation, position);
+  const effOpener = openers.includes(opener) ? opener : situation === 'VS_3BET' ? openers[0] : openers[openers.length - 1];
   const matrix = getPreflopMatrix(situation, position, effOpener);
   const stats = getRangeStats(matrix);
   const chip = (on: boolean) =>
@@ -80,9 +85,9 @@ export const RangeViewerModal: React.FC<RangeViewerModalProps> = ({
             ))}
           </div>
 
-          {situation === 'VS_OPEN' && (
+          {openers.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-slate-400 w-10 shrink-0">Abre</span>
+              <span className="text-[10px] text-slate-400 w-10 shrink-0">{situation === 'VS_OPEN' ? 'Abre' : '3-bet'}</span>
               <div className="grid flex-1 gap-1.5" style={{ gridTemplateColumns: `repeat(${openers.length}, minmax(0, 1fr))` }}>
                 {openers.map(p => (
                   <button key={p} onClick={() => setOpener(p)} className={chip(effOpener === p)}>{p}</button>
