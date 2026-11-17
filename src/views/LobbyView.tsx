@@ -5,6 +5,7 @@ import { HandsTableModal } from '../components/HandsTableModal';
 import { useGame } from '../context/useGame';
 import { CONCEPT_ES, CURRICULUM } from '../types/poker';
 import { Panel, Title } from '../components/ui';
+import { ALL_MODES, MODE_ES, MODE_SUB } from '../utils/botProfiles';
 import { ChevronRight } from 'lucide-react';
 
 interface LobbyViewProps {
@@ -14,6 +15,10 @@ interface LobbyViewProps {
   onStartPlacement: () => void;
   onStartSprint: () => void;
   onStartRangeBuilder: () => void;
+  onOpenReview: () => void;
+  onOpenFlops: () => void;
+  tableMode: import('../utils/botProfiles').TableMode;
+  onTableMode: (m: import('../utils/botProfiles').TableMode) => void;
 }
 
 const Row: React.FC<{ title: string; sub: string; right?: React.ReactNode; onClick: () => void; accent?: boolean; cls?: string }> = ({ title, sub, right, onClick, accent, cls = '' }) => (
@@ -27,7 +32,7 @@ const Row: React.FC<{ title: string; sub: string; right?: React.ReactNode; onCli
   </button>
 );
 
-export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated, onStartCash, onStartPlacement, onStartSprint, onStartRangeBuilder }) => {
+export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated, onStartCash, onStartPlacement, onStartSprint, onStartRangeBuilder, onOpenReview, onOpenFlops, tableMode, onTableMode }) => {
   const { stats } = useGame();
   const [modal, setModal] = useState<'ranges' | 'odds' | 'hands' | null>(null);
   const daily = stats.dailyDrillCount || 0;
@@ -65,7 +70,22 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated
           right={<span className="num text-[13px] text-txt">{Math.min(daily, 10)}/10</span>}
           onClick={onStartDaily}
         />
-        <Row cls="cash-row" title="Jugar partidas" sub="Mesa 6-max · manos completas · puntúa" right={due ? <span className="num text-[12px] text-warn">{due} rep.</span> : undefined} onClick={onStartCash} />
+        <Row cls="cash-row" title="Jugar partidas" sub={`Mesa 6-max · ${MODE_ES[tableMode]} · ${MODE_SUB[tableMode]}`} right={due ? <span className="num text-[12px] text-warn">{due} rep.</span> : undefined} onClick={onStartCash} />
+        <div className="profile-picker flex flex-wrap gap-1 px-3 py-2 border-b border-line">
+          {ALL_MODES.map(m => (
+            <button
+              key={m}
+              type="button"
+              className={`profile-chip h-8 px-2 rounded-[4px] text-[11px] font-semibold border ${tableMode === m ? 'bg-acc text-white border-acc' : 'border-line text-txt'}`}
+              data-mode={m}
+              onClick={e => { e.stopPropagation(); onTableMode(m); }}
+            >
+              {MODE_ES[m]}
+            </button>
+          ))}
+        </div>
+        <Row cls="review-row" title="Revisión de partidas" sub="Tus manos, calle a calle" onClick={onOpenReview} />
+        <Row cls="flops-row" title="Informes de flop" sub="Textura, c-bet y defensa" onClick={onOpenFlops} />
         <Row cls="rated-row" title="Spots" sub="Decisiones sueltas a tu nivel" onClick={onStartRated} />
         <Row cls="sprint-row" title="¿Abre? 60 s" sub="Open o fold, tres fallos y fuera" right={<span className="num text-[13px] text-txt">{stats.sprintBest}</span>} onClick={onStartSprint} />
         <Row cls="builder-row" title="Construir rango" sub="Pinta el rango de memoria" onClick={onStartRangeBuilder} />

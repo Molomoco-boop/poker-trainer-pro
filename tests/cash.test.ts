@@ -24,6 +24,7 @@ function checkSeats(run: CashRun, tag: string) {
 
 function playOut(table: CashTable, maxDecisions = 24): CashRun {
   let run = startHand(table);
+  const startSum = r1(run.seats.reduce((a, s) => a + s.stack + s.invested, 0));
   for (let i = 0; i < maxDecisions && !run.award; i++) {
     const step = run.step;
     ok(!!step, `hand ${table.handNo}: has step`);
@@ -46,7 +47,7 @@ function playOut(table: CashTable, maxDecisions = 24): CashRun {
   ok(!!run.award, `hand ${table.handNo}: finished`);
   if (run.award) {
     const stacks = run.table.stacks.reduce((a, b) => a + b, 0);
-    ok(Math.abs(stacks - 600) < 1.1, `hand ${table.handNo}: stacks sum ${stacks} ~= 600`);
+    ok(Math.abs(stacks - startSum) < 1.1, `hand ${table.handNo}: stacks conserved ${stacks} ~= ${startSum}`);
     checkSeats(run, `h${table.handNo}end`);
   }
   return run;
@@ -142,6 +143,50 @@ function playOut(table: CashTable, maxDecisions = 24): CashRun {
   ok(f.raise === 100, 'AA opens 100% UTG');
   const foldy = preflopFreqs('72o', { pos: 'UTG', raiseTo: 0, betIn: 0, raises: 0, callers: 0, limpers: 0 });
   ok(foldy.fold >= 100 || foldy.raise === 0, '72o folds UTG');
+}
+
+// Bot checks (and every other street action) must be stored on the seat and in the ticker.
+{
+  let foundCheck = 0;
+  let foundNotice = 0;
+  let foundFoldChip = 0;
+  for (let h = 0; h < 220 && foundCheck < 3; h++) {
+    const table: CashTable = { stacks: [100, 100, 100, 100, 100, 100], buttonSeat: h % 6, handNo: h, startHero: 100 };
+    let run = startHand(table);
+    for (let i = 0; i < 24 && run.step && !run.award; i++) {
+      const step = run.step;
+      const bots = step.players.filter(p => !p.isHero && p.streetAction);
+      const checks = bots.filter(p => /^Check$/i.test(p.streetAction || ''));
+      const ticker = step.actionTicker || '';
+      for (const p of bots) {
+        const act = (p.streetAction || '').toLowerCase();
+        const word = act.startsWith('check') ? 'check'
+          : act.startsWith('fold') ? 'fold'
+          : act.startsWith('call') ? 'call'
+          : act.startsWith('limp') || act.startsWith('completar') ? 'limp'
+          : act.startsWith('bet') ? 'bet'
+          : act.includes('3-bet') ? '3-bet'
+          : act.includes('4-bet') ? '4-bet'
+          : act.startsWith('raise') ? 'raise' : '';
+        if (word) {
+          ok(ticker.toLowerCase().includes(`${p.position.toLowerCase()} ${word}`),
+            `ticker mentions ${p.position} ${word}: "${ticker}" (chip ${p.streetAction})`);
+        }
+        if (word === 'fold') foundFoldChip++;
+      }
+      if (checks.length) {
+        foundCheck++;
+        ok(!/hablas primero/i.test(step.contextNotice), `after checks, notice is not "hablas primero" ("${step.contextNotice}")`);
+        ok(/pasa/i.test(step.contextNotice), `after checks, notice mentions pasan ("${step.contextNotice}")`);
+        const mark = run.street === 'flop' ? 'Flop' : run.street === 'turn' ? 'Turn' : run.street === 'river' ? 'River' : null;
+        if (mark) ok(ticker.startsWith(mark), `ticker starts with ${mark}: "${ticker}"`);
+        foundNotice++;
+      }
+      const pick = step.options.find(o => o.id === 'check') || step.options.find(o => o.isCorrect) || step.options[0];
+      run = applyHeroAction(run, pick.id);
+    }
+  }
+  ok(foundCheck >= 1, `found bot checks in front of hero (${foundCheck})`);
 }
 
 console.log(`${checks} checks, ${failures} failures`);

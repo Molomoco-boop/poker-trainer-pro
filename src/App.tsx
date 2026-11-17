@@ -10,14 +10,19 @@ import { TopicsView } from './views/TopicsView';
 import { SprintView } from './views/SprintView';
 import { RangeBuilderView } from './views/RangeBuilderView';
 import { CashView } from './views/CashView';
+import { ReviewView } from './views/ReviewView';
+import { FlopReportView } from './views/FlopReportView';
 import { SessionSpec } from './types/poker';
+import { loadTableMode, saveTableMode, TableMode } from './utils/botProfiles';
 
-type Screen = { kind: 'tabs' } | { kind: 'practice'; session: SessionSpec } | { kind: 'cash' } | { kind: 'sprint' } | { kind: 'builder' };
+type Screen = { kind: 'tabs' } | { kind: 'practice'; session: SessionSpec } | { kind: 'cash' } | { kind: 'sprint' } | { kind: 'builder' } | { kind: 'review' } | { kind: 'flops' };
 
 function AppContent() {
   const [tab, setTab] = useState<Tab>('inicio');
   const [screen, setScreen] = useState<Screen>({ kind: 'tabs' });
   const [runId, setRunId] = useState(0);
+  const [tableMode, setTableMode] = useState<TableMode>(() => loadTableMode());
+  const chooseMode = (m: TableMode) => { setTableMode(m); saveTableMode(m); };
   const play = (session: SessionSpec) => { setRunId(n => n + 1); setScreen({ kind: 'practice', session }); };
   const back = () => setScreen({ kind: 'tabs' });
   useBackLayer(screen.kind !== 'tabs', back);
@@ -29,7 +34,11 @@ function AppContent() {
         {screen.kind === 'practice' ? (
           <PracticeView key={runId} session={screen.session} onExit={back} />
         ) : screen.kind === 'cash' ? (
-          <CashView onExit={back} />
+          <CashView key={runId} onExit={back} mode={tableMode} />
+        ) : screen.kind === 'review' ? (
+          <ReviewView onExit={back} />
+        ) : screen.kind === 'flops' ? (
+          <FlopReportView onExit={back} />
         ) : screen.kind === 'sprint' ? (
           <SprintView onExit={back} />
         ) : screen.kind === 'builder' ? (
@@ -41,14 +50,18 @@ function AppContent() {
                 <LobbyView
                   onStartDaily={() => play({ kind: 'daily' })}
                   onStartRated={() => play({ kind: 'rated' })}
-                  onStartCash={() => setScreen({ kind: 'cash' })}
+                  onStartCash={() => { setRunId(n => n + 1); setScreen({ kind: 'cash' }); }}
                   onStartPlacement={() => play({ kind: 'placement' })}
                   onStartSprint={() => setScreen({ kind: 'sprint' })}
                   onStartRangeBuilder={() => setScreen({ kind: 'builder' })}
+                  onOpenReview={() => setScreen({ kind: 'review' })}
+                  onOpenFlops={() => setScreen({ kind: 'flops' })}
+                  tableMode={tableMode}
+                  onTableMode={chooseMode}
                 />
               )}
               {tab === 'temas' && <TopicsView onStart={concept => play({ kind: 'concept', concept })} />}
-              {tab === 'progreso' && <ProgressView onTrainLeak={(pos, street) => play({ kind: 'leak', pos, street })} />}
+              {tab === 'progreso' && <ProgressView onTrainLeak={(pos, street) => play({ kind: 'leak', pos, street })} onOpenReview={() => setScreen({ kind: 'review' })} onOpenFlops={() => setScreen({ kind: 'flops' })} />}
               {tab === 'perfil' && <ProfileView />}
             </main>
             <BottomNav currentTab={tab} onSelectTab={setTab} />

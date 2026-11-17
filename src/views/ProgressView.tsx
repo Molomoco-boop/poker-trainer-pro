@@ -10,7 +10,7 @@ const STREET_SHORT: Record<string, string> = { preflop: 'Pre', flop: 'Flop', tur
 const tone = (v: number | null, n: number) =>
   v === null || n < 3 ? 'bg-panel2 text-dim' : v >= 60 ? 'bg-good/80 text-white' : v >= 30 ? 'bg-warn/80 text-black' : 'bg-bad/80 text-white';
 
-export const ProgressView: React.FC<{ onTrainLeak: (pos: Position, street: Street) => void }> = ({ onTrainLeak }) => {
+export const ProgressView: React.FC<{ onTrainLeak: (pos: Position, street: Street) => void; onOpenReview: () => void; onOpenFlops: () => void }> = ({ onTrainLeak, onOpenReview, onOpenFlops }) => {
   const { stats } = useGame();
   const [sel, setSel] = useState<{ pos: Position; street: Street } | null>(null);
   const real = aboveChance(stats.totalCorrectDecisions, stats.totalDecisions, stats.totalChance);
@@ -79,6 +79,11 @@ export const ProgressView: React.FC<{ onTrainLeak: (pos: Position, street: Stree
           )}
         </Panel>
       </div>
+
+      <Panel className="overflow-hidden">
+        <button onClick={onOpenReview} className="progress-review w-full text-left px-3 min-h-[52px] border-b border-line text-[14px] font-semibold text-hi active:bg-panel2">Revisión de partidas</button>
+        <button onClick={onOpenFlops} className="progress-flops w-full text-left px-3 min-h-[52px] text-[14px] font-semibold text-hi active:bg-panel2">Informes de flop</button>
+      </Panel>
 
       <div className="flex items-center justify-between px-0.5 text-[13px] text-txt num">
         <span>Repasos pendientes <b className="text-hi">{stats.mistakeQueue.length}</b></span>

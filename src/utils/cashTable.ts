@@ -11,9 +11,13 @@ import { cardsToHandLabel } from './handStrength';
 import { calculatePotOddsPct, analyzeBoardTexture, isWetBoard } from './pokerMath';
 import { buildOptions, spotDifficulty } from './fullHandEngine';
 import {
-  r1, fmt, openSize, preflopFreqs, samplePreflop, threeBetSize,
+  r1, fmt, openSize, preflopFreqs, threeBetSize,
   leadFreqs, facingFreqs, betFrac, PreflopCtx, PostCtx
 } from './actionModel';
+import {
+  BotProfile, assignProfiles, profilePre, profileLead, profileFacing,
+  exploitPre, exploitLead, exploitFacing, vsLabel, blend
+} from './botProfiles';
 
 const FROM_BTN: Position[] = ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'];
 export const posOf = (seat: number, buttonSeat: number): Position => FROM_BTN[(seat - buttonSeat + 6) % 6];
@@ -29,6 +33,8 @@ interface Seat {
   streetBet: number;
   invested: number;    // whole hand including streetBet
   folded: boolean;
+  streetLine: string | null; // last action this street ("Check", "Call 2.5", ...)
+  profile: BotProfile;
 }
 
 export interface CashTable {
@@ -61,6 +67,9 @@ export interface CashRun {
   step: HandStep | null;
   award: CashAward | null;
   ticker: string;
+  streetActs: { seat: number; pos: Position; kind: string; amount?: number }[];
+  profiles: BotProfile[];
+  log: { street: Street; pos: Position; id: string; text: string }[];
 }
 
 const uid = (p: string) => `${p}_${Math.random().toString(36).slice(2, 8)}`;
@@ -79,7 +88,7 @@ function deal(table: CashTable): { seats: Seat[]; board: Card[]; deck: Card[] } 
   const seats: Seat[] = [];
   for (let i = 0; i < 6; i++) {
     const c1 = deck.pop()!, c2 = deck.pop()!;
-    seats.push({ seat: i, stack: stacks[i], cards: [c1, c2], streetBet: 0, invested: 0, folded: false });
+    seats.push({ seat: i, stack: stacks[i], cards: [c1, c2], streetBet: 0, invested: 0, folded: false, streetLine: null, profile: 'regular' });
   }
   const board = [deck.pop()!, deck.pop()!, deck.pop()!, deck.pop()!, deck.pop()!];
   return { seats, board, deck };
@@ -161,10 +170,76 @@ function playerStates(run: CashRun, show: boolean): PlayerState[] {
       stack: s.stack,
       currentBet: s.streetBet,
       totalInvestedHand: s.invested,
-      status: s.seat === 0 ? 'hero' : s.folded ? 'folded' : 'active',
-      cards: s.seat === 0 || (show && !s.folded) ? s.cards : undefined
+      status: s.folded ? 'folded' : s.seat === 0 ? 'hero' : 'active',
+      cards: s.seat === 0 || (show && !s.folded) ? s.cards : undefined,
+      streetAction: s.streetLine || undefined,
+      profile: s.seat === 0 ? undefined : s.profile
     };
   });
+}
+
+function buildDual(
+  gto: { id: string; label: string; amountBB?: number; freq: number }[],
+  exploit: { id: string; label: string; amountBB?: number; freq: number }[] | null,
+  label: string | null
+): DecisionOption[] {
+  const src = exploit || gto;
+  return buildOptions(src).map(o => {
+    const g = gto.find(d => d.id === o.id);
+    const e = exploit?.find(d => d.id === o.id);
+    return {
+      ...o,
+      frequencyGTO: g?.freq ?? o.frequencyGTO,
+      frequencyExploit: exploit ? (e?.freq ?? 0) : undefined,
+      exploitLabel: exploit && label ? label : undefined
+    };
+  });
+}
+
+function optionsForHero(
+  run: CashRun,
+  seat: number,
+  defs: { id: string; label: string; amountBB?: number; freq: number }[],
+  toCall: number
+): DecisionOption[] {
+  if (seat !== 0) return buildOptions(defs);
+  const villains = live(run.seats).filter(s => s.seat !== 0);
+  const facingAgg = toCall > 0 && run.lastAggressor != null ? [run.seats[run.lastAggressor].profile] : null;
+  const profiles = (facingAgg || villains.map(s => s.profile)).filter(Boolean) as BotProfile[];
+  const label = vsLabel(profiles);
+  if (!label) return buildOptions(defs);
+  let exploit: { id: string; label: string; amountBB?: number; freq: number }[];
+  if (run.street === 'preflop') {
+    const gto = {
+      fold: defs.find(d => d.id === 'fold')?.freq ?? 0,
+      call: defs.find(d => d.id === 'call')?.freq ?? 0,
+      raise: defs.find(d => d.id === 'raise' || d.id === '3bet' || d.id === '4bet')?.freq ?? 0,
+      limp: defs.find(d => d.id === 'limp')?.freq ?? 0
+    };
+    const ex = blend(profiles.map(p => exploitPre(gto, p, preCtx(run, seat))));
+    exploit = defs.map(d => ({
+      ...d,
+      freq: d.id === 'fold' ? ex.fold : d.id === 'call' ? ex.call : d.id === 'limp' ? ex.limp : ex.raise
+    }));
+  } else {
+    const ctx = postCtx(run, seat, toCall);
+    if (toCall <= 0) {
+      const gto = { check: defs.find(d => d.id === 'check')?.freq ?? 0, bet_small: defs.find(d => d.id === 'bet_small')?.freq ?? 0, bet_big: defs.find(d => d.id === 'bet_big')?.freq ?? 0 };
+      const ex = blend(profiles.map(p => exploitLead(gto, p, ctx.cls, ctx.street)));
+      exploit = defs.map(d => ({
+        ...d,
+        freq: d.id === 'check' ? ex.check : d.id === 'bet_small' ? ex.bet_small : d.id === 'bet_big' ? ex.bet_big : 0
+      }));
+    } else {
+      const gto = { fold: defs.find(d => d.id === 'fold')?.freq ?? 0, call: defs.find(d => d.id === 'call')?.freq ?? 0, raise: defs.find(d => d.id === 'raise')?.freq ?? 0 };
+      const ex = blend(profiles.map(p => exploitFacing(gto, p, ctx.street)));
+      exploit = defs.map(d => ({
+        ...d,
+        freq: d.id === 'fold' ? ex.fold : d.id === 'call' ? ex.call : d.id === 'raise' ? ex.raise : 0
+      }));
+    }
+  }
+  return buildDual(defs, exploit, label);
 }
 
 function optionsFor(run: CashRun, seat: number): { defs: { id: string; label: string; amountBB?: number; freq: number }[]; toCall: number } {
@@ -239,16 +314,16 @@ function whyFor(run: CashRun, seat: number, defs: { id: string; freq: number; am
   const mw = n >= 4 ? '4-way' : n === 3 ? '3-way' : 'HU';
   if (run.street === 'preflop') {
     const hand = cardsToHandLabel(s.cards);
-    const call = defs.find(d => d.id === 'call');
-    const need = call && toCall > 0 ? `${Math.round(calculatePotOddsPct(toCall, pot))} %` : '';
-    const why = toCall > 0
+    const pay = defs.find(d => d.id === 'call' || d.id === 'limp');
+    const need = pay && toCall > 0 ? `${Math.round(calculatePotOddsPct(toCall, pot))} %` : '';
+    const why = toCall > 0 && need
       ? `Bote ${fmt(pot)} BB, pagas ${fmt(toCall)} → necesitas ${need}. ${hand} · ${mw}.`
       : `${posOf(seat, run.buttonSeat)} · ${hand} · ${mw}.`;
     const plan = defs.slice().sort((a, b) => b.freq - a.freq)[0];
     return {
       why,
       detail: [
-        toCall > 0
+        toCall > 0 && need
           ? { k: 'odds', label: 'Pot odds', value: `pagas ${fmt(toCall)} · necesitas ${need}` }
           : { k: 'range', label: 'Mesa', value: mw },
         { k: 'hand', label: 'Tu mano', value: hand },
@@ -278,15 +353,14 @@ function whyFor(run: CashRun, seat: number, defs: { id: string; freq: number; am
 
 function makeStep(run: CashRun, seat: number, ticker: string): HandStep {
   const { defs, toCall } = optionsFor(run, seat);
-  const options: DecisionOption[] = buildOptions(defs);
+  const options: DecisionOption[] = optionsForHero(run, seat, defs, toCall);
   const pot = potOf(run.seats);
   const { why, detail } = whyFor(run, seat, defs, toCall);
   const pos = posOf(seat, run.buttonSeat);
   const cards = run.street === 'preflop' ? [] : run.board.slice(0, run.street === 'flop' ? 3 : run.street === 'turn' ? 4 : 5);
   const concept = conceptOf(run, seat, toCall);
-  const ctxNotice = run.street === 'preflop'
-    ? (toCall > 0 ? `Acción en ti (${pos})` : `Acción en ti (${pos})`)
-    : (toCall > 0 ? `${mwLabel(run)} · te apuestan` : `${mwLabel(run)} · tu turno`);
+  const ctxNotice = heroContextNotice(run, pos, toCall);
+  const streetTicker = tickerForStreet((ticker || run.ticker || '').split(' · ').filter(Boolean), run.street);
   return {
     id: uid(run.street),
     street: run.street,
@@ -297,7 +371,7 @@ function makeStep(run: CashRun, seat: number, ticker: string): HandStep {
     spotType: run.street === 'preflop' ? (toCall > 0 ? (preCtx(run, seat).raises >= 2 ? '3BET_POT' : pos === 'BB' ? 'BB_DEFENSE' : pos === 'SB' ? 'SB_VS_OPEN' : 'RFI_OPEN') : 'RFI_OPEN')
       : run.street === 'flop' ? (toCall > 0 ? 'FACING_CBET' : 'CBET_FLOP') : 'TURN_RIVER_DECISION',
     relativePosition: postRelative(run, seat),
-    actionTicker: ticker,
+    actionTicker: streetTicker,
     contextNotice: ctxNotice,
     prompt: 'Tu jugada',
     questionType: 'action',
@@ -316,10 +390,48 @@ function makeStep(run: CashRun, seat: number, ticker: string): HandStep {
   };
 }
 
-function mwLabel(run: CashRun): string {
-  const n = live(run.seats).length;
-  return n >= 4 ? '4-way' : n === 3 ? '3-way' : 'HU';
+function joinPos(pos: Position[]): string {
+  if (pos.length <= 1) return pos[0] || '';
+  if (pos.length === 2) return `${pos[0]} y ${pos[1]}`;
+  return `${pos.slice(0, -1).join(', ')} y ${pos[pos.length - 1]}`;
 }
+
+function tickerForStreet(ticks: string[], street: Street): string {
+  const mark = street === 'flop' ? 'Flop' : street === 'turn' ? 'Turn' : street === 'river' ? 'River' : null;
+  if (!mark) return ticks.join(' · ') || 'Ciegas';
+  const i = ticks.lastIndexOf(mark);
+  return (i >= 0 ? ticks.slice(i) : [mark, ...ticks]).join(' · ');
+}
+
+function heroContextNotice(run: CashRun, pos: Position, toCall: number): string {
+  const streetName = run.street === 'preflop' ? 'Preflop' : run.street === 'flop' ? 'Flop' : run.street === 'turn' ? 'Turn' : 'River';
+  const prior = run.streetActs;
+  if (!prior.length) {
+    return run.street === 'preflop' ? `Acción en ti (${pos})` : `${streetName} · hablas primero`;
+  }
+  const lastAgg = [...prior].reverse().find(a => a.kind === 'bet' || a.kind === 'raise' || a.kind === 'limp');
+  if (toCall > 0 && lastAgg) {
+    if (lastAgg.kind === 'limp') {
+      const limpers = prior.filter(a => a.kind === 'limp').map(a => a.pos);
+      const names = joinPos(limpers);
+      return `${names} ${limpers.length > 1 ? 'limpean' : 'limpea'} · te toca`;
+    }
+    const verb = lastAgg.kind === 'bet' ? 'apuesta' : 'sube a';
+    const amt = lastAgg.amount != null ? ` ${fmt(lastAgg.amount)}` : '';
+    return `${lastAgg.pos} ${verb}${amt} · te toca`;
+  }
+  const passers = prior.filter(a => a.kind === 'check').map(a => a.pos);
+  const onlyPassive = prior.every(a => a.kind === 'check' || a.kind === 'fold');
+  if (passers.length && onlyPassive) {
+    return `${joinPos(passers)} ${passers.length > 1 ? 'pasan' : 'pasa'} · hablas tú`;
+  }
+  const folders = prior.filter(a => a.kind === 'fold').map(a => a.pos);
+  if (folders.length && prior.every(a => a.kind === 'fold')) {
+    return `${joinPos(folders)} ${folders.length > 1 ? 'foldean' : 'foldea'} · hablas tú`;
+  }
+  return run.street === 'preflop' ? `Acción en ti (${pos})` : `${streetName} · hablas tú`;
+}
+
 
 function postRelative(run: CashRun, seat: number): 'IP' | 'OOP' {
   if (run.street === 'preflop') {
@@ -346,28 +458,53 @@ function fillPending(run: CashRun, afterSeat: number | null): void {
   run.pending = pending;
 }
 
+function noteAction(run: CashRun, seat: number, kind: string, label: string, amount?: number) {
+  run.seats[seat].streetLine = label;
+  run.streetActs.push({ seat, pos: posOf(seat, run.buttonSeat), kind, amount });
+}
+
 function applyAction(run: CashRun, seat: number, id: string, defs: { id: string; amountBB?: number }[]): string {
   const s = run.seats[seat];
   const pos = posOf(seat, run.buttonSeat);
   const def = defs.find(d => d.id === id) || defs[0];
+  const emit = (text: string) => {
+    run.log.push({ street: run.street, pos, id, text });
+    return text;
+  };
   if (id === 'fold') {
     s.folded = true;
-    return `${pos} fold`;
+    noteAction(run, seat, 'fold', 'Fold');
+    return emit(`${pos} fold`);
   }
-  if (id === 'check') return `${pos} check`;
+  if (id === 'check') {
+    noteAction(run, seat, 'check', 'Check');
+    return emit(`${pos} check`);
+  }
   const amt = def.amountBB || 0;
   post(s, amt);
-  if (id === 'call' || id === 'limp') return `${pos} ${id === 'limp' ? 'limp' : 'call'} ${fmt(amt)}`;
+  if (id === 'call' || id === 'limp') {
+    const label = id === 'limp' && pos === 'SB' ? `Completar ${fmt(amt)}` : id === 'limp' ? `Limp ${fmt(amt)}` : `Call ${fmt(amt)}`;
+    noteAction(run, seat, id, label, amt);
+    return emit(`${pos} ${id === 'limp' ? 'limp' : 'call'} ${fmt(amt)}`);
+  }
   run.lastAggressor = seat;
-  return `${pos} ${id.replace('_', ' ')} ${fmt(s.streetBet)}`;
+  const kind = (id === 'bet_small' || id === 'bet_big') ? 'bet' : 'raise';
+  const label = kind === 'bet' ? `Bet ${fmt(s.streetBet)}`
+    : id === '3bet' ? `3-bet ${fmt(s.streetBet)}`
+    : id === '4bet' ? `4-bet ${fmt(s.streetBet)}`
+    : `Raise ${fmt(s.streetBet)}`;
+  noteAction(run, seat, kind, label, s.streetBet);
+  return emit(`${pos} ${kind === 'bet' ? 'bet' : (id === '3bet' ? '3-bet' : id === '4bet' ? '4-bet' : 'raise')} ${fmt(s.streetBet)}`);
 }
 
 function closeStreet(run: CashRun) {
-  for (const s of run.seats) s.streetBet = 0;
+  for (const s of run.seats) { s.streetBet = 0; s.streetLine = null; }
+  run.streetActs = [];
   run.lastAggressor = null;
 }
 
 function goNextStreet(run: CashRun): boolean {
+  if (run.street === 'river') return false;
   closeStreet(run);
   if (run.street === 'preflop') { run.street = 'flop'; run.initiative = lastInvestor(run); return true; }
   if (run.street === 'flop') { run.street = 'turn'; return true; }
@@ -444,8 +581,8 @@ function finish(run: CashRun, award: CashAward) {
     players: playerStates(run, live(run.seats).length > 1),
     options: [],
     prompt: '',
-    contextNotice: award.text,
-    actionTicker: award.text,
+    contextNotice: live(run.seats).length > 1 ? 'Cartas arriba' : '',
+    actionTicker: run.ticker,
     why: award.text,
     detail: []
   };
@@ -473,9 +610,13 @@ function commit(run: CashRun): CashTable {
 function actBot(run: CashRun, seat: number): string {
   const { defs } = optionsFor(run, seat);
   const hand = cardsToHandLabel(run.seats[seat].cards);
+  const prof = run.seats[seat].profile || 'regular';
   let id: string;
   if (run.street === 'preflop') {
-    const act = samplePreflop(hand, preCtx(run, seat));
+    const gto = preflopFreqs(hand, preCtx(run, seat));
+    const f = profilePre(gto, prof);
+    const x = Math.random() * 100;
+    const act = x < f.raise ? 'raise' : x < f.raise + f.call ? 'call' : x < f.raise + f.call + f.limp ? 'limp' : 'fold';
     if (act === 'raise') id = defs.find(d => d.id === 'raise' || d.id === '3bet' || d.id === '4bet')?.id || 'fold';
     else if (act === 'call' || act === 'limp') id = defs.find(d => d.id === act || d.id === 'call' || d.id === 'check')?.id || 'fold';
     else id = defs.find(d => d.id === 'fold' || d.id === 'check')?.id || 'fold';
@@ -484,10 +625,10 @@ function actBot(run: CashRun, seat: number): string {
     const ctx = postCtx(run, seat, toCall);
     const x = Math.random() * 100;
     if (toCall <= 0) {
-      const f = leadFreqs(ctx);
+      const f = profileLead(leadFreqs(ctx), prof, ctx.cls, ctx.street);
       id = x < f.bet_big ? 'bet_big' : x < f.bet_big + f.bet_small ? 'bet_small' : 'check';
     } else {
-      const f = facingFreqs(ctx);
+      const f = profileFacing(facingFreqs(ctx), prof, ctx.street);
       id = x < f.raise ? 'raise' : x < f.raise + f.call ? 'call' : 'fold';
     }
     if (!defs.some(d => d.id === id)) id = defs[0].id;
@@ -498,7 +639,7 @@ function actBot(run: CashRun, seat: number): string {
 /** Run bots until hero must act or the hand ends. */
 function autoUntilHero(run: CashRun, ticks: string[]): void {
   for (let guard = 0; guard < 64; guard++) {
-    if (live(run.seats).length <= 1) { finish(run, foldWin(run)); run.ticker = ticks.join(' · '); return; }
+    if (live(run.seats).length <= 1) { finish(run, foldWin(run)); run.ticker = ticks.join(' · '); if (run.step) run.step.actionTicker = tickerForStreet((run.ticker || "").split(" · ").filter(Boolean), run.street); return; }
     const withChips = live(run.seats).filter(s => s.stack > 0);
     const maxBet = Math.max(...run.seats.map(s => s.streetBet));
     const needCall = withChips.some(s => s.streetBet < maxBet - 0.01);
@@ -507,10 +648,11 @@ function autoUntilHero(run: CashRun, ticks: string[]): void {
       run.street = 'river';
       finish(run, showdown(run));
       run.ticker = ticks.join(' · ');
+      if (run.step) run.step.actionTicker = tickerForStreet((run.ticker || "").split(" · ").filter(Boolean), run.street);
       return;
     }
     if (run.pending.length === 0) {
-      if (!goNextStreet(run)) { finish(run, showdown(run)); run.ticker = ticks.join(' · '); return; }
+      if (!goNextStreet(run)) { finish(run, showdown(run)); run.ticker = ticks.join(' · '); if (run.step) run.step.actionTicker = tickerForStreet((run.ticker || "").split(" · ").filter(Boolean), run.street); return; }
       ticks.push(run.street === 'flop' ? 'Flop' : run.street === 'turn' ? 'Turn' : 'River');
       fillPending(run, null);
       continue;
@@ -539,10 +681,13 @@ function autoUntilHero(run: CashRun, ticks: string[]): void {
   }
   finish(run, live(run.seats).length <= 1 ? foldWin(run) : showdown(run));
   run.ticker = ticks.join(' · ');
+  if (run.step) run.step.actionTicker = tickerForStreet((run.ticker || "").split(" · ").filter(Boolean), run.street);
 }
 
-export function startHand(table: CashTable): CashRun {
+export function startHand(table: CashTable, profiles?: BotProfile[]): CashRun {
   const { seats, board, deck } = deal(table);
+  const profs = profiles && profiles.length === 6 ? profiles : assignProfiles('regular');
+  seats.forEach((s, i) => { s.profile = i === 0 ? 'regular' : profs[i]; });
   const buttonSeat = table.buttonSeat;
   const sb = seats[seatOf('SB', buttonSeat)];
   const bb = seats[seatOf('BB', buttonSeat)];
@@ -558,7 +703,10 @@ export function startHand(table: CashTable): CashRun {
     awaitingHero: false,
     step: null,
     award: null,
-    ticker: ''
+    ticker: '',
+    streetActs: [],
+    profiles: profs,
+    log: []
   };
   fillPending(run, null);
   autoUntilHero(run, ['Ciegas']);

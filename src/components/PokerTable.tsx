@@ -8,6 +8,7 @@ import { cardsToHandLabel } from '../utils/handStrength';
 import { GradeBadge, Delta } from './ui';
 import { GRADE_STYLE } from './gradeStyle';
 import { useBackLayer } from '../navigation/BackProvider';
+import { PROFILE_SHORT } from '../utils/botProfiles';
 
 export interface RangeRequest {
   hand?: string;
@@ -43,6 +44,8 @@ interface PokerTableProps {
   onBack: () => void;
   onToggleUnits: () => void;
   onOpenRangeViewer: (req: RangeRequest) => void;
+  /** Replaces the empty options spacer (e.g. cash showdown summary). */
+  footer?: React.ReactNode;
 }
 
 type SeatCfg = {
@@ -102,31 +105,44 @@ const DetailRows: React.FC<{ rows: DetailRow[] }> = ({ rows }) => (
 );
 
 
-const FreqGrid: React.FC<{ options: HandStep['options']; selectedId: string | null; labelFor: (label: string, amount?: number) => { main: string; sub?: string } }> = ({ options, selectedId, labelFor }) => (
-  <div className={`freq-grid grid gap-1.5 ${options.length <= 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-    {options.map(opt => {
-      const { main } = labelFor(opt.label, opt.amountBB);
-      const on = opt.id === selectedId;
-      const tone = opt.grade === 'best' || opt.grade === 'valid' ? 'text-goodtx' : opt.grade === 'imprecise' ? 'text-warn' : 'text-dim';
-      return (
-        <div
-          key={opt.id}
-          data-freq={opt.id}
-          className={`min-h-[52px] rounded-[4px] p-1 flex flex-col items-center justify-center border ${on ? 'border-hi bg-panel2' : 'border-line bg-bg/40'}`}
-        >
-          <span className="text-[11px] text-txt leading-tight text-center truncate w-full">{main}</span>
-          <span className={`num text-[15px] font-semibold leading-none mt-0.5 ${tone}`}>{opt.frequencyGTO} %</span>
-        </div>
-      );
-    })}
-  </div>
-);
+const FreqGrid: React.FC<{ options: HandStep['options']; selectedId: string | null; labelFor: (label: string, amount?: number) => { main: string; sub?: string } }> = ({ options, selectedId, labelFor }) => {
+  const exploit = options.some(o => o.frequencyExploit != null);
+  const vs = options.find(o => o.exploitLabel)?.exploitLabel;
+  return (
+    <div className={`freq-grid grid gap-1.5 ${options.length <= 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+      {options.map(opt => {
+        const { main } = labelFor(opt.label, opt.amountBB);
+        const on = opt.id === selectedId;
+        const tone = opt.grade === 'best' || opt.grade === 'valid' ? 'text-goodtx' : opt.grade === 'imprecise' ? 'text-warn' : 'text-dim';
+        return (
+          <div
+            key={opt.id}
+            data-freq={opt.id}
+            data-gto={opt.frequencyGTO}
+            data-exploit={opt.frequencyExploit ?? ''}
+            className={`min-h-[52px] rounded-[4px] p-1 flex flex-col items-center justify-center border ${on ? 'border-hi bg-panel2' : 'border-line bg-bg/40'}`}
+          >
+            <span className="text-[11px] text-txt leading-tight text-center truncate w-full">{main}</span>
+            {exploit ? (
+              <>
+                <span className="gto-freq num text-[10px] text-dim leading-none mt-0.5">GTO {opt.frequencyGTO} %</span>
+                <span className={`exploit-freq num text-[13px] font-semibold leading-none mt-0.5 ${tone}`}>{vs} {opt.frequencyExploit} %</span>
+              </>
+            ) : (
+              <span className={`num text-[15px] font-semibold leading-none mt-0.5 ${tone}`}>{opt.frequencyGTO} %</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 
 export const PokerTable: React.FC<PokerTableProps> = ({
   step, stake, displayUnits, deckColorMode, endNote, selectedOptionId, isSubmitted,
   rating, delta, streak, title, recentGrades, fastError, doubted, onDoubt,
-  onSelectOption, onNext, onHold, onBack, onToggleUnits, onOpenRangeViewer
+  onSelectOption, onNext, onHold, onBack, onToggleUnits, onOpenRangeViewer, footer
 }) => {
   const hero = step.players.find(p => p.isHero) || step.players[0];
   const isAction = step.questionType === 'action';
@@ -154,7 +170,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   };
 
   return (
-    <div className="w-full h-[100dvh] max-h-[100dvh] flex flex-col bg-bg text-txt select-none overflow-hidden relative">
+    <div className="poker-table w-full h-[100dvh] max-h-[100dvh] flex flex-col bg-bg text-txt select-none overflow-hidden relative" data-step-id={step.id} data-street={step.street}>
       {/* Header: back · rating ± · streak · units */}
       <div className="w-full px-2 safe-top pb-1 shrink-0 flex items-center gap-2 border-b border-line">
         <button onClick={onBack} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Salir">
@@ -170,7 +186,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           {displayUnits === 'bb' ? 'BB' : '€'}
         </button>
       </div>
-      <div className="px-3 pt-1 text-[11px] text-dim truncate text-center shrink-0">{step.actionTicker}</div>
+      <div className="action-ticker px-3 pt-1 text-[11px] text-dim truncate text-center shrink-0" dir="rtl" title={step.actionTicker}><span dir="ltr">{step.actionTicker}</span></div>
 
       {/* Table */}
       <div className="flex-1 w-full flex items-center justify-center px-2 relative min-h-0">
@@ -186,7 +202,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               {step.communityCards.map((c, i) => <CardView key={i} card={c} size="board" deckMode={deckColorMode} />)}
             </div>
             <div className="text-center max-w-full">
-              <span className="text-[12px] text-hi leading-tight block truncate">
+              <span className="context-notice text-[12px] text-hi leading-tight block truncate">
                 {step.isReviewOfMistake && <span className="text-warn font-semibold">Repaso · </span>}
                 {step.contextNotice}
               </span>
@@ -205,11 +221,14 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             return (
               <div key={p.id} className="absolute z-20" style={cfg.style} data-seat={idx} data-pos={p.position}>
                 <div className="relative flex flex-col items-center">
-                  <div className={`seat-node w-[70px] h-[46px] rounded-[4px] flex flex-col items-center justify-center ${
+                  <div className={`seat-node w-[70px] h-[50px] rounded-[4px] flex flex-col items-center justify-center ${
                     p.isHero ? 'bg-panel border-2 border-acc' : isFolded ? 'bg-bg border border-line opacity-40' : 'bg-panel border border-line'
                   }`}>
                     <span className="text-[13px] font-bold text-hi leading-none">{p.position}</span>
                     <span className="num text-[12px] text-txt leading-none mt-1 whitespace-nowrap">{isFolded ? 'Fold' : money(p.stack)}</span>
+                    {!p.isHero && p.profile && (
+                      <span className="profile-tag text-[8px] leading-none text-dim uppercase tracking-wide mt-0.5" data-profile={p.profile}>{PROFILE_SHORT[p.profile]}</span>
+                    )}
                   </div>
                   {p.isDealer && (
                     <div className="dealer-btn absolute -top-1.5 -right-1.5 w-[20px] h-[20px] rounded-full bg-hi text-bg font-bold text-[10px] flex items-center justify-center z-30">D</div>
@@ -220,9 +239,13 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                       <CardView card={p.cards[1]} size="xs" deckMode={deckColorMode} />
                     </div>
                   )}
-                  {p.currentBet > 0 && (
-                    <div className="bet-chip absolute bg-bg/85 rounded-[3px] px-1.5 py-0.5 whitespace-nowrap z-30" style={cfg.chip}>
-                      <span className="num text-[11px] font-semibold text-hi">{money(p.currentBet)}</span>
+                  {(p.streetAction || p.currentBet > 0) && (
+                    <div
+                      className="bet-chip street-action absolute bg-bg/85 rounded-[3px] px-1.5 py-0.5 whitespace-nowrap z-30"
+                      style={cfg.chip}
+                      data-street-action={p.streetAction || 'chip'}
+                    >
+                      <span className="num text-[11px] font-semibold text-hi">{p.streetAction || money(p.currentBet)}</span>
                     </div>
                   )}
                 </div>
@@ -234,7 +257,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
       {/* Decision / feedback */}
       <div className="w-full shrink-0 z-30 bg-panel border-t border-line px-2 pt-2 safe-bottom flex flex-col gap-1.5">
-        {!isSubmitted && step.options.length === 0 ? (
+        {footer ? footer : !isSubmitted && step.options.length === 0 ? (
           <div className="h-8" />
         ) : !isSubmitted ? (
           <div className="w-full flex flex-col gap-2">
@@ -245,6 +268,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 return (
                   <button
                     key={opt.id}
+                    data-option={opt.id}
+                    data-correct={opt.isCorrect ? '1' : '0'}
                     onClick={() => onSelectOption(opt.id)}
                     className={`option-btn min-h-[56px] rounded-[4px] p-1.5 flex flex-col items-center justify-center font-semibold text-[14px] leading-tight border border-line active:bg-line ${
                       opt.id === 'fold' ? 'bg-panel2 text-txt' : 'bg-panel2 text-hi'
@@ -261,7 +286,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             </div>
           </div>
         ) : isCorrectAnswer && !expanded ? (
-          <div onClick={onNext} role="button" aria-label="Siguiente" className="correct-card w-full flex flex-col gap-1 animate-fadeIn text-left cursor-pointer">
+          <div onClick={onNext} role="button" aria-label="Siguiente" data-feedback="ok" className="correct-card w-full flex flex-col gap-1 animate-fadeIn text-left cursor-pointer">
             {isAction && <FreqGrid options={step.options} selectedId={selectedOptionId} labelFor={labelFor} />}
             <div className="w-full flex flex-col gap-1.5 border-l-4 border-good bg-bg/40 rounded-[3px] px-2.5 py-2 min-h-[56px]">
               <div className="flex items-center gap-2">
@@ -289,7 +314,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             {!doubted && <div className="countdown w-full h-0.5 bg-line overflow-hidden"><div className="h-full bg-good animate-shrinkBar" /></div>}
           </div>
         ) : (
-          <div className={`feedback-card w-full flex flex-col gap-1.5 animate-fadeIn`}>
+          <div data-feedback={isCorrectAnswer ? "ok" : "ko"} className={`feedback-card w-full flex flex-col gap-1.5 animate-fadeIn`}>
             {isAction && <FreqGrid options={step.options} selectedId={selectedOptionId} labelFor={labelFor} />}
             <div className={`flex flex-col gap-1.5 border-l-4 ${isCorrectAnswer ? 'border-good' : grade === 'imprecise' ? 'border-warn' : 'border-bad'} bg-bg/40 rounded-[3px] px-2.5 py-2 ${fastError ? 'fast-error ring-1 ring-warn' : ''}`}>
             <div className="flex items-center gap-2 min-w-0">
@@ -309,7 +334,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                   Rango
                 </button>
               )}
-              <button onClick={onNext} className="flex-1 h-11 rounded-[4px] bg-acc text-white font-semibold text-[14px] flex items-center justify-center gap-1.5">
+              <button onClick={onNext} className="siguiente-btn flex-1 h-11 rounded-[4px] bg-acc text-white font-semibold text-[14px] flex items-center justify-center gap-1.5">
                 Siguiente <ArrowRight className="w-4 h-4" />
               </button>
             </div>

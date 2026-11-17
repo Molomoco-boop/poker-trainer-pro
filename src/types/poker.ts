@@ -36,6 +36,10 @@ export interface PlayerState {
   totalInvestedHand: number; // in BB
   status: PlayerStatus;
   cards?: [Card, Card];
+  /** Last action this street, e.g. "Check", "Call 2.5", "Bet 3", "Raise 8", "Fold". */
+  streetAction?: string;
+  /** Opponent profile tag (bots only). */
+  profile?: 'regular' | 'recreativo' | 'nit' | 'maniac';
 }
 
 export type StakeLevel = 'NL2' | 'NL5' | 'NL10' | 'NL25' | 'NL50' | 'NL100';
@@ -164,6 +168,10 @@ export interface DecisionOption {
   verdict: DecisionVerdict;
   grade: Grade;
   frequencyGTO: number; // 0-100%
+  /** Exploitative frequency vs the current opponent profile, when not Regular. */
+  frequencyExploit?: number;
+  /** Short label, e.g. "Vs nit". */
+  exploitLabel?: string;
 }
 
 export interface HandStep {

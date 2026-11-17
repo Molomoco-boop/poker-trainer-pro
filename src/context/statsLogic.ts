@@ -155,7 +155,7 @@ export function applyAnswer(prev: UserStats, step: HandStep, optId: string, opts
   // Spaced repetition by concept
   const now = prev.totalHandsPlayed + 1;
   let queue: MistakeRecord[] = [...(prev.mistakeQueue || [])];
-  const correctOpt = [...step.options].sort((a, b) => b.frequencyGTO - a.frequencyGTO)[0];
+  const correctOpt = step.options.find(o => o.grade === 'best') || [...step.options].sort((a, b) => (b.frequencyExploit ?? b.frequencyGTO) - (a.frequencyExploit ?? a.frequencyGTO))[0];
   const reviewed = step.reviewOf ? queue.find(m => m.id === step.reviewOf) : undefined;
   const base = {
     userAnswerId: optId,
