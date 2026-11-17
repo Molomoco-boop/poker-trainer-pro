@@ -1,0 +1,8 @@
+{
+  "appId": "com.pokertrainer.pro",
+  "appName": "Poker Trainer Pro",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
