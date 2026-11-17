@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "tsx tests/engine.test.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.2",
@@ -26,6 +28,8 @@
     "oxlint": "^1.90.0",
     "puppeteer-core": "^25.17.0",
     "tailwindcss": "^4.3.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
     "vite": "^8.3.6"
   }
 }
