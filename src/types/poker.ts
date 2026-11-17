@@ -150,6 +150,7 @@ export interface RatingState { r: number; rd: number; n: number }
 /** What a practice screen trains. */
 export type SessionSpec =
   | { kind: 'rated' }
+  | { kind: 'cash' }
   | { kind: 'daily' }
   | { kind: 'placement' }
   | { kind: 'concept'; concept: ConceptId }

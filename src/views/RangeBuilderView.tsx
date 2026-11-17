@@ -4,6 +4,7 @@ import { useGame } from '../context/useGame';
 import { RANGE_TASKS, rangeScore, targetWeight, RangeResult } from '../utils/sessionPlanner';
 import { getHandLabel, getRangeStats } from '../data/preflopRanges';
 import { BtnPrimary, BtnFlat } from '../components/ui';
+import { useBackLayer } from '../navigation/BackProvider';
 
 /** Paint a 13×13 range from memory and get a weighted score. */
 export const RangeBuilderView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
@@ -11,6 +12,7 @@ export const RangeBuilderView: React.FC<{ onExit: () => void }> = ({ onExit }) =
   const [taskIdx, setTaskIdx] = useState(0);
   const [painted, setPainted] = useState<Set<string>>(new Set());
   const [result, setResult] = useState<RangeResult | null>(null);
+  useBackLayer(!!result, () => setResult(null));
   const mode = useRef<boolean | null>(null);
   const task = RANGE_TASKS[taskIdx];
   const matrix = useMemo(() => task.matrix(), [task]);

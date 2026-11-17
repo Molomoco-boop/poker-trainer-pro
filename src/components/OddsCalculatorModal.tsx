@@ -4,6 +4,7 @@ import { Card, Rank, Suit } from '../types/poker';
 import { CardView } from './CardView';
 import { detectCleanOuts, calculatePotOddsPct } from '../utils/pokerMath';
 import { ModalPortal } from './ModalPortal';
+import { useBackLayer } from '../navigation/BackProvider';
 
 interface OddsCalculatorModalProps {
   onClose: () => void;
@@ -52,6 +53,7 @@ export const OddsCalculatorModal: React.FC<OddsCalculatorModalProps> = ({ onClos
   const [rank, setRank] = useState<Rank | null>(null);
   const [pot, setPot] = useState(10);
   const [bet, setBet] = useState(5);
+  useBackLayer(true, onClose);
 
   const used = slots.filter(Boolean) as Card[];
   const isUsed = (r: Rank, s: Suit) => used.some(c => c.rank === r && c.suit === s);

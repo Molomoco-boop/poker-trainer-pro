@@ -4,6 +4,7 @@ import { playChipSound } from '../utils/audio';
 import { StakeLevel } from '../types/poker';
 import { ModalPortal } from '../components/ModalPortal';
 import { Panel, Title, BtnFlat } from '../components/ui';
+import { useBackLayer } from '../navigation/BackProvider';
 
 const STAKES: StakeLevel[] = ['NL2', 'NL5', 'NL10', 'NL25', 'NL50', 'NL100'];
 
@@ -31,6 +32,7 @@ const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, ch
 export const ProfileView: React.FC = () => {
   const { stats, updatePreferences, resetAllStats, updateUserProfile, setStake } = useGame();
   const [confirm, setConfirm] = useState(false);
+  useBackLayer(confirm, () => setConfirm(false));
   const [name, setName] = useState(stats.username);
   const prefs = stats.preferences;
 

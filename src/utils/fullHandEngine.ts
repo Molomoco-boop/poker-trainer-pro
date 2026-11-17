@@ -33,6 +33,7 @@ import {
 import { calculatePotOddsPct, analyzeBoardTexture, isWetBoard, countOutsVsVillain, raiserBoardAdvantage } from './pokerMath';
 import { classifyHand, StrengthClass, CLASS_ES } from './handStrength';
 import { levelForRating, pickNearRating } from './rating';
+import { samplePopulation, afterPre } from './actionModel';
 import { EQUITY_VS_RANDOM } from '../data/equityVsRandom';
 
 // ---------------------------------------------------------------------------
@@ -392,6 +393,8 @@ const SPOT_HERO_POSITIONS: Record<string, Position[]> = {
 interface PreflopLine {
   heroPos: Position;
   villainPos: Position;
+  /** Extra players still in the pot (multiway). */
+  others?: Position[];
   heroAggressor: boolean;
   /** Chips each player has in after preflop. */
   invested: Partial<Record<Position, number>>;
@@ -610,6 +613,22 @@ function buildPreflopStep(
   const toPost = (line: PreflopLine, heroCards: [Card, Card], board: Card[]): StepAdvance =>
     ({ next: firstPostflopDecision(line, heroCards, board, level) });
 
+  const settleOpen = (heroPos: Position, open: number, heroCards: [Card, Card], board: Card[], spot: SpotType): StepAdvance => {
+    const invested: Partial<Record<Position, number>> = { [heroPos]: open, SB: heroPos === 'SB' ? open : 0.5, BB: heroPos === 'BB' ? open : 1 };
+    const others: Position[] = [];
+    let callers = 0;
+    for (const p of afterPre(heroPos)) {
+      const act = samplePopulation({ pos: p, raiseTo: open, betIn: p === 'SB' ? 0.5 : p === 'BB' ? 1 : 0, raises: 1, openPos: heroPos, callers, limpers: 0 });
+      if (act === 'raise') return { next: null, note: `${p} 3-betea` };
+      if (act === 'call' || act === 'limp') { invested[p] = open; others.push(p); callers++; }
+    }
+    if (!others.length) return { next: null, note: 'Foldean: ganas el bote' };
+    const villainPos = others[others.length - 1];
+    const rest = others.filter(p => p !== villainPos);
+    return toPost({ heroPos, villainPos, others: rest, heroAggressor: true, invested, spot }, heroCards, board);
+  };
+
+
   if (spot === 'RFI_OPEN') {
     matrix = getPreflopMatrix('RFI', heroPos);
     foldAllBefore(heroPos);
@@ -637,22 +656,22 @@ function buildPreflopStep(
     trivial = f.fold >= 100 && !early;
     onAnswer = (id, heroCards, board) => {
       if (id !== 'raise') return { next: null };
-      const defender: Position = heroPos === 'SB' ? 'BB' : Math.random() < 0.85 ? 'BB' : 'SB';
-      // blinds fold to the open sometimes
-      if (Math.random() < 0.15) return { next: null, note: 'Foldean las ciegas: ganas el bote' };
-      const invested: Partial<Record<Position, number>> = { [heroPos]: open, [defender]: open };
-      if (defender !== 'SB' && heroPos !== 'SB') invested.SB = 0.5;
-      if (defender !== 'BB') invested.BB = 1;
-      return toPost({ heroPos, villainPos: defender, heroAggressor: true, invested, spot }, heroCards, board);
+      return settleOpen(heroPos, open, heroCards, board, spot);
     };
     villainPos = 'BB';
   } else if (spot === 'BB_DEFENSE') {
     villainPos = force.villainPos || pick(['UTG', 'HJ', 'CO', 'BTN', 'BTN', 'SB'] as Position[]);
     matrix = getPreflopMatrix('VS_OPEN', 'BB', villainPos);
     const open = villainPos === 'SB' ? 3 : 2.5;
-    CLOCKWISE_POSITIONS.forEach(p => { if (p !== villainPos && p !== 'BB') folded.push(p); });
+    let caller: Position | undefined;
+    if (!force.villainPos && villainPos !== 'SB' && Math.random() < 0.34) {
+      const between = CLOCKWISE_POSITIONS.filter(p => actsBefore(villainPos, p) && actsBefore(p, 'BB'));
+      if (between.length) caller = pick(between);
+    }
+    CLOCKWISE_POSITIONS.forEach(p => { if (p !== villainPos && p !== 'BB' && p !== caller) folded.push(p); });
     bets[villainPos] = open;
-    const threeBet = villainPos === 'SB' ? 9 : 11;
+    if (caller) bets[caller] = open;
+    const threeBet = r1((villainPos === 'SB' ? 9 : 11) + (caller ? 3 : 0));
     hand = force.hand || sampleHand(matrix, level, mustContinue ? (_h, f) => f.call >= 50 : undefined);
     const f = getHandFrequency(matrix, hand);
     defs = [
@@ -660,8 +679,8 @@ function buildPreflopStep(
       { id: 'call', label: `CALL ${fmt(open - 1)} BB`, amountBB: r1(open - 1), freq: f.call },
       { id: '3bet', label: `3-BET ${fmt(threeBet)} BB`, amountBB: threeBet, freq: f.raise }
     ];
-    context = `${villainPos} abre a ${fmt(open)} BB`;
-    ticker = villainPos === 'SB' ? 'Foldean hasta SB' : `${villainPos} abre · resto foldea`;
+    context = caller ? `${villainPos} abre · ${caller} paga` : `${villainPos} abre a ${fmt(open)} BB`;
+    ticker = caller ? `${villainPos} abre · ${caller} paga · acción en BB` : villainPos === 'SB' ? 'Foldean hasta SB' : `${villainPos} abre · resto foldea`;
     const pot = sum(bets);
     const call = r1(open - 1);
     const need = calculatePotOddsPct(call, pot);
@@ -673,15 +692,18 @@ function buildPreflopStep(
     ];
     onAnswer = (id, heroCards, board) => {
       const v = villainPos;
+      const extras = caller ? { others: [caller] as Position[] } : {};
       if (id === 'call') {
         const invested: Partial<Record<Position, number>> = { [v]: open, BB: open };
         if (v !== 'SB') invested.SB = 0.5;
-        return toPost({ heroPos: 'BB', villainPos: v, heroAggressor: false, invested, spot }, heroCards, board);
+        if (caller) invested[caller] = open;
+        return toPost({ heroPos: 'BB', villainPos: v, heroAggressor: false, invested, spot, ...extras }, heroCards, board);
       }
       if (id === '3bet') {
-        if (Math.random() < 0.45) return { next: null, note: `${v} foldea al 3-bet` };
+        if (Math.random() < 0.5) return { next: null, note: caller ? `${v} y ${caller} foldean al 3-bet` : `${v} foldea al 3-bet` };
         const invested: Partial<Record<Position, number>> = { [v]: threeBet, BB: threeBet };
         if (v !== 'SB') invested.SB = 0.5;
+        if (caller) invested[caller] = open; // caller already in for the open, folds to squeeze often; if they stay it would be more — keep dead money
         return toPost({ heroPos: 'BB', villainPos: v, heroAggressor: true, invested, spot }, heroCards, board);
       }
       return { next: null };
@@ -830,12 +852,14 @@ function villainBetFrac(street: Street, probe: boolean): number {
 /** Villain's bet probability when he can act first or after hero checks. */
 function villainBetProb(st: PostState, street: Street): number {
   const advForVillain = st.line.heroAggressor ? -raiserBoardAdvantage(st.board) : raiserBoardAdvantage(st.board);
+  const n = 2 + (st.line.others?.length || 0);
+  const cut = n >= 4 ? 0.45 : n === 3 ? 0.65 : 1;
   if (st.initiative === 'villain') {
-    if (street === 'flop') return 0.6 + 0.15 * advForVillain;
-    return street === 'turn' ? 0.55 : 0.45;
+    if (street === 'flop') return (0.6 + 0.15 * advForVillain) * cut;
+    return (street === 'turn' ? 0.55 : 0.45) * cut;
   }
-  if (st.initiative === 'hero') return 0.1; // donk into the aggressor
-  return 0.4; // probe after a checked street
+  if (st.initiative === 'hero') return 0.1 * (n === 2 ? 1 : 0.5); // donk into the aggressor
+  return 0.4 * cut; // probe after a checked street
 }
 
 function streetCards(board: Card[], street: Street): Card[] {
@@ -901,7 +925,8 @@ function makeStep(
     : extra.decision === 'lead' && st.initiative === 'hero' ? 'cbet' : 'flop_def';
   const obvious = top >= 90 && (c === 'monster' || (c === 'air' && extra.decision !== 'lead'));
   const bonus = (info.hc.threat ? 80 : 0) + (c === 'draw' || c === 'weakdraw' ? 50 : 0) + (extra.decision === 'raise' ? 60 : 0);
-  const folded = CLOCKWISE_POSITIONS.filter(p => p !== info.heroPos && p !== info.villainPos);
+  const alive = new Set<Position>([info.heroPos, info.villainPos, ...(st.line.others || [])]);
+  const folded = CLOCKWISE_POSITIONS.filter(p => !alive.has(p));
   const rel = isPlayerInPosition(info.heroPos, info.villainPos) ? 'IP' : 'OOP';
   return {
     id: uid(info.street),

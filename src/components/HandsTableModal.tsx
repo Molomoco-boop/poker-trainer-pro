@@ -4,6 +4,7 @@ import { Position } from '../types/poker';
 import { getHandLabel } from '../data/preflopRanges';
 import { HAND_RANKING, HAND_RANK_BY_LABEL } from '../data/handRanking';
 import { ModalPortal } from './ModalPortal';
+import { useBackLayer } from '../navigation/BackProvider';
 
 interface HandsTableModalProps {
   onClose: () => void;
@@ -23,6 +24,7 @@ const tierClass = (pos: Position | null) => TIERS.find(t => t.pos === pos)?.cls 
 export const HandsTableModal: React.FC<HandsTableModalProps> = ({ onClose }) => {
   const [view, setView] = useState<'rank' | 'matrix'>('rank');
   const [selected, setSelected] = useState('AA');
+  useBackLayer(true, onClose);
   const sel = HAND_RANK_BY_LABEL[selected];
   const cells: string[] = view === 'rank'
     ? HAND_RANKING.map(h => h.hand)

@@ -193,6 +193,9 @@ let donks = 0;
 let foldNotes = 0;
 let raiseSteps = 0;
 let probeSpots = 0;
+let flopHands = 0;
+let multiwayFlops = 0;
+let fourWayFlops = 0;
 
 function checkWhy(step: HandStep, tag: string) {
   ok(!!step.why && step.why.length <= 140, `${tag}: why line present and short (${step.why?.length}) "${step.why}"`);
@@ -251,7 +254,11 @@ for (let i = 0; i < N; i++) {
     const flop = post[0];
     const startPot = r1(flop.pot - flop.players.reduce((a, p) => a + p.currentBet, 0));
     if (flop.street === 'flop') {
-      const villain = flop.players.find(p => !p.isHero && p.status === 'active')!;
+      const villains = flop.players.filter(p => !p.isHero && p.status === 'active');
+      const villain = villains[0];
+      flopHands++;
+      if (villains.length >= 2) multiwayFlops++;
+      if (villains.length >= 3) fourWayFlops++;
       let exp: number | undefined;
       if (sc.spotType === 'RFI_OPEN') exp = pf.heroPosition === 'SB' || villain.position === 'SB' ? 6 : 5.5;
       if (sc.spotType === 'SB_VS_OPEN') exp = 23;
@@ -264,7 +271,11 @@ for (let i = 0; i < N; i++) {
         const dead = (raisers[0].position === 'SB' || pf.heroPosition === 'SB' ? 0 : 0.5) + (raisers[0].position === 'BB' ? 0 : 1);
         exp = 2 * tb + dead;
       }
-      if (exp !== undefined) ok(Math.abs(startPot - exp) < 0.05, `${tag}: flop pot ${startPot} expected ${exp} (${preChoice})`);
+      if (exp !== undefined && villains.length === 1) {
+        const v = villain.position;
+        const classic = v === 'SB' || v === 'BB';
+        if (classic) ok(Math.abs(startPot - exp) < 0.05, `${tag}: flop pot ${startPot} expected ${exp} (${preChoice})`);
+      }
       const heroAgg = sc.spotType === 'RFI_OPEN' || sc.spotType === 'SB_VS_OPEN' || preChoice === '3bet' || preChoice === '4bet';
       const villainBetFirst = flop.players.some(p => !p.isHero && p.currentBet > 0) && flop.players[0].currentBet === 0;
       if (heroAgg && flop.relativePosition === 'IP') { heroAggFlops++; if (villainBetFirst) donks++; }
@@ -281,7 +292,7 @@ for (let i = 0; i < N; i++) {
       ok(st.review.kind === 'post' && !!st.review.decision && st.review.street === st.street, `${stag}: review key`);
       if (st.review.decision === 'raise') raiseSteps++;
       const active = st.players.filter(p => !p.isHero && p.status === 'active');
-      ok(active.length === 1, `${stag}: heads-up (${active.map(p => p.position).join('/')})`);
+      ok(active.length >= 1 && active.length <= 4, `${stag}: 2-5 way (${active.map(p => p.position).join('/')})`);
       const facingBet = st.players.some(p => !p.isHero && p.currentBet > st.players[0].currentBet);
       if (facingBet && st.relativePosition === 'OOP' && st.review.decision === 'facing') ok(/pasas/i.test(st.contextNotice), `${stag}: OOP hero acts first ("${st.contextNotice}")`);
       if (!facingBet && st.relativePosition === 'IP') ok(/pasa\b/.test(st.contextNotice), `${stag}: IP hero gets checked to ("${st.contextNotice}")`);
@@ -315,6 +326,9 @@ for (const street of ['flop', 'turn', 'river']) {
   ids.forEach(id => ok(share(street, id) > 0.03, `${street}: "${id}" optimal in ${(share(street, id) * 100).toFixed(1)}% (>3%)`));
 }
 ok(share('flop', 'raise') + share('turn', 'raise') + share('flop', 'bet_big') > 0.02, 'aggressive answers exist');
+ok(flopHands > 200, `reached flop ${flopHands} times`);
+ok(multiwayFlops / flopHands > 0.12 && multiwayFlops / flopHands < 0.55, `multiway flop rate ${(multiwayFlops / flopHands * 100).toFixed(1)}% (want 12-55)`);
+ok(fourWayFlops > 0, `some 4-way flops (${fourWayFlops})`);
 
 // ---------- drills ----------
 for (let i = 0; i < 300; i++) {
@@ -552,7 +566,7 @@ for (let i = 0; i < 200; i++) {
 
   let st = { ...DEFAULT_STATS };
   let step = generateConceptStep('rfi_late', 1500);
-  while (step.options.every(o => o.isCorrect)) step = generateConceptStep('rfi_late', 1500);
+  while (step.options.every(o => o.isCorrect) || step.trivial) step = generateConceptStep('rfi_late', 1500);
   const good = step.options.find(o => o.isCorrect)!;
   const r1s = applyAnswer(st, step, good.id, { ms: 4000 });
   ok(r1s.result.delta > 0 && r1s.next.rating.r > 1500 && r1s.next.consecutiveCorrect === 1, `correct raises rating (+${r1s.result.delta})`);

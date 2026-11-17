@@ -6,6 +6,7 @@ import { handLabelToCards } from '../utils/fullHandEngine';
 import { CardView } from '../components/CardView';
 import { Panel, BtnPrimary, BtnFlat } from '../components/ui';
 import { playSuccessSound, playErrorSound } from '../utils/audio';
+import { useBackLayer } from '../navigation/BackProvider';
 
 /** "¿Abre?" 60 s: open or fold from a seat, three mistakes end it (Puzzle Rush style). */
 export const SprintView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
@@ -20,6 +21,8 @@ export const SprintView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
   const [flash, setFlash] = useState<'ok' | 'ko' | null>(null);
   const saved = useRef(false);
   const over = running && (left === 0 || lives === 0);
+  const [hideEnd, setHideEnd] = useState(false);
+  useBackLayer(over && !hideEnd, () => setHideEnd(true));
 
   useEffect(() => {
     if (!running || over) return;
@@ -59,6 +62,7 @@ export const SprintView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
 
   const restart = () => {
     saved.current = false;
+    setHideEnd(false);
     setScore(0); setLives(SPRINT_LIVES); setLeft(SPRINT_SECONDS); setMisses([]); setRunning(false);
     next();
   };
@@ -96,7 +100,7 @@ export const SprintView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
         <button onClick={() => answer(true)} className="sprint-open h-16 rounded-[4px] bg-good text-white text-[18px] font-semibold">Abre</button>
       </div>
 
-      {over && (
+      {over && !hideEnd && (
         <div className="sprint-end fixed inset-0 z-[70] bg-black/75 flex items-center justify-center p-4">
           <Panel className="w-full max-w-xs p-4 flex flex-col gap-3">
             <span className="text-[13px] text-dim uppercase tracking-[0.08em]">{lives === 0 ? 'Tres fallos' : 'Tiempo'}</span>

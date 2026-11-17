@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { Position } from '../types/poker';
 import { getHandLabel, getPreflopMatrix, getRangeStats, PreflopSituation } from '../data/preflopRanges';
 import { ModalPortal } from './ModalPortal';
+import { useBackLayer } from '../navigation/BackProvider';
 
 interface RangeViewerModalProps {
   onClose: () => void;
@@ -46,6 +47,7 @@ export const RangeViewerModal: React.FC<RangeViewerModalProps> = ({
     initialPosition && HERO_POSITIONS[initialSituation].includes(initialPosition) ? initialPosition : HERO_POSITIONS[initialSituation][HERO_POSITIONS[initialSituation].length - 1]
   );
   const [opener, setOpener] = useState<Position>(initialOpener || 'BTN');
+  useBackLayer(true, onClose);
 
   const changeSituation = (s: PreflopSituation) => {
     setSituation(s);

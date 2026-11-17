@@ -15,6 +15,7 @@ import { PokerTable, RangeRequest } from '../components/PokerTable';
 import { RangeViewerModal } from '../components/RangeViewerModal';
 import { Panel, Delta, BtnPrimary } from '../components/ui';
 import { playCardSound } from '../utils/audio';
+import { useBackLayer } from '../navigation/BackProvider';
 
 interface PracticeViewProps {
   session: SessionSpec;
@@ -30,6 +31,7 @@ const STREET_ES: Record<string, string> = { preflop: 'Preflop', flop: 'Flop', tu
 function sessionTitle(s: SessionSpec): string {
   switch (s.kind) {
     case 'rated': return 'Puntuada';
+    case 'cash': return 'Mesa';
     case 'daily': return 'Diaria';
     case 'placement': return 'Test de nivel';
     case 'concept': return CONCEPT_ES[s.concept];
@@ -73,6 +75,8 @@ export const PracticeView: React.FC<PracticeViewProps> = ({ session, onExit }) =
         }
         return generateRatedHand(r, { positions: st.preferences.trainingPositions }).steps[0];
       }
+      case 'cash':
+        return generateRatedHand(r, { positions: st.preferences.trainingPositions }).steps[0];
       case 'placement':
         return generateConceptStep(PLACEMENT[Math.min(i, PLACEMENT.length - 1)], r);
       case 'concept': {
@@ -109,8 +113,10 @@ export const PracticeView: React.FC<PracticeViewProps> = ({ session, onExit }) =
   const shownAt = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startRating = useRef(Math.round(stats.rating.r));
+  const [hideEnd, setHideEnd] = useState(false);
 
   const done = total > 0 && answered >= total - (session.kind === 'daily' ? startDaily.current : 0) && !isSubmitted;
+  useBackLayer(done && !hideEnd, () => setHideEnd(true));
 
   const { soundEnabled, volume } = stats.preferences;
   useEffect(() => {
@@ -208,7 +214,7 @@ export const PracticeView: React.FC<PracticeViewProps> = ({ session, onExit }) =
         onOpenRangeViewer={req => setRangeRequest(req)}
       />
 
-      {done && (
+      {done && !hideEnd && (
         <div className="session-end fixed inset-0 z-[70] bg-bg flex items-center justify-center p-4">
           <Panel className="w-full max-w-xs p-4 flex flex-col gap-3">
             <span className="text-[13px] text-dim uppercase tracking-[0.08em]">{session.kind === 'placement' ? 'Test terminado' : 'Sesión diaria hecha'}</span>

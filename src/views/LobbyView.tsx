@@ -10,6 +10,7 @@ import { ChevronRight } from 'lucide-react';
 interface LobbyViewProps {
   onStartDaily: () => void;
   onStartRated: () => void;
+  onStartCash: () => void;
   onStartPlacement: () => void;
   onStartSprint: () => void;
   onStartRangeBuilder: () => void;
@@ -26,7 +27,7 @@ const Row: React.FC<{ title: string; sub: string; right?: React.ReactNode; onCli
   </button>
 );
 
-export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated, onStartPlacement, onStartSprint, onStartRangeBuilder }) => {
+export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated, onStartCash, onStartPlacement, onStartSprint, onStartRangeBuilder }) => {
   const { stats } = useGame();
   const [modal, setModal] = useState<'ranges' | 'odds' | 'hands' | null>(null);
   const daily = stats.dailyDrillCount || 0;
@@ -64,7 +65,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated
           right={<span className="num text-[13px] text-txt">{Math.min(daily, 10)}/10</span>}
           onClick={onStartDaily}
         />
-        <Row cls="rated-row" title="Jugar" sub="Manos completas a tu nivel · puntúa" right={due ? <span className="num text-[12px] text-warn">{due} rep.</span> : undefined} onClick={onStartRated} />
+        <Row cls="cash-row" title="Jugar partidas" sub="Mesa 6-max · manos completas · puntúa" right={due ? <span className="num text-[12px] text-warn">{due} rep.</span> : undefined} onClick={onStartCash} />
+        <Row cls="rated-row" title="Spots" sub="Decisiones sueltas a tu nivel" onClick={onStartRated} />
         <Row cls="sprint-row" title="¿Abre? 60 s" sub="Open o fold, tres fallos y fuera" right={<span className="num text-[13px] text-txt">{stats.sprintBest}</span>} onClick={onStartSprint} />
         <Row cls="builder-row" title="Construir rango" sub="Pinta el rango de memoria" onClick={onStartRangeBuilder} />
       </Panel>

@@ -3,6 +3,7 @@ import { useGame } from '../context/useGame';
 import { CURRICULUM, CONCEPT_ES, CONCEPT_DESC, ConceptId } from '../types/poker';
 import { UNLOCK_N, UNLOCK_RATING } from '../utils/sessionPlanner';
 import { Title } from '../components/ui';
+import { useBackLayer } from '../navigation/BackProvider';
 
 const MATH: ConceptId[] = ['m_mdf', 'm_bluff', 'm_combos', 'm_equity', 'm_odds', 'm_outs', 'm_ev'];
 
@@ -10,6 +11,7 @@ const MATH: ConceptId[] = ['m_mdf', 'm_bluff', 'm_combos', 'm_equity', 'm_odds',
 export const TopicsView: React.FC<{ onStart: (c: ConceptId) => void }> = ({ onStart }) => {
   const { stats } = useGame();
   const [flipped, setFlipped] = useState(false);
+  useBackLayer(flipped, () => setFlipped(false));
   const tile = (c: ConceptId, i?: number) => {
     const r = stats.conceptRatings[c];
     const current = i === stats.curriculumIndex;

@@ -7,6 +7,7 @@ import { PreflopSituation } from '../data/preflopRanges';
 import { cardsToHandLabel } from '../utils/handStrength';
 import { GradeBadge, Delta } from './ui';
 import { GRADE_STYLE } from './gradeStyle';
+import { useBackLayer } from '../navigation/BackProvider';
 
 export interface RangeRequest {
   hand?: string;
@@ -80,9 +81,6 @@ const SITUATION_BY_SPOT: Partial<Record<string, PreflopSituation>> = {
   '3BET_POT': 'VS_3BET'
 };
 
-const BAR_LABEL: Record<string, string> = {
-  fold: 'Fold', limp: 'Limp', call: 'Pagar', check: 'Check', bet_small: 'Peq.', bet_big: 'Grande', raise: 'Subir', '3bet': '3-bet', '4bet': '4-bet', jam: 'All-in'
-};
 const ROW_ICON: Record<DetailRow['k'], React.FC<{ className?: string }>> = {
   odds: Percent, hand: Hand, plan: Target, range: Layers, board: LayoutGrid
 };
@@ -103,7 +101,27 @@ const DetailRows: React.FC<{ rows: DetailRow[] }> = ({ rows }) => (
   </div>
 );
 
-const barColor = (id: string) => (id === 'fold' ? 'bg-[#5a5754]' : id === 'call' || id === 'check' || id === 'limp' ? 'bg-good' : 'bg-acc');
+
+const FreqGrid: React.FC<{ options: HandStep['options']; selectedId: string | null; labelFor: (label: string, amount?: number) => { main: string; sub?: string } }> = ({ options, selectedId, labelFor }) => (
+  <div className={`freq-grid grid gap-1.5 ${options.length <= 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+    {options.map(opt => {
+      const { main } = labelFor(opt.label, opt.amountBB);
+      const on = opt.id === selectedId;
+      const tone = opt.grade === 'best' || opt.grade === 'valid' ? 'text-goodtx' : opt.grade === 'imprecise' ? 'text-warn' : 'text-dim';
+      return (
+        <div
+          key={opt.id}
+          data-freq={opt.id}
+          className={`min-h-[52px] rounded-[4px] p-1 flex flex-col items-center justify-center border ${on ? 'border-hi bg-panel2' : 'border-line bg-bg/40'}`}
+        >
+          <span className="text-[11px] text-txt leading-tight text-center truncate w-full">{main}</span>
+          <span className={`num text-[15px] font-semibold leading-none mt-0.5 ${tone}`}>{opt.frequencyGTO} %</span>
+        </div>
+      );
+    })}
+  </div>
+);
+
 
 export const PokerTable: React.FC<PokerTableProps> = ({
   step, stake, displayUnits, deckColorMode, endNote, selectedOptionId, isSubmitted,
@@ -123,6 +141,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   const [expandedFor, setExpandedFor] = useState<string | null>(null);
   const expanded = expandedFor === step.id && isSubmitted;
   const setExpanded = (v: boolean) => setExpandedFor(v ? step.id : null);
+  useBackLayer(expanded, () => setExpanded(false));
   const planRow = step.detail?.find(r => r.k === 'plan');
   const needPct = (amount?: number) => (amount && step.pot > 0 ? Math.round((amount / (step.pot + amount)) * 100) : 0);
 
@@ -215,7 +234,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
       {/* Decision / feedback */}
       <div className="w-full shrink-0 z-30 bg-panel border-t border-line px-2 pt-2 safe-bottom flex flex-col gap-1.5">
-        {!isSubmitted ? (
+        {!isSubmitted && step.options.length === 0 ? (
+          <div className="h-8" />
+        ) : !isSubmitted ? (
           <div className="w-full flex flex-col gap-2">
             <div className="text-center text-[13px] text-txt">{step.prompt}</div>
             <div className={`grid gap-1.5 ${step.options.length <= 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
@@ -241,6 +262,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           </div>
         ) : isCorrectAnswer && !expanded ? (
           <div onClick={onNext} role="button" aria-label="Siguiente" className="correct-card w-full flex flex-col gap-1 animate-fadeIn text-left cursor-pointer">
+            {isAction && <FreqGrid options={step.options} selectedId={selectedOptionId} labelFor={labelFor} />}
             <div className="w-full flex flex-col gap-1.5 border-l-4 border-good bg-bg/40 rounded-[3px] px-2.5 py-2 min-h-[56px]">
               <div className="flex items-center gap-2">
                 <GradeBadge grade={grade} />
@@ -267,22 +289,15 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             {!doubted && <div className="countdown w-full h-0.5 bg-line overflow-hidden"><div className="h-full bg-good animate-shrinkBar" /></div>}
           </div>
         ) : (
-          <div className={`feedback-card w-full flex flex-col gap-1.5 animate-fadeIn border-l-4 ${isCorrectAnswer ? 'border-good' : grade === 'imprecise' ? 'border-warn' : 'border-bad'} bg-bg/40 rounded-[3px] px-2.5 py-2 ${fastError ? 'fast-error ring-1 ring-warn' : ''}`}>
+          <div className={`feedback-card w-full flex flex-col gap-1.5 animate-fadeIn`}>
+            {isAction && <FreqGrid options={step.options} selectedId={selectedOptionId} labelFor={labelFor} />}
+            <div className={`flex flex-col gap-1.5 border-l-4 ${isCorrectAnswer ? 'border-good' : grade === 'imprecise' ? 'border-warn' : 'border-bad'} bg-bg/40 rounded-[3px] px-2.5 py-2 ${fastError ? 'fast-error ring-1 ring-warn' : ''}`}>
             <div className="flex items-center gap-2 min-w-0">
               <GradeBadge grade={grade} />
               <Delta value={delta} className="text-[15px]" />
               <span className={`ml-auto text-[12px] font-semibold truncate ${isCorrectAnswer ? 'text-txt' : 'text-goodtx'}`}>{isCorrectAnswer ? selectedOpt?.label : isAction ? okLabels : best.label}</span>
             </div>
             {fastError && <span className="text-[11px] text-warn">Rápido y mal: repásalo</span>}
-            {isAction && (
-              <div className="gto-bar w-full h-[18px] rounded-[3px] overflow-hidden flex bg-bg">
-                {step.options.filter(o => o.frequencyGTO > 0).map(o => (
-                  <div key={o.id} style={{ width: `${o.frequencyGTO}%` }} className={`h-full ${barColor(o.id)} flex items-center justify-center text-[10px] font-semibold text-white whitespace-nowrap overflow-hidden`}>
-                    {o.frequencyGTO >= 18 ? `${BAR_LABEL[o.id] || o.label.split(' ')[0]} ${o.frequencyGTO}%` : ''}
-                  </div>
-                ))}
-              </div>
-            )}
             {step.detail?.length ? <DetailRows rows={step.detail} /> : step.why && <div className="why-line text-[12px] leading-snug text-hi">{step.why}</div>}
             {endNote && isCorrectAnswer && <span className="text-[12px] text-acc">{endNote}</span>}
             <div className="flex items-center gap-2 pt-0.5">
@@ -297,6 +312,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               <button onClick={onNext} className="flex-1 h-11 rounded-[4px] bg-acc text-white font-semibold text-[14px] flex items-center justify-center gap-1.5">
                 Siguiente <ArrowRight className="w-4 h-4" />
               </button>
+            </div>
             </div>
           </div>
         )}
