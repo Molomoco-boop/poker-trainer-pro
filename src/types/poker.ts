@@ -119,6 +119,32 @@ export const CONCEPT_ES: Record<ConceptId, string> = {
   m_ev: 'EV'
 };
 
+/** Plain-Spanish description of each topic (back of the topic card). */
+export const CONCEPT_DESC: Record<ConceptId, string> = {
+  rfi_early: 'Abrir en primeras posiciones si nadie ha entrado',
+  rfi_late: 'Abrir desde corte, botón o ciega pequeña',
+  bb_def: 'Ciega grande: pagar o resubir cuando te abren',
+  sb_3b: 'Ciega pequeña ante una subida: resubir o tirar',
+  vs3b: 'Abriste y te resuben: pagar, 4-bet o tirar',
+  cbet: 'Subiste antes del flop: ¿apuestas en el flop?',
+  flop_def: 'Pagaste antes del flop y te apuestan',
+  turn: 'Cuarta carta: seguir apostando, pagar o frenar',
+  river: 'Última carta: valor, farol o pagar un farol',
+  m_mdf: 'Mínimo a defender para que no ganen faroleando',
+  m_bluff: 'Cuántos faroles caben en tu apuesta de river',
+  m_combos: 'Contar combinaciones de manos, quitando las tuyas',
+  m_equity: 'Tu % de ganar contra todo el rango del rival',
+  m_odds: 'Qué % necesitas ganar para pagar una apuesta',
+  m_outs: 'Cartas que te dan la mejor mano, y su %',
+  m_ev: 'Lo que gana o pierde una jugada de media'
+};
+
+export interface DetailRow {
+  k: 'odds' | 'hand' | 'range' | 'board' | 'plan';
+  label: string;
+  value: string;
+}
+
 export interface RatingState { r: number; rd: number; n: number }
 
 /** What a practice screen trains. */
@@ -161,6 +187,8 @@ export interface HandStep {
   };
   /** One line explaining pot, probabilities or range for this decision. */
   why: string;
+  /** Same explanation as 2-3 schematic rows (pot odds · tu mano · plan). */
+  detail?: DetailRow[];
   /** Concept trained by this decision (curriculum, leak map). */
   concept: ConceptId;
   /** Spot rating (Glicko opponent), ~1100-1900. */

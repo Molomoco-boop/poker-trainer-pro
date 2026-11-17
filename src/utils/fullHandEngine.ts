@@ -15,7 +15,8 @@ import {
   StepAdvance,
   CLOCKWISE_POSITIONS,
   ConceptId,
-  Grade
+  Grade,
+  DetailRow
 } from '../types/poker';
 import { RANKS, SUITS, evaluateHand, compareEvaluations } from './pokerEvaluator';
 import {
@@ -195,7 +196,7 @@ export function spotDifficulty(concept: ConceptId, defs: { freq: number }[], obv
 
 export const ACTION_ES: Record<string, string> = {
   fold: 'Fold', call: 'Pagar', raise: 'Subir', check: 'Check', bet_small: 'Apuesta peq.',
-  bet_big: 'Apuesta grande', '3bet': '3-bet', '4bet': '4-bet', jam: 'All-in'
+  bet_big: 'Apuesta grande', '3bet': '3-bet', '4bet': '4-bet', jam: 'All-in', limp: 'Limp'
 };
 
 /** "Paga." / "Check o apuesta peq." from the correct options, most frequent first. */
@@ -537,6 +538,49 @@ function defendWord(f: HandFrequency, raiseName: string): string {
   return parts.map(([n, v]) => `${n} ${v} %`).join(' / ');
 }
 
+const PREMIUM = new Set(['AA', 'KK', 'QQ', 'JJ', 'AKs', 'AKo', 'AQs']);
+const PREMIUM_4B = new Set(['AA', 'KK', 'QQ', 'AKs', 'AKo']);
+const LATE: Position[] = ['CO', 'BTN', 'SB'];
+
+/** "bloquea AA/AK" for Ax / suited Kx that are not value hands, else null. */
+function preBlocker(hand: string): string | null {
+  if (PREMIUM.has(hand) || hand[0] === hand[1]) return null;
+  if (hand[0] === 'A') return 'bloquea AA/AK';
+  if (hand[0] === 'K' && hand.endsWith('s')) return 'bloquea KK/AK';
+  return null;
+}
+
+/** Plan row for a preflop spot: the reason behind the most frequent action, no percentages. */
+function prePlan(spot: SpotType, heroPos: Position, hand: string, f: HandFrequency, early: Position | null): string {
+  const top = dominant(f);
+  const border = Math.max(f.raise, f.call, f.fold) < 75;
+  if (spot === 'RFI_OPEN') {
+    if (top === 'raise') {
+      if (PREMIUM.has(hand)) return 'Valor: abre y construye bote';
+      if (border) return 'Frontera: abrir o fold, ambas cerca';
+      return LATE.includes(heroPos) ? 'Robo: las ciegas foldean mucho' : 'Abre: aguanta a 5 jugadores detrás';
+    }
+    if (early) return `Fold: demasiados detrás; ábrela desde ${early}`;
+    return 'Fold: jugaría dominada';
+  }
+  const value = spot === '3BET_POT' ? PREMIUM_4B.has(hand) : PREMIUM.has(hand);
+  if (top === 'raise') {
+    if (value) return 'Valor: te pagan peores';
+    const blk = preBlocker(hand);
+    if (blk) return `Farol con bloqueador: ${blk}`;
+    return 'Presión: fold equity y jugabilidad';
+  }
+  if (top === 'call') {
+    if (spot === 'BB_DEFENSE') return 'Pagar: buen precio, ya tienes 1 BB dentro';
+    if (spot === '3BET_POT' && isPlayerInPosition(heroPos, 'BB')) return 'Pagar: posición y jugabilidad';
+    return 'Pagar: demasiado buena para foldear, poca para subir';
+  }
+  if (spot === 'SB_VS_OPEN') return 'Fold: desde SB no hay call, y no llega a 3-bet';
+  return 'Fold: dominada por su rango';
+}
+
+const oddsRow = (call: number, pot: number): DetailRow => ({ k: 'odds', label: 'Pot odds', value: `pagas ${fmt(call)} · necesitas ${pctR(calculatePotOddsPct(call, pot))} %` });
+
 function buildPreflopStep(
   spot: SpotType,
   heroPos: Position,
@@ -554,6 +598,7 @@ function buildPreflopStep(
   let why = '';
   let hand = '';
   let trivial = false;
+  let detail: DetailRow[] = [];
   /** Builds what happens after a correct option. */
   let onAnswer: (id: string, heroCards: [Card, Card], board: Card[]) => StepAdvance = () => ({ next: null });
 
@@ -571,8 +616,11 @@ function buildPreflopStep(
     const open = heroPos === 'SB' ? 3 : 2.5;
     hand = force.hand || sampleHand(matrix, level, mustContinue ? (_h, f) => f.raise >= 50 : undefined);
     const f = getHandFrequency(matrix, hand);
+    // limping is never part of this strategy (SB is raise-or-fold too): always an error
+    const limp = heroPos === 'SB' ? 0.5 : 1;
     defs = [
       { id: 'fold', label: 'FOLD', freq: f.fold },
+      { id: 'limp', label: heroPos === 'SB' ? 'COMPLETAR 0.5 BB' : 'LIMP 1 BB', amountBB: limp, freq: 0 },
       { id: 'raise', label: `RAISE ${fmt(open)} BB`, amountBB: open, freq: f.raise }
     ];
     context = `Acción en ti (${heroPos})`;
@@ -581,6 +629,11 @@ function buildPreflopStep(
     const early = earliestOpenPosition(hand);
     const extra = f.raise <= 0 && early ? ` (se abre desde ${early})` : '';
     why = `${heroPos} abre el ${pctR(pct)} %: ${hand} ${openWord(f)}${extra}.`;
+    detail = [
+      { k: 'range', label: 'Rango', value: `${heroPos} abre el ${pctR(pct)} % · nunca limp` },
+      { k: 'hand', label: 'Tu mano', value: `${hand} · ${f.raise >= 100 ? 'dentro' : f.raise <= 0 ? 'fuera' : 'frontera'}` },
+      { k: 'plan', label: 'Plan', value: prePlan(spot, heroPos, hand, f, early) }
+    ];
     trivial = f.fold >= 100 && !early;
     onAnswer = (id, heroCards, board) => {
       if (id !== 'raise') return { next: null };
@@ -613,6 +666,11 @@ function buildPreflopStep(
     const call = r1(open - 1);
     const need = calculatePotOddsPct(call, pot);
     why = `Bote ${fmt(pot)} BB, pagas ${fmt(call)} → necesitas ${pctR(need)} %. BB defiende el ${pctR(getRangeStats(matrix).percentage)} % vs ${villainPos}: ${hand} ${defendWord(f, '3-bet')}.`;
+    detail = [
+      oddsRow(call, pot),
+      { k: 'hand', label: 'Tu mano', value: `${hand} · ${preBlocker(hand) || `BB defiende el ${pctR(getRangeStats(matrix).percentage)} %`}` },
+      { k: 'plan', label: 'Plan', value: prePlan(spot, 'BB', hand, f, null) }
+    ];
     onAnswer = (id, heroCards, board) => {
       const v = villainPos;
       if (id === 'call') {
@@ -643,6 +701,11 @@ function buildPreflopStep(
     context = `${villainPos} abre a 2.5 BB`;
     ticker = `${villainPos} abre · acción en SB`;
     why = `SB vs ${villainPos}: 3-bet o fold, sin call (3-bet el ${pctR(getRangeStats(matrix).percentage)} %). ${hand} ${defendWord(f, '3-bet')}.`;
+    detail = [
+      { k: 'range', label: 'Rango', value: `SB: 3-bet el ${pctR(getRangeStats(matrix).percentage)} % · casi nunca call` },
+      { k: 'hand', label: 'Tu mano', value: `${hand}${preBlocker(hand) ? ` · ${preBlocker(hand)}` : ''}` },
+      { k: 'plan', label: 'Plan', value: prePlan(spot, 'SB', hand, f, null) }
+    ];
     onAnswer = (id, heroCards, board) => {
       if (id !== '3bet') return { next: null };
       if (Math.random() < 0.5) return { next: null, note: `${villainPos} foldea al 3-bet` };
@@ -674,6 +737,11 @@ function buildPreflopStep(
     const ip = isPlayerInPosition(heroPos, villainPos);
     const share = rangeShare(matrix, h => getHandFrequency(rfi, h).raise / 100);
     why = `Bote ${fmt(pot)} BB, pagas ${fmt(call)} → necesitas ${pctR(calculatePotOddsPct(call, pot))} %. ${ip ? 'Con posición' : 'Sin posición'} sigues con el ${share} % de tu open: ${hand} ${defendWord(f, '4-bet')}.`;
+    detail = [
+      oddsRow(call, pot),
+      { k: 'hand', label: 'Tu mano', value: `${hand} · ${preBlocker(hand) || `${ip ? 'con' : 'sin'} posición sigues con el ${share} %`}` },
+      { k: 'plan', label: 'Plan', value: prePlan(spot, heroPos, hand, f, null) }
+    ];
     onAnswer = (id, heroCards, board) => {
       const invested = (amt: number): Partial<Record<Position, number>> => {
         const m: Partial<Record<Position, number>> = { [heroPos]: amt, [villainPos]: amt };
@@ -695,7 +763,7 @@ function buildPreflopStep(
   const potNow = sum(bets);
   const obvious = isInterior(matrix, hand, spot === '3BET_POT' ? getPreflopMatrix('RFI', heroPos) : undefined);
   const fNow = getHandFrequency(matrix, hand);
-  const severe = obvious && Math.max(fNow.raise, fNow.call, fNow.fold) >= 100 ? defs.filter(d => d.freq === 0).map(d => d.id) : [];
+  const severe = obvious && Math.max(fNow.raise, fNow.call, fNow.fold) >= 100 ? defs.filter(d => d.freq === 0 && d.id !== 'limp').map(d => d.id) : [];
   const options = buildOptions(defs, severe);
   const concept: ConceptId = spot === 'RFI_OPEN' ? (heroPos === 'UTG' || heroPos === 'HJ' ? 'rfi_early' : 'rfi_late')
     : spot === 'BB_DEFENSE' ? 'bb_def' : spot === 'SB_VS_OPEN' ? 'sb_3b' : 'vs3b';
@@ -722,6 +790,7 @@ function buildPreflopStep(
       boardTexture: 'Preflop'
     },
     why,
+    detail,
     review: { kind: 'pre', spot, heroPos, villainPos: spot === 'RFI_OPEN' ? undefined : villainPos, hand },
     trivial: trivial || (obvious && fNow.fold >= 100),
     concept,
@@ -816,6 +885,7 @@ function makeStep(
   defs: OptionDef[],
   extra: {
     context: string; ticker: string; why: string; decision: 'lead' | 'facing' | 'raise'; toCall: number;
+    plan: string;
     onAnswer: (id: string) => StepAdvance;
   }
 ): HandStep {
@@ -854,6 +924,11 @@ function makeStep(
       spr: info.spr
     },
     why: extra.why,
+    detail: [
+      extra.toCall > 0 ? oddsRow(extra.toCall, pot) : { k: 'board', label: 'Board', value: `${info.texture} · SPR ${fmt(info.spr)}` },
+      { k: 'hand', label: 'Tu mano', value: handLine(info, st) },
+      { k: 'plan', label: 'Plan', value: extra.plan.replace(/\.$/, '') }
+    ],
     review: {
       kind: 'post', spot: st.line.spot, heroPos: info.heroPos, villainPos: info.villainPos,
       street: info.street, cls: info.hc.cls, decision: extra.decision, concept
@@ -865,6 +940,20 @@ function makeStep(
       return extra.onAnswer(id);
     }
   };
+}
+
+/** "Top pair · color posible" / "Proyecto · 9 outs" / "Aire · tu A♥ quita el color máximo". */
+function handLine(info: ReturnType<typeof baseInfo>, st: PostState): string {
+  const c = info.hc.cls;
+  const d = info.hc.draws;
+  const parts = [CLASS_ES[c]];
+  if (d.totalCleanOutsCount > 0 && info.street !== 'river') parts.push(`${(d.drawLabels[0] || 'mejoras').toLowerCase()} · ${d.totalCleanOutsCount} outs`);
+  if (info.hc.threat) parts.push(`${THREAT_ES[info.hc.threat].toLowerCase()} posible`);
+  if (c === 'air' && parts.length === 1) {
+    const blk = blockerNote(st.heroCards, info.cards);
+    if (blk) parts.push(blk);
+  }
+  return parts.join(' · ');
 }
 
 function drawSentence(info: ReturnType<typeof baseInfo>): string {
@@ -987,9 +1076,10 @@ function leadStep(st: PostState, villainChecked: boolean): HandStep {
   const probe = st.initiative !== 'hero';
   const lowSpr = info.spr < 3;
   const [chk, sm, bg] = adjustedLeadFreq({ cls: info.hc.cls, street: info.street, wet: info.wet, adv: info.adv, ip, lowSpr, probe });
-  const sizeSmall = r1(Math.min(info.eff, info.potStart * 0.33));
   const sizeBig = r1(Math.min(info.eff, info.potStart * 0.75));
-  const same = sizeSmall === sizeBig;
+  // always a real small size below the big one (short stacks: half the stack, then all-in)
+  const sizeSmall = r1(Math.max(0.5, Math.min(info.potStart * 0.33, info.eff * 0.5)));
+  const same = sizeSmall >= sizeBig;
   const defs: OptionDef[] = [
     { id: 'check', label: 'CHECK', freq: chk },
     { id: 'bet_small', label: `BET ${fmt(sizeSmall)} BB`, amountBB: sizeSmall, freq: same ? 0 : sm },
@@ -997,13 +1087,14 @@ function leadStep(st: PostState, villainChecked: boolean): HandStep {
   ];
 
   const topId = [...defs].sort((a, b) => b.freq - a.freq)[0].id;
-  const why = `${leadReason(info, st, topId, villainChecked)} → ${verdictText(defs)}`;
+  const plan = leadReason(info, st, topId, villainChecked);
+  const why = `${plan} → ${verdictText(defs)}`;
 
   const context = villainChecked ? `${info.villainPos} pasa` : probe ? `${info.street === 'flop' ? 'Flop' : info.street === 'turn' ? 'Turn' : 'River'} · hablas primero` : (info.street === 'flop' ? 'Tienes la iniciativa' : `${info.street === 'turn' ? 'Turn' : 'River'} · tienes la iniciativa`);
   const ticker = villainChecked ? `${info.villainPos} pasa · bote ${fmt(info.potStart)} BB` : `Bote ${fmt(info.potStart)} BB · hablas tú`;
 
   return makeStep(st, info, {}, defs, {
-    context, ticker, why, decision: 'lead', toCall: 0,
+    context, ticker, why, plan, decision: 'lead', toCall: 0,
     onAnswer: (id) => {
       if (id === 'check') {
         if (villainChecked) return nextStreet(st, null, {});
@@ -1018,7 +1109,8 @@ function leadStep(st: PostState, villainChecked: boolean): HandStep {
       const r = Math.random();
       const foldP = amt > info.potStart * 0.5 ? 0.3 : 0.2;
       if (r < foldP) return { next: null, note: `${info.villainPos} foldea: ganas ${fmt(info.potStart)} BB` };
-      if (!allIn && r < foldP + (info.street === 'river' ? 0.08 : 0.13)) {
+      // villain raises only when it leaves hero room to re-raise all-in (3 options)
+      if (!allIn && amt <= info.eff * 0.3 && r < foldP + (info.street === 'river' ? 0.08 : 0.13)) {
         return { next: raiseStep(st, amt) };
       }
       if (allIn) return { next: null, note: `${info.villainPos} paga el all-in` };
@@ -1030,7 +1122,8 @@ function leadStep(st: PostState, villainChecked: boolean): HandStep {
 /** Villain bets (first to act or after hero's check). */
 function facingStep(st: PostState, frac: number, heroChecked = false): HandStep {
   const info = baseInfo(st);
-  const bet = r1(Math.min(info.eff, Math.max(1, info.potStart * frac)));
+  // never a bet that puts hero all-in: hero always has fold / call / raise
+  const bet = r1(Math.min(info.eff * 0.6, Math.max(1, info.potStart * frac)));
   const streetBets = { [info.villainPos]: bet };
   const pot = r1(info.potStart + bet);
   const need = calculatePotOddsPct(bet, pot);
@@ -1049,11 +1142,12 @@ function facingStep(st: PostState, frac: number, heroChecked = false): HandStep 
   if (!allInCall) defs.push({ id: 'raise', label: raiseTo >= info.eff ? `ALL-IN ${fmt(raiseTo)} BB` : `RAISE ${fmt(raiseTo)} BB`, amountBB: raiseTo, freq: ra });
   const pctBet = pctR(frac * 100);
   const topId = [...defs].sort((a, b) => b.freq - a.freq)[0].id;
-  const why = `Bote ${fmt(pot)} BB, pagas ${fmt(bet)} → necesitas ${pctR(need)} %. ${facingReason(info, st, topId, frac)} → ${verdictText(defs)}`;
+  const plan = facingReason(info, st, topId, frac);
+  const why = `Bote ${fmt(pot)} BB, pagas ${fmt(bet)} → necesitas ${pctR(need)} %. ${plan} → ${verdictText(defs)}`;
   const context = heroChecked ? `Pasas · ${info.villainPos} apuesta ${fmt(bet)} BB` : `${info.villainPos} apuesta ${fmt(bet)} BB`;
   const ticker = `${info.villainPos} apuesta ${pctBet} % del bote`;
   return makeStep(st, info, streetBets, defs, {
-    context, ticker, why, decision: 'facing', toCall: bet,
+    context, ticker, why, plan, decision: 'facing', toCall: bet,
     onAnswer: (id) => {
       if (id === 'call') {
         if (allInCall) return { next: null, note: 'All-in pagado' };
@@ -1072,7 +1166,7 @@ function facingStep(st: PostState, frac: number, heroChecked = false): HandStep 
 /** Hero bet `heroBet` and villain raises (check-raise when villain is OOP). */
 function raiseStep(st: PostState, heroBet: number): HandStep {
   const info = baseInfo(st);
-  const raiseTo = r1(Math.min(info.eff, heroBet * 3));
+  const raiseTo = r1(Math.min(info.eff * 0.75, heroBet * 3));
   const toCall = r1(raiseTo - heroBet);
   const streetBets = { [info.heroPos]: heroBet, [info.villainPos]: raiseTo };
   const pot = r1(info.potStart + heroBet + raiseTo);
@@ -1090,11 +1184,12 @@ function raiseStep(st: PostState, heroBet: number): HandStep {
   if (!allInCall) defs.push({ id: 'jam', label: `ALL-IN ${fmt(info.eff)} BB`, amountBB: info.eff, freq: ra });
   const ip = isPlayerInPosition(info.heroPos, info.villainPos);
   const topId = [...defs].sort((a, b) => b.freq - a.freq)[0].id;
-  const why = `Bote ${fmt(pot)} BB, pagas ${fmt(toCall)} → necesitas ${pctR(need)} %. ${facingReason(info, st, topId === 'jam' ? 'raise' : topId, toCall / Math.max(1, info.potStart))} → ${verdictText(defs)}`;
+  const plan = facingReason(info, st, topId === 'jam' ? 'raise' : topId, toCall / Math.max(1, info.potStart));
+  const why = `Bote ${fmt(pot)} BB, pagas ${fmt(toCall)} → necesitas ${pctR(need)} %. ${plan} → ${verdictText(defs)}`;
   return makeStep(st, info, streetBets, defs, {
     context: `${info.villainPos} ${ip ? 'sube' : 'hace check-raise'} a ${fmt(raiseTo)} BB`,
     ticker: `Apuestas ${fmt(heroBet)} · ${info.villainPos} sube`,
-    why, decision: 'raise', toCall,
+    why, plan, decision: 'raise', toCall,
     onAnswer: (id) => {
       if (id === 'call') {
         if (allInCall) return { next: null, note: 'All-in pagado' };

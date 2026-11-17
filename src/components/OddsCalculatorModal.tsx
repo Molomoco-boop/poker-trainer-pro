@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, RefreshCw } from 'lucide-react';
+import { X, RotateCcw, Minus, Plus } from 'lucide-react';
 import { Card, Rank, Suit } from '../types/poker';
 import { CardView } from './CardView';
 import { detectCleanOuts, calculatePotOddsPct } from '../utils/pokerMath';
@@ -14,19 +14,44 @@ const SUIT_BTNS: { s: Suit; sym: string; cls: string }[] = [
   { s: 's', sym: '♠', cls: 'text-hi' },
   { s: 'h', sym: '♥', cls: 'text-badtx' },
   { s: 'd', sym: '♦', cls: 'text-acc' },
-  { s: 'c', sym: '♣', cls: 'text-green-500' }
+  { s: 'c', sym: '♣', cls: 'text-goodtx' }
 ];
+const DRAW_ES: Record<string, string> = { 'Proyecto de color': 'color', 'Escalera abierta': 'escalera abierta', Gutshot: 'gutshot', Overcards: 'overcards' };
 
+const Num: React.FC<{ label: string; value: number; set: (v: number) => void; step?: number }> = ({ label, value, set, step = 1 }) => (
+  <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+    <span className="text-[11px] text-dim truncate">{label}</span>
+    <div className="flex items-center border border-line rounded-[4px] bg-bg h-10">
+      <button onClick={() => set(Math.max(0, value - step))} className="w-10 h-10 flex items-center justify-center text-txt" aria-label={`Menos ${label}`}><Minus className="w-4 h-4" /></button>
+      <input
+        type="number" inputMode="decimal" min={0} value={value}
+        onChange={e => set(Math.max(0, +e.target.value || 0))}
+        className="calc-input flex-1 min-w-0 h-10 bg-transparent text-center text-hi font-semibold num text-[15px] outline-none"
+        aria-label={label}
+      />
+      <button onClick={() => set(value + step)} className="w-10 h-10 flex items-center justify-center text-txt" aria-label={`Más ${label}`}><Plus className="w-4 h-4" /></button>
+    </div>
+  </div>
+);
+
+const StepTitle: React.FC<{ n: number; children: React.ReactNode; done: boolean }> = ({ n, children, done }) => (
+  <div className="flex items-center gap-1.5 text-[12px] text-txt">
+    <span className={`w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center ${done ? 'bg-good text-white' : 'bg-line text-hi'}`}>{n}</span>
+    {children}
+  </div>
+);
+
+/** Outs → probability → pot odds → verdict, in three steps. */
 export const OddsCalculatorModal: React.FC<OddsCalculatorModalProps> = ({ onClose }) => {
-  // slots 0-1 hero, 2-6 board
+  // slots 0-1 hero, 2-5 board (flop + turn)
   const [slots, setSlots] = useState<(Card | null)[]>([
-    { rank: 'A', suit: 's' }, { rank: 'K', suit: 's' },
-    { rank: 'Q', suit: 's' }, { rank: 'J', suit: 'd' }, { rank: '4', suit: 's' }, null, null
+    { rank: '8', suit: 'h' }, { rank: '7', suit: 'h' },
+    { rank: 'K', suit: 'h' }, { rank: '9', suit: 'd' }, { rank: '2', suit: 'h' }, null
   ]);
   const [active, setActive] = useState(5);
   const [rank, setRank] = useState<Rank | null>(null);
   const [pot, setPot] = useState(10);
-  const [bet, setBet] = useState(3);
+  const [bet, setBet] = useState(5);
 
   const used = slots.filter(Boolean) as Card[];
   const isUsed = (r: Rank, s: Suit) => used.some(c => c.rank === r && c.suit === s);
@@ -40,132 +65,120 @@ export const OddsCalculatorModal: React.FC<OddsCalculatorModalProps> = ({ onClos
     const empty = next.findIndex(c => !c);
     if (empty >= 0) setActive(empty);
   };
+  const tapSlot = (i: number) => {
+    if (active === i && slots[i]) { const n = [...slots]; n[i] = null; setSlots(n); }
+    setActive(i);
+    setRank(null);
+  };
 
   const hero = slots.slice(0, 2).filter(Boolean) as Card[];
   const board = slots.slice(2).filter(Boolean) as Card[];
-  const ready = hero.length === 2 && board.length >= 3 && board.length <= 4;
-  const draws = ready ? detectCleanOuts([hero[0], hero[1]], board) : null;
-  const drawSummary = draws ? `${draws.drawLabels.join(' + ') || 'Sin proyecto'} · ${draws.totalCleanOutsCount} outs` : '—';
-  const equity = draws ? draws.equityRiverPct : 0;
-  const potOdds = calculatePotOddsPct(bet, pot + bet);
-  const profitable = draws && bet > 0 && equity >= potOdds;
+  const ready = hero.length === 2 && board.length >= 3;
+  const d = ready ? detectCleanOuts([hero[0], hero[1]], board) : null;
+  const onFlop = board.length === 3;
+  const nextCard = d ? d.equityTurnPct : 0;
+  const need = bet > 0 ? Math.round(calculatePotOddsPct(bet, pot + bet)) : 0;
+  const drawName = d?.drawLabels.map(l => DRAW_ES[l] || l.toLowerCase()).join(' + ');
+  const verdict = d && bet > 0 ? (nextCard >= need ? 'ok' : 'no') : null;
+
+  const slot = (i: number) => {
+    const c = slots[i];
+    return (
+      <button
+        key={i}
+        onClick={() => tapSlot(i)}
+        className={`calc-slot w-10 h-[54px] rounded-[4px] flex items-center justify-center text-[18px] ${active === i ? 'ring-2 ring-acc' : ''} ${c ? '' : 'border border-dashed border-line text-dim'}`}
+        aria-label={`Carta ${i + 1}`}
+      >
+        {c ? <CardView card={c} size="sm" className="!w-10 !h-[54px]" /> : i === 5 ? <span className="text-[10px]">turn</span> : '+'}
+      </button>
+    );
+  };
 
   return (
     <ModalPortal>
-      <div className="fixed inset-0 z-[60] bg-black/90 flex flex-col p-2 gap-2 select-none animate-fadeIn safe-top safe-bottom">
-        <div className="w-full max-w-md mx-auto bg-panel border border-line rounded-[4px] p-2.5 flex items-center justify-between shrink-0">
-          <h2 className="text-sm font-[800] text-hi">Calculadora</h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => { setSlots([null, null, null, null, null, null, null]); setActive(0); setRank(null); }}
-              className="w-10 h-10 rounded-full bg-panel2 flex items-center justify-center text-txt"
-              aria-label="Borrar cartas"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-            <button onClick={onClose} className="w-10 h-10 rounded-full bg-panel2 flex items-center justify-center text-txt" aria-label="Cerrar">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+      <div className="calc-modal fixed inset-0 z-[60] bg-bg flex flex-col select-none animate-fadeIn safe-top safe-bottom overflow-hidden">
+        <div className="w-full max-w-md mx-auto px-2 h-12 flex items-center gap-2 shrink-0 border-b border-line">
+          <h2 className="flex-1 text-[15px] font-semibold text-hi">¿Pago el proyecto?</h2>
+          <button onClick={() => { setSlots([null, null, null, null, null, null]); setActive(0); setRank(null); }} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Borrar cartas">
+            <RotateCcw className="w-4 h-4" />
+          </button>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Cerrar">
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <div className="w-full max-w-md mx-auto flex-1 min-h-0 flex flex-col gap-2">
-          {/* Slots */}
-          <div className="bg-panel border border-line rounded-[4px] p-2.5 flex flex-col gap-1.5">
-            <div className="flex items-center justify-between text-[10px] text-dim font-bold uppercase">
-              <span>Mano</span><span>Board</span>
+        <div className="w-full max-w-md mx-auto flex-1 min-h-0 flex flex-col gap-2 px-2 pt-2">
+          {/* 1 + 2: cards */}
+          <div className="flex items-end justify-between gap-2">
+            <div className="flex flex-col gap-1">
+              <StepTitle n={1} done={hero.length === 2}>Tus cartas</StepTitle>
+              <div className="flex gap-1">{[0, 1].map(slot)}</div>
             </div>
-            <div className="flex items-center justify-between">
-              {slots.map((c, i) => (
-                <React.Fragment key={i}>
-                  {i === 2 && <div className="w-px h-10 bg-line" />}
-                  <button
-                    onClick={() => { setActive(i); setRank(null); }}
-                    onDoubleClick={() => { const n = [...slots]; n[i] = null; setSlots(n); }}
-                    className={`calc-slot w-10 h-[54px] rounded-md flex items-center justify-center ${active === i ? 'ring-2 ring-acc' : ''} ${c ? '' : 'border border-dashed border-line text-dim'}`}
-                    aria-label={`Hueco ${i + 1}`}
-                  >
-                    {c ? <CardView card={c} size="sm" className="!w-10 !h-[54px]" /> : '+'}
-                  </button>
-                </React.Fragment>
-              ))}
-            </div>
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-acc font-bold truncate">{drawSummary}</span>
-              {slots[active] && (
-                <button
-                  onClick={() => { const n = [...slots]; n[active] = null; setSlots(n); }}
-                  className="h-10 px-3 rounded-lg bg-panel2 text-txt font-semibold"
-                >
-                  Quitar
-                </button>
-              )}
+            <div className="flex flex-col gap-1 items-end">
+              <StepTitle n={2} done={board.length >= 3}>Board</StepTitle>
+              <div className="flex gap-1">{[2, 3, 4, 5].map(slot)}</div>
             </div>
           </div>
 
-          {/* Picker */}
-          <div className="bg-panel border border-line rounded-[4px] p-2.5 flex flex-col gap-1.5">
-            <div className="grid grid-cols-7 gap-1.5">
+          {/* picker: rank then suit */}
+          <div className="flex flex-col gap-1">
+            <div className="grid grid-cols-7 gap-1">
               {RANK_BTNS.map(r => (
-                <button
-                  key={r}
-                  onClick={() => setRank(r)}
-                  className={`h-10 rounded-lg font-black text-sm border ${rank === r ? 'bg-acc border-acc text-hi' : 'bg-bg border-line text-hi'}`}
-                >
+                <button key={r} onClick={() => setRank(r)}
+                  className={`h-10 rounded-[4px] font-semibold text-[14px] border ${rank === r ? 'bg-acc border-acc text-white' : 'bg-panel border-line text-hi'}`}>
                   {r === 'T' ? '10' : r}
                 </button>
               ))}
+              <button onClick={() => { const n = [...slots]; n[active] = null; setSlots(n); }} className="h-10 rounded-[4px] border border-line bg-panel text-dim text-[11px]" aria-label="Quitar carta">Quitar</button>
             </div>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-4 gap-1">
               {SUIT_BTNS.map(({ s, sym, cls }) => (
-                <button
-                  key={s}
-                  onClick={() => place(s)}
-                  disabled={!rank || isUsed(rank, s)}
-                  className={`h-10 rounded-lg text-xl border bg-bg border-line disabled:opacity-25 ${cls}`}
-                >
+                <button key={s} onClick={() => place(s)} disabled={!rank || isUsed(rank, s)}
+                  className={`h-10 rounded-[4px] text-[20px] border bg-panel border-line disabled:opacity-25 ${cls}`}>
                   {sym}
                 </button>
               ))}
             </div>
+            <span className="text-[11px] text-dim text-center">{rank ? 'Ahora el palo' : 'Toca un hueco, luego número y palo'}</span>
           </div>
 
-          {/* Results */}
-          <div className="bg-panel border border-line rounded-[4px] p-2.5 flex flex-col gap-2 text-xs">
-            <div className="flex flex-wrap gap-1.5 min-h-[20px]">
-              {draws?.drawLabels.map(l => (
-                <span key={l} className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-warn text-[11px] font-bold">{l}</span>
-              ))}
-              {!ready && <span className="text-dim text-[11px]">2 cartas + flop o turn</span>}
-            </div>
-            <div className="grid grid-cols-3 gap-1.5 text-center">
-              <div className="bg-bg rounded-lg p-1.5">
-                <div className="text-[10px] text-dim">Outs</div>
-                <div className="text-lg font-black text-hi tabular-nums">{draws?.totalCleanOutsCount ?? '—'}</div>
-              </div>
-              <div className="bg-bg rounded-lg p-1.5">
-                <div className="text-[10px] text-dim">Próx. carta</div>
-                <div className="text-lg font-black text-goodtx tabular-nums">{draws ? `${draws.equityTurnPct}%` : '—'}</div>
-              </div>
-              <div className="bg-bg rounded-lg p-1.5">
-                <div className="text-[10px] text-dim">Hasta river</div>
-                <div className="text-lg font-black text-acc tabular-nums">{draws ? `${draws.equityRiverPct}%` : '—'}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1 text-dim">Bote
-                <input type="number" min={0} value={pot} onChange={e => setPot(Math.max(0, +e.target.value || 0))}
-                  className="w-16 h-10 bg-bg border border-line rounded-lg text-center text-hi font-bold" />
-              </label>
-              <label className="flex items-center gap-1 text-dim">Pago
-                <input type="number" min={0} value={bet} onChange={e => setBet(Math.max(0, +e.target.value || 0))}
-                  className="w-16 h-10 bg-bg border border-line rounded-lg text-center text-hi font-bold" />
-              </label>
-              <span className={`ml-auto font-black text-[11px] text-right ${profitable ? 'text-goodtx' : 'text-badtx'}`}>
-                {draws ? `${potOdds}% · ${profitable ? 'CALL' : 'FOLD'}` : `${potOdds}%`}
-              </span>
+          {/* 3: pot and bet */}
+          <div className="flex flex-col gap-1">
+            <StepTitle n={3} done={bet > 0}>Bote y apuesta (BB)</StepTitle>
+            <div className="flex gap-2">
+              <Num label="Bote antes de apostar" value={pot} set={setPot} />
+              <Num label="Apuesta que pagas" value={bet} set={setBet} />
             </div>
           </div>
+
+          {/* results */}
+          <div className="calc-result grid grid-cols-3 gap-1.5">
+            <div className="bg-panel border border-line rounded-[4px] px-2 py-1.5 flex flex-col">
+              <span className="text-[11px] text-dim">Outs</span>
+              <span className="calc-outs num text-[26px] leading-tight font-semibold text-hi">{d ? d.totalCleanOutsCount : '—'}</span>
+              <span className="text-[11px] text-txt truncate">{d ? drawName || 'sin proyecto' : 'faltan cartas'}</span>
+            </div>
+            <div className="bg-panel border border-line rounded-[4px] px-2 py-1.5 flex flex-col">
+              <span className="text-[11px] text-dim">Probabilidad</span>
+              <span className="calc-prob num text-[26px] leading-tight font-semibold text-hi">{d ? `${Math.round(nextCard)} %` : '—'}</span>
+              <span className="text-[11px] text-txt truncate">{d ? (onFlop ? `turn · ${Math.round(d.equityRiverPct)} % river` : 'en el river') : ''}</span>
+            </div>
+            <div className="bg-panel border border-line rounded-[4px] px-2 py-1.5 flex flex-col">
+              <span className="text-[11px] text-dim">Necesitas</span>
+              <span className="calc-need num text-[26px] leading-tight font-semibold text-hi">{bet > 0 ? `${need} %` : '—'}</span>
+              <span className="text-[11px] text-txt truncate">{bet > 0 ? `pagas ${bet} de ${pot + bet * 2}` : ''}</span>
+            </div>
+          </div>
+          {verdict && (
+            <div className={`calc-verdict h-11 rounded-[4px] flex items-center justify-center gap-2 text-[15px] font-semibold ${verdict === 'ok' ? 'bg-good text-white' : 'bg-bad text-white'}`}>
+              {verdict === 'ok' ? 'Pagar es rentable' : 'No rentable: fold'}
+              <span className="num text-[12px] font-normal opacity-90">{Math.round(nextCard)} % {verdict === 'ok' ? '≥' : '<'} {need} %</span>
+            </div>
+          )}
+          <p className="text-[11px] text-dim leading-snug">
+            Outs: cartas que te dan la mejor mano. Se compara con la próxima carta: si apuestan otra vez, vuelves a pagar.
+          </p>
         </div>
       </div>
     </ModalPortal>

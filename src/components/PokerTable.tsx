@@ -1,11 +1,10 @@
-import React from 'react';
-import { HandStep, StakeLevel, Position, Grade } from '../types/poker';
+import React, { useState } from 'react';
+import { HandStep, StakeLevel, Position, Grade, DetailRow } from '../types/poker';
 import { CardView } from './CardView';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, Percent, Hand, Target, Layers, LayoutGrid } from 'lucide-react';
 import { convertBBToEUR } from '../utils/difficultyEngine';
 import { PreflopSituation } from '../data/preflopRanges';
 import { cardsToHandLabel } from '../utils/handStrength';
-import { mixedLine } from '../utils/fullHandEngine';
 import { GradeBadge, Delta } from './ui';
 import { GRADE_STYLE } from './gradeStyle';
 
@@ -38,6 +37,8 @@ interface PokerTableProps {
   onDoubt?: () => void;
   onSelectOption: (id: string) => void;
   onNext: () => void;
+  /** Cancels the auto-advance ("Ver detalle"). */
+  onHold?: () => void;
   onBack: () => void;
   onToggleUnits: () => void;
   onOpenRangeViewer: (req: RangeRequest) => void;
@@ -80,14 +81,34 @@ const SITUATION_BY_SPOT: Partial<Record<string, PreflopSituation>> = {
 };
 
 const BAR_LABEL: Record<string, string> = {
-  fold: 'Fold', call: 'Pagar', check: 'Check', bet_small: 'Peq.', bet_big: 'Grande', raise: 'Subir', '3bet': '3-bet', '4bet': '4-bet', jam: 'All-in'
+  fold: 'Fold', limp: 'Limp', call: 'Pagar', check: 'Check', bet_small: 'Peq.', bet_big: 'Grande', raise: 'Subir', '3bet': '3-bet', '4bet': '4-bet', jam: 'All-in'
 };
-const barColor = (id: string) => (id === 'fold' ? 'bg-[#5a5754]' : id === 'call' || id === 'check' ? 'bg-good' : 'bg-acc');
+const ROW_ICON: Record<DetailRow['k'], React.FC<{ className?: string }>> = {
+  odds: Percent, hand: Hand, plan: Target, range: Layers, board: LayoutGrid
+};
+
+/** Schematic explanation: icon · label · value, one line each. */
+const DetailRows: React.FC<{ rows: DetailRow[] }> = ({ rows }) => (
+  <div className="detail-rows flex flex-col gap-1">
+    {rows.map(r => {
+      const Icon = ROW_ICON[r.k];
+      return (
+        <div key={r.k} className={`detail-row flex items-start gap-2 text-[12.5px] leading-snug`} data-k={r.k}>
+          <Icon className={`w-3.5 h-3.5 mt-[2px] shrink-0 ${r.k === 'plan' ? 'text-acc' : 'text-dim'}`} />
+          <span className="w-[62px] shrink-0 text-dim">{r.label}</span>
+          <span className={`min-w-0 ${r.k === 'plan' ? 'text-hi font-semibold' : 'text-hi'}`}>{r.value}</span>
+        </div>
+      );
+    })}
+  </div>
+);
+
+const barColor = (id: string) => (id === 'fold' ? 'bg-[#5a5754]' : id === 'call' || id === 'check' || id === 'limp' ? 'bg-good' : 'bg-acc');
 
 export const PokerTable: React.FC<PokerTableProps> = ({
   step, stake, displayUnits, deckColorMode, endNote, selectedOptionId, isSubmitted,
   rating, delta, streak, title, recentGrades, fastError, doubted, onDoubt,
-  onSelectOption, onNext, onBack, onToggleUnits, onOpenRangeViewer
+  onSelectOption, onNext, onHold, onBack, onToggleUnits, onOpenRangeViewer
 }) => {
   const hero = step.players.find(p => p.isHero) || step.players[0];
   const isAction = step.questionType === 'action';
@@ -99,7 +120,10 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   const isCorrectAnswer = selectedOpt?.isCorrect === true;
   const best = [...step.options].sort((a, b) => b.frequencyGTO - a.frequencyGTO)[0];
   const okLabels = step.options.filter(o => o.isCorrect).map(o => o.label).join(' / ');
-  const mixLine = isAction ? mixedLine(step.options) : null;
+  const [expandedFor, setExpandedFor] = useState<string | null>(null);
+  const expanded = expandedFor === step.id && isSubmitted;
+  const setExpanded = (v: boolean) => setExpandedFor(v ? step.id : null);
+  const planRow = step.detail?.find(r => r.k === 'plan');
   const needPct = (amount?: number) => (amount && step.pot > 0 ? Math.round((amount / (step.pot + amount)) * 100) : 0);
 
   const situation = step.street === 'preflop' ? SITUATION_BY_SPOT[step.spotType] : undefined;
@@ -215,9 +239,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               })}
             </div>
           </div>
-        ) : isCorrectAnswer ? (
+        ) : isCorrectAnswer && !expanded ? (
           <div onClick={onNext} role="button" aria-label="Siguiente" className="correct-card w-full flex flex-col gap-1 animate-fadeIn text-left cursor-pointer">
-            <div className="w-full flex flex-col gap-1 border-l-4 border-good bg-bg/40 rounded-[3px] px-2.5 py-2 min-h-[56px]">
+            <div className="w-full flex flex-col gap-1.5 border-l-4 border-good bg-bg/40 rounded-[3px] px-2.5 py-2 min-h-[56px]">
               <div className="flex items-center gap-2">
                 <GradeBadge grade={grade} />
                 <span className="text-[12px] text-txt truncate">{selectedOpt?.label}</span>
@@ -231,18 +255,23 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                   </button>
                 )}
               </div>
-              {step.why && <span className="why-line text-[12px] leading-snug text-hi">{step.why}</span>}
-              {mixLine && <span className="mix-line text-[12px] leading-snug text-warn">{mixLine}</span>}
+              {planRow ? <DetailRows rows={[planRow]} /> : step.why && <span className="why-line text-[12px] leading-snug text-hi">{step.why}</span>}
               {endNote && <span className="text-[12px] text-acc">{endNote}</span>}
+              <button
+                onClick={e => { e.stopPropagation(); onHold?.(); setExpanded(true); }}
+                className="see-detail h-10 rounded-[4px] border border-line text-txt text-[13px] font-semibold flex items-center justify-center gap-1.5"
+              >
+                Ver detalle <ChevronDown className="w-4 h-4" />
+              </button>
             </div>
-            {!doubted && <div className="w-full h-0.5 bg-line overflow-hidden"><div className="h-full bg-good animate-shrinkBar" /></div>}
+            {!doubted && <div className="countdown w-full h-0.5 bg-line overflow-hidden"><div className="h-full bg-good animate-shrinkBar" /></div>}
           </div>
         ) : (
-          <div className={`feedback-card w-full flex flex-col gap-1.5 animate-fadeIn border-l-4 ${grade === 'imprecise' ? 'border-warn' : 'border-bad'} bg-bg/40 rounded-[3px] px-2.5 py-2 ${fastError ? 'fast-error ring-1 ring-warn' : ''}`}>
+          <div className={`feedback-card w-full flex flex-col gap-1.5 animate-fadeIn border-l-4 ${isCorrectAnswer ? 'border-good' : grade === 'imprecise' ? 'border-warn' : 'border-bad'} bg-bg/40 rounded-[3px] px-2.5 py-2 ${fastError ? 'fast-error ring-1 ring-warn' : ''}`}>
             <div className="flex items-center gap-2 min-w-0">
               <GradeBadge grade={grade} />
               <Delta value={delta} className="text-[15px]" />
-              <span className="ml-auto text-[12px] text-goodtx font-semibold truncate">{isAction ? okLabels : best.label}</span>
+              <span className={`ml-auto text-[12px] font-semibold truncate ${isCorrectAnswer ? 'text-txt' : 'text-goodtx'}`}>{isCorrectAnswer ? selectedOpt?.label : isAction ? okLabels : best.label}</span>
             </div>
             {fastError && <span className="text-[11px] text-warn">Rápido y mal: repásalo</span>}
             {isAction && (
@@ -254,8 +283,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 ))}
               </div>
             )}
-            {step.why && <div className="why-line text-[12px] leading-snug text-hi">{step.why}</div>}
-            {mixLine && <div className="mix-line text-[12px] leading-snug text-warn">{mixLine}</div>}
+            {step.detail?.length ? <DetailRows rows={step.detail} /> : step.why && <div className="why-line text-[12px] leading-snug text-hi">{step.why}</div>}
+            {endNote && isCorrectAnswer && <span className="text-[12px] text-acc">{endNote}</span>}
             <div className="flex items-center gap-2 pt-0.5">
               {situation && hero.cards && (
                 <button

@@ -85,6 +85,7 @@ const qt = detectCleanOuts(C('Qd Th') as [Card, Card], C('8c Ts Jd'));
 ok(qt.drawLabels.includes('Gutshot') && qt.straightOuts === 4, `QT on 8TJ: gutshot to the 9 (${qt.drawLabels.join('/')}, ${qt.straightOuts})`);
 const kq = detectCleanOuts(C('Kd Qh') as [Card, Card], C('Jc Ts 4d'));
 ok(kq.drawLabels.includes('Escalera abierta') && kq.straightOuts === 8, `KQ on JT4: open-ended (${kq.straightOuts})`);
+ok(detectCleanOuts(C('8h 7h') as [Card, Card], C('Kh 9d 2h')).totalCleanOutsCount === 9, '87h on Kh9d2h: 9 flush outs (9h counts on an unpaired board)');
 {
   const a6 = detectCleanOuts(C('Ah 6h') as [Card, Card], C('2h Qd 3h Qs'));
   ok(a6.totalCleanOutsCount === 11 && !a6.cleanOuts.some(c => c.rank === '6'), `A6h on 2hQd3hQs: 8 flush + 3 aces, no 6s (${a6.totalCleanOutsCount})`);
@@ -172,6 +173,18 @@ function checkStep(step: HandStep, tag: string) {
   if (call) ok(Math.abs((call.amountBB || 0) - r1(Math.min(facing - hero.currentBet, hero.stack))) < 0.05, `${tag}: CALL ${call.amountBB} == ${facing} - ${hero.currentBet}`);
   const cards = [...(hero.cards || []), ...step.communityCards].map(c => c.rank + c.suit);
   ok(new Set(cards).size === cards.length, `${tag}: no duplicate cards`);
+  if (step.questionType === 'action') {
+    ok(opts.length === 3, `${tag}: always 3 options (${opts.map(o => o.id).join('/')})`);
+    ok(new Set(opts.map(o => o.label)).size === 3, `${tag}: 3 distinct labels`);
+    const amts = opts.filter(o => o.amountBB !== undefined).map(o => o.amountBB!);
+    amts.forEach(a => ok(a > 0 && a <= hero.stack + hero.currentBet + 0.05, `${tag}: amount ${a} within stack ${hero.stack}`));
+    const rows = step.detail || [];
+    ok(rows.length >= 2 && rows.length <= 3 && rows.some(r => r.k === 'plan'), `${tag}: 2-3 detail rows with plan`);
+    rows.forEach(r => ok(r.value.length > 0 && r.value.length <= 70, `${tag}: compact row "${r.value}"`));
+    if (step.street === 'preflop') rows.filter(r => r.k === 'plan').forEach(r => ok(!/%/.test(r.value), `${tag}: plan without % (${r.value})`));
+    const limp = opts.find(o => o.id === 'limp');
+    if (limp) ok(limp.grade === 'error' && limp.amountBB === (step.heroPosition === 'SB' ? 0.5 : 1), `${tag}: limp is an error, ${limp.amountBB} BB`);
+  }
 }
 
 const flopSizes = new Set<string>();
@@ -203,7 +216,7 @@ for (let i = 0; i < N; i++) {
   checkStep(pf, tag + ' pre');
   checkWhy(pf, tag + ' pre');
   ok(pf.street === 'preflop', `${tag}: first step preflop`);
-  ok(!pf.options.some(o => o.id === 'limp'), `${tag}: no limp option`);
+  ok(pf.options.some(o => o.id === 'limp') === (sc.spotType === 'RFI_OPEN'), `${tag}: limp only when unopened`);
   ok(pf.review.kind === 'pre' && pf.review.heroPos === pf.heroPosition, `${tag}: review key`);
 
   // opener acts before hero (except a 3-bettor, who acts after hero's open)

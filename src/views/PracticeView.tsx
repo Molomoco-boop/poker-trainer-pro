@@ -22,7 +22,7 @@ interface PracticeViewProps {
 }
 
 /** Time a correct answer stays on screen so the why line can be read. */
-const AUTO_ADVANCE_MS = 2500;
+const AUTO_ADVANCE_MS = 3500;
 const MATH_MIX: ConceptId[] = ['m_mdf', 'm_bluff', 'm_combos', 'm_equity'];
 
 const STREET_ES: Record<string, string> = { preflop: 'Preflop', flop: 'Flop', turn: 'Turn', river: 'River' };
@@ -202,6 +202,7 @@ export const PracticeView: React.FC<PracticeViewProps> = ({ session, onExit }) =
         onDoubt={handleDoubt}
         onSelectOption={handleSelect}
         onNext={advance}
+        onHold={() => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } }}
         onBack={onExit}
         onToggleUnits={toggleDisplayUnits}
         onOpenRangeViewer={req => setRangeRequest(req)}

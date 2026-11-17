@@ -91,7 +91,8 @@ export function detectCleanOuts(heroCards: [Card, Card], board: Card[]): DrawDet
     if (trial.score <= boardCategory(newBoard)) continue; // board improved, not hero
     if (newBoard.length === 5 && compareEvaluations(trial, evaluateHand(newBoard)) <= 0) continue; // plays the board
     const pairsBoard = board.some(b => b.rank === c.rank) && !heroCards.some(h => h.rank === c.rank);
-    if (pairsBoard && trial.score < 6) continue; // board pair helps both players
+    // a board pair helps both players: it only counts as a flush/straight out on an unpaired board
+    if (pairsBoard && (trial.score < 4 || boardCategory(board) >= 1)) continue;
     if (trial.score <= 2 && boardHasFourToHand(newBoard)) continue; // a pair is no good on a straight/flush board
     // on a paired board, "two pair" from pairing a hole card is like a plain pair: same rule
     const boardPairOnly = boardCategory(board) === 1 && current.score === 1 && trial.score === 2;
