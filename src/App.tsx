@@ -1,79 +1,51 @@
 import { useState } from 'react';
 import { GameProvider } from './context/GameContext';
-import { BottomNav } from './components/BottomNav';
+import { BottomNav, Tab } from './components/BottomNav';
 import { LobbyView } from './views/LobbyView';
-import { CategoryView } from './views/CategoryView';
 import { PracticeView } from './views/PracticeView';
 import { ProfileView } from './views/ProfileView';
-import { CategoryId, SubcategoryId, SpotType, PracticeMode } from './types/poker';
+import { ProgressView } from './views/ProgressView';
+import { TopicsView } from './views/TopicsView';
+import { SprintView } from './views/SprintView';
+import { RangeBuilderView } from './views/RangeBuilderView';
+import { SessionSpec } from './types/poker';
+
+type Screen = { kind: 'tabs' } | { kind: 'practice'; session: SessionSpec } | { kind: 'sprint' } | { kind: 'builder' };
 
 function AppContent() {
-  const [currentTab, setCurrentTab] = useState<'inicio' | 'perfil'>('inicio');
-  const [activeCategory, setActiveCategory] = useState<CategoryId | null>(null);
-  const [activePracticeMode, setActivePracticeMode] = useState<PracticeMode | null>(null);
-  const [forcedSpot, setForcedSpot] = useState<SpotType | undefined>(undefined);
-
-  const handleSelectTab = (tab: 'inicio' | 'perfil') => {
-    setCurrentTab(tab);
-    if (tab === 'perfil') {
-      setActiveCategory(null);
-      setActivePracticeMode(null);
-      setForcedSpot(undefined);
-    }
-  };
-
-  const handleSelectCategory = (cat: CategoryId) => {
-    setActiveCategory(cat);
-  };
-
-  const handleStartPractice = (mode: PracticeMode, spot?: SpotType) => {
-    setForcedSpot(spot);
-    setActivePracticeMode(mode);
-  };
+  const [tab, setTab] = useState<Tab>('inicio');
+  const [screen, setScreen] = useState<Screen>({ kind: 'tabs' });
+  const [runId, setRunId] = useState(0);
+  const play = (session: SessionSpec) => { setRunId(n => n + 1); setScreen({ kind: 'practice', session }); };
+  const back = () => setScreen({ kind: 'tabs' });
 
   return (
-    <div className="min-h-screen bg-[#070b12] text-slate-100 flex justify-center selection:bg-blue-600 selection:text-white">
-      {/* Mobile-first centered app shell */}
-      <div className="w-full max-w-md min-h-screen bg-[#0a0f18] flex flex-col relative shadow-[0_0_60px_rgba(0,0,0,0.9)] border-x border-slate-900/80">
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto">
-          {activePracticeMode ? (
-            <PracticeView
-              mode={activePracticeMode}
-              forcedSpot={forcedSpot}
-              onExit={() => {
-                setActivePracticeMode(null);
-                setForcedSpot(undefined);
-              }}
-            />
-          ) : activeCategory ? (
-            <div className="p-3.5 pb-[76px]">
-              <CategoryView
-                categoryId={activeCategory}
-                onBack={() => setActiveCategory(null)}
-                onStartPractice={(sub: SubcategoryId) => {
-                  handleStartPractice(sub);
-                }}
-              />
-            </div>
-          ) : currentTab === 'inicio' ? (
-            <div className="p-3.5 pb-[76px]">
-              <LobbyView
-                onSelectCategory={handleSelectCategory}
-                onStartDaily={() => handleStartPractice('daily')}
-                onStartContinuousPlay={() => handleStartPractice('continuous')}
-              />
-            </div>
-          ) : (
-            <div className="p-3.5 pb-[76px]">
-              <ProfileView />
-            </div>
-          )}
-        </main>
-
-        {/* Bottom Nav (Hidden during active practice) */}
-        {!activePracticeMode && (
-          <BottomNav currentTab={currentTab} onSelectTab={handleSelectTab} />
+    <div className="min-h-[100dvh] bg-bg text-txt flex justify-center">
+      <div className="w-full max-w-md min-h-[100dvh] flex flex-col relative">
+        {screen.kind === 'practice' ? (
+          <PracticeView key={runId} session={screen.session} onExit={back} />
+        ) : screen.kind === 'sprint' ? (
+          <SprintView onExit={back} />
+        ) : screen.kind === 'builder' ? (
+          <RangeBuilderView onExit={back} />
+        ) : (
+          <>
+            <main className="flex-1 px-3 pt-2 safe-top pb-[76px]">
+              {tab === 'inicio' && (
+                <LobbyView
+                  onStartDaily={() => play({ kind: 'daily' })}
+                  onStartRated={() => play({ kind: 'rated' })}
+                  onStartPlacement={() => play({ kind: 'placement' })}
+                  onStartSprint={() => setScreen({ kind: 'sprint' })}
+                  onStartRangeBuilder={() => setScreen({ kind: 'builder' })}
+                />
+              )}
+              {tab === 'temas' && <TopicsView onStart={concept => play({ kind: 'concept', concept })} />}
+              {tab === 'progreso' && <ProgressView onTrainLeak={(pos, street) => play({ kind: 'leak', pos, street })} />}
+              {tab === 'perfil' && <ProfileView />}
+            </main>
+            <BottomNav currentTab={tab} onSelectTab={setTab} />
+          </>
         )}
       </div>
     </div>

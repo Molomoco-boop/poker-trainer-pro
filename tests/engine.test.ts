@@ -9,8 +9,28 @@ import {
   generateSimilarStep,
   buildOptions,
   mixedLine,
-  walkHand
+  walkHand,
+  generateMdfDrill,
+  generateBluffDrill,
+  generateCombosDrill,
+  generateEquityDrill,
+  equityVsRange,
+  countCombos,
+  generateConceptStep,
+  generateLeakStep,
+  generateRatedHand,
+  neighbourHand,
+  handCell,
+  conceptOfKey
 } from '../src/utils/fullHandEngine';
+import { updateRating, expectedScore, aboveChance, pickNearRating, levelForRating, START } from '../src/utils/rating';
+import {
+  dailyPlan, PLACEMENT, placementCurriculum, advanceCurriculum, rangeScore, RANGE_TASKS, sprintHand, sprintCorrect,
+  reviewInterval, confidenceOf, chanceOf
+} from '../src/utils/sessionPlanner';
+import { migrateStats, applyAnswer, DEFAULT_STATS } from '../src/context/statsLogic';
+import { CURRICULUM, ConceptId } from '../src/types/poker';
+import { handCombos } from '../src/data/preflopRanges';
 import { detectCleanOuts, countOutsVsVillain, analyzeBoardTexture } from '../src/utils/pokerMath';
 import { classifyHand } from '../src/utils/handStrength';
 import { getPreflopMatrix, getRangeStats, earliestOpenPosition, ALL_HANDS } from '../src/data/preflopRanges';
@@ -42,6 +62,15 @@ ok(classifyHand(C('9h 9d') as [Card, Card], C('Ac 7s 2d')).cls === 'medium', 'un
 ok(classifyHand(C('7h 2d') as [Card, Card], C('Ac 7s 2c')).cls === 'monster', 'bottom two pair = monster');
 ok(classifyHand(C('Ah Kh') as [Card, Card], C('Qh 7h 2c')).cls === 'draw', 'nut flush draw = draw');
 ok(classifyHand(C('Ah Kh') as [Card, Card], C('5c 5s 9d 9h Td')).cls === 'air', 'board two pair, AK high = air (board plays)');
+// board-aware: threats lower made hands that are not the nuts
+ok(classifyHand(C('9s 6d') as [Card, Card], C('Jh 6c 9h 8c')).cls === 'strong', '96 on J698 (straight possible) = strong, not monster');
+ok(classifyHand(C('9s 6d') as [Card, Card], C('Jh 6c 9h 8c')).threat === 'escalera', '96 on J698: threat escalera');
+ok(classifyHand(C('7h 7d') as [Card, Card], C('7c 2h Ks')).cls === 'monster', 'set on dry board stays monster');
+ok(classifyHand(C('Ts 9s') as [Card, Card], C('Jh Qd Kc 2h')).cls === 'strong', 'T-high straight with AT possible = strong');
+ok(classifyHand(C('Ah 2h') as [Card, Card], C('Kh 7h 4h 9c')).cls === 'monster', 'nut flush stays monster');
+ok(classifyHand(C('5h 2h') as [Card, Card], C('Kh 7h 4h 9c')).cls === 'strong', 'low flush = strong');
+ok(classifyHand(C('Ah Kd') as [Card, Card], C('Ac 9h 8h 7c')).cls !== 'strong', 'TPTK on 987 two-tone is not strong');
+ok(classifyHand(C('Qs Qd') as [Card, Card], C('Ah Kh 5h 2h')).cls === 'weak' || classifyHand(C('Qs Qd') as [Card, Card], C('Ah Kh 5h 2h')).cls === 'medium', 'QQ on 4-flush overcards: weak/medium');
 
 // ---------- outs ----------
 ok(countOutsVsVillain(C('Kc 2c') as [Card, Card], C('Kh Ts') as [Card, Card], C('5c 2d Td')).length === 2, 'K2 vs KT on 52T: 2 outs');
@@ -96,12 +125,14 @@ ok(HAND_RANKING[0].hand === 'AA' && HAND_RANKING[0].rank === 1, 'AA is #1');
 ok(HAND_RANKING[168].openFrom === null, 'last hand is never opened');
 
 // ---------- mixed scoring ----------
-const mixed = buildOptions([{ id: 'fold', label: 'FOLD', freq: 40 }, { id: 'call', label: 'CALL', freq: 60 }, { id: 'raise', label: 'RAISE', freq: 0 }], 10);
-ok(mixed[0].isCorrect && mixed[0].evDiffNum === 0 && mixed[1].isCorrect && mixed[1].evDiffNum === 0, 'freq ≥25 % = correct, no EV loss');
-ok(!mixed[2].isCorrect && mixed[2].verdict === 'error' && mixed[2].evDiffNum < 0, 'freq 0 = error');
+const mixed = buildOptions([{ id: 'fold', label: 'FOLD', freq: 40 }, { id: 'call', label: 'CALL', freq: 60 }, { id: 'raise', label: 'RAISE', freq: 0 }]);
+ok(mixed[0].isCorrect && mixed[0].grade === 'valid' && mixed[1].isCorrect && mixed[1].grade === 'best', 'freq ≥25 % = Válida, top = Mejor');
+ok(!mixed[2].isCorrect && mixed[2].verdict === 'error' && mixed[2].grade === 'error', 'freq 0 = Error');
+ok(buildOptions([{ id: 'fold', label: 'F', freq: 0 }, { id: 'raise', label: 'R', freq: 100 }], ['fold'])[0].grade === 'blunder', 'severe freq 0 = Grave');
+ok(!('evDiff' in mixed[0]) && !('evDiffNum' in mixed[0]), 'no invented EV on options');
 ok(mixedLine(mixed) === 'Pagar 60 % · Fold 40 %: ambas valen', `mixed line (${mixedLine(mixed)})`);
-const rare = buildOptions([{ id: 'check', label: 'CHECK', freq: 85 }, { id: 'bet_small', label: 'BET', freq: 15 }], 10);
-ok(!rare[1].isCorrect && rare[1].verdict === 'mixed' && rare[1].evDiffNum < 0, 'freq 15 % = not correct');
+const rare = buildOptions([{ id: 'check', label: 'CHECK', freq: 85 }, { id: 'bet_small', label: 'BET', freq: 15 }]);
+ok(!rare[1].isCorrect && rare[1].verdict === 'mixed' && rare[1].grade === 'imprecise', 'freq 15 % = Imprecisa');
 ok(mixedLine(rare) === null, 'single answer: no mixed line');
 
 // ---------- full-hand sweep ----------
@@ -125,6 +156,9 @@ function checkStep(step: HandStep, tag: string) {
   const opts = step.options;
   ok(opts.some(o => o.isCorrect), `${tag}: has optimal option`);
   opts.forEach(o => ok(o.isCorrect === (o.verdict === 'optimal'), `${tag}: isCorrect<->verdict ${o.id}`));
+  opts.forEach(o => ok(o.isCorrect === (o.grade === 'best' || o.grade === 'valid'), `${tag}: grade<->correct ${o.id} ${o.grade}`));
+  ok(opts.filter(o => o.grade === 'best').length >= 1, `${tag}: one best`);
+  ok(!!step.concept && step.difficulty >= 900 && step.difficulty <= 2100, `${tag}: concept ${step.concept} difficulty ${step.difficulty}`);
   step.players.forEach(p => ok(Math.abs(p.stack + p.totalInvestedHand - 100) < 0.01, `${tag}: stack+invested=100 (${p.position})`));
   const potFromPlayers = r1(step.players.reduce((a, p) => a + p.totalInvestedHand, 0));
   ok(Math.abs(potFromPlayers - step.pot) < 0.05, `${tag}: pot ${step.pot} == invested ${potFromPlayers}`);
@@ -298,10 +332,15 @@ for (const sub of ['preflop', 'postflop'] as const) for (let i = 0; i < 200; i++
 
 // ---------- spaced repetition: similar spots ----------
 let sameShape = 0;
+let newHands = 0;
 for (let i = 0; i < 60; i++) {
   const pre = generateFullHandScenario(3).steps[0];
   const sim = generateSimilarStep(pre.review, 3);
-  ok(sim.spotType === pre.spotType && sim.heroPosition === pre.heroPosition && sim.review.hand === pre.review.hand && sim.review.villainPos === pre.review.villainPos, `similar preflop spot (${pre.review.hand} ${pre.spotType})`);
+  ok(sim.spotType === pre.spotType && sim.heroPosition === pre.heroPosition && sim.review.villainPos === pre.review.villainPos, `similar preflop spot (${pre.review.hand} ${pre.spotType})`);
+  const [ra, ca] = handCell(pre.review.hand!);
+  const [rb, cb] = handCell(sim.review.hand!);
+  ok(Math.max(Math.abs(ra - rb), Math.abs(ca - cb)) <= 2, `review hand is a neighbour (${pre.review.hand} → ${sim.review.hand})`);
+  if (sim.review.hand !== pre.review.hand) newHands++;
   const post = generateSimulatorDrill('postflop', 3);
   const simPost = generateSimilarStep(post.review, 3);
   checkStep(simPost, 'similar post');
@@ -312,12 +351,207 @@ for (let i = 0; i < 60; i++) {
   ok(cardsA !== cardsB, 'similar spot uses new cards');
 }
 ok(sameShape >= 54, `similar postflop: same street+decision ${sameShape}/60`);
-ok(generateSimilarStep({ kind: 'odds', spot: 'POT_ODDS_DRILL', heroPos: 'BB' }).questionType === 'pot_odds', 'odds review stays a pot-odds drill');
+ok(newHands >= 40, `review uses a different, similar hand most of the time (${newHands}/60)`);
+ok(generateSimilarStep({ kind: 'odds', spot: 'POT_ODDS_DRILL', heroPos: 'BB' }).questionType === 'pot_odds', 'old odds review key stays a pot-odds drill');
+ok(generateSimilarStep({ kind: 'math', spot: 'POT_ODDS_DRILL', heroPos: 'BB', concept: 'm_mdf' }).questionType === 'mdf', 'math review keeps its drill');
 // level 1 never shows 3-bet pots; positions filter respected
 for (let i = 0; i < 300; i++) {
   ok(generateFullHandScenario(1).spotType !== '3BET_POT', 'level 1 has no 3-bet pots');
   const s = generateFullHandScenario(3, undefined, { positions: ['BTN'] });
   ok(s.steps[0].heroPosition === 'BTN', `positions filter (got ${s.steps[0].heroPosition})`);
+}
+
+// ---------- neighbour hands ----------
+{
+  const m = getPreflopMatrix('RFI', 'BTN');
+  for (let i = 0; i < 200; i++) {
+    const h = ALL_HANDS[i % 169];
+    const n = neighbourHand(m, h);
+    const dom = (x: string) => { const f = m[x] || { raise: 0, call: 0, fold: 100 }; return f.raise >= f.fold ? 'raise' : 'fold'; };
+    ok(dom(n) === dom(h), `neighbour ${h}→${n} plays the same`);
+  }
+}
+
+// ---------- rating (Glicko-1) ----------
+{
+  ok(Math.abs(expectedScore(1500, 1500) - 0.5) < 1e-9, 'E = 0.5 at equal ratings');
+  ok(expectedScore(1700, 1500) > 0.7, 'higher rated expected to win');
+  const w = updateRating(START, 1500, 1);
+  const l = updateRating(START, 1500, 0);
+  ok(w.r > 1500 && l.r < 1500 && Math.abs((w.r - 1500) + (l.r - 1500)) < 0.5, `symmetric update (${w.r}, ${l.r})`);
+  ok(w.rd < START.rd, 'RD shrinks after a game');
+  ok(w.r - 1500 >= 90, `new player moves fast (${w.r})`);
+  let p = { r: 1500, rd: 60, n: 100 };
+  const before = p.r;
+  p = updateRating(p, 1500, 1);
+  ok(p.r - before < 12 && p.r - before > 3, `settled player moves little (${p.r - before})`);
+  ok(updateRating(p, 1900, 1).r - p.r > updateRating(p, 1300, 1).r - p.r, 'beating a harder spot gives more');
+  ok(updateRating(p, 1900, 0).r - p.r > updateRating(p, 1300, 0).r - p.r, 'losing to a harder spot costs less');
+  ok(updateRating({ r: 1500, rd: 60, n: 0 }, 1500, 1).rd >= 60, 'RD floor');
+  ok(levelForRating(1200) === 1 && levelForRating(1800) === 4, 'level from rating');
+  // random tapper: rating falls, real accuracy ≈ 0
+  let rnd = { ...START };
+  let okN = 0, chance = 0, n = 0;
+  for (let i = 0; i < 400; i++) {
+    const s = i % 2 ? generateConceptStep(CURRICULUM[i % 5], rnd.r) : generateRatedHand(rnd.r).steps[0];
+    const o = s.options[Math.floor(Math.random() * s.options.length)];
+    rnd = updateRating(rnd, s.difficulty, o.isCorrect ? 1 : o.grade === 'imprecise' ? 0.3 : 0, chanceOf(s));
+    okN += o.isCorrect ? 1 : 0; chance += chanceOf(s); n++;
+  }
+  const real = aboveChance(okN, n, chance)!;
+  ok(real <= 12, `random play: real accuracy near 0 (${real} %, raw ${Math.round(okN / n * 100)} %)`);
+  ok(rnd.r < 1300, `random play rating falls (${Math.round(rnd.r)})`);
+  ok(aboveChance(10, 10, 5) === 100 && aboveChance(5, 10, 5) === 0, 'above-chance bounds');
+  const picks = Array.from({ length: 300 }, () => pickNearRating([{ difficulty: 1100 }, { difficulty: 1500 }, { difficulty: 1900 }], 1500).difficulty);
+  ok(picks.filter(x => x === 1500).length > 200, 'pickNearRating prefers the closest');
+  // selection near rating
+  const diffAt = (r: number) => Array.from({ length: 60 }, () => generateRatedHand(r).steps[0].difficulty).reduce((a, b) => a + b, 0) / 60;
+  ok(diffAt(1800) - diffAt(1200) > 150, `harder spots for higher ratings (${Math.round(diffAt(1200))} → ${Math.round(diffAt(1800))})`);
+}
+
+// ---------- concepts, leak cells ----------
+for (const c of [...CURRICULUM, 'm_mdf', 'm_bluff', 'm_combos', 'm_odds', 'm_outs', 'm_ev'] as ConceptId[]) {
+  for (let i = 0; i < 6; i++) {
+    const s = generateConceptStep(c, 1500);
+    checkStep(s, `concept ${c}`);
+    ok(s.concept === c, `concept step ${c} → ${s.concept}`);
+    ok(conceptOfKey(s.review) === c || c.startsWith('m_'), `review key maps back to ${c}`);
+    if (s.questionType === 'action') checkWhy(s, `concept ${c}`);
+  }
+}
+for (const pos of CLOCKWISE_POSITIONS) for (const st of ['preflop', 'flop', 'turn', 'river'] as const) {
+  const s = generateLeakStep(pos, st, 1500);
+  checkStep(s, `leak ${pos} ${st}`);
+  ok(s.heroPosition === pos && s.street === st, `leak cell ${pos}/${st} → ${s.heroPosition}/${s.street}`);
+}
+
+// ---------- reasons, not templates ----------
+{
+  const whys: string[] = [];
+  for (let i = 0; i < 150; i++) {
+    const s = generateConceptStep((['cbet', 'flop_def', 'turn', 'river'] as ConceptId[])[i % 4], 1500);
+    whys.push(s.why.replace(/Bote [^.]*\. /, '').split(' → ')[0]);
+  }
+  let repeats = 0;
+  for (let i = 1; i < whys.length; i++) if (whys[i] === whys[i - 1]) repeats++;
+  ok(repeats <= 3, `consecutive explanations rarely repeat (${repeats})`);
+  ok(new Set(whys).size > 40, `explanations vary (${new Set(whys).size} distinct / 150)`);
+  ok(whys.some(w => /Valor/.test(w)) && whys.some(w => /Farol|Semifarol/.test(w)) && whys.some(w => /Control del bote|Bluff-catcher/.test(w)), 'reasons cover valor, farol, control');
+  ok(!whys.some(w => /Iniciativa de/.test(w)), 'old template phrase gone');
+}
+
+// ---------- math drills ----------
+for (let i = 0; i < 200; i++) {
+  const m = generateMdfDrill();
+  checkSeats(m, 'mdf');
+  const bet = m.players.find(p => p.currentBet > 0)!.currentBet;
+  const pot = m.pot - bet;
+  ok(Math.abs(parseFloat(m.options.find(o => o.isCorrect)!.label) - pot / (pot + bet) * 100) <= 0.5, `mdf answer ${m.why}`);
+  ok(new Set(m.options.map(o => o.label)).size === 3, 'mdf 3 options');
+  const b = generateBluffDrill();
+  checkSeats(b, 'bluff');
+  const hb = b.players[0].currentBet;
+  const bp = b.pot - hb;
+  ok(Math.abs(parseFloat(b.options.find(o => o.isCorrect)!.label) - hb / (bp + 2 * hb) * 100) <= 0.5, `bluff answer ${b.why}`);
+  const c = generateCombosDrill();
+  checkSeats(c, 'combos');
+  const label = c.prompt.match(/de (\w+)\?/)![1];
+  const dead = [...c.players[0].cards!, ...c.communityCards];
+  // brute force
+  const deck = '23456789TJQKA'.split('').flatMap(r => 'shdc'.split('').map(su => ({ rank: r, suit: su })));
+  const live = deck.filter(d => !dead.some(x => x.rank === d.rank && x.suit === d.suit));
+  let brute = 0;
+  for (let a = 0; a < live.length; a++) for (let z = a + 1; z < live.length; z++) {
+    const [x, y] = [live[a], live[z]];
+    if ((x.rank === label[0] && y.rank === label[1]) || (x.rank === label[1] && y.rank === label[0])) brute++;
+  }
+  ok(c.options.find(o => o.isCorrect)!.label === String(brute), `combos ${label}: ${brute} (${c.why})`);
+  ok(countCombos(label, []) === handCombos(label.length === 2 && label[0] === label[1] ? label : label + 'o') + (label[0] === label[1] ? 0 : 4), `unblocked combos ${label}`);
+}
+{
+  const eqTimes: number[] = [];
+  for (let i = 0; i < 6; i++) {
+    const t = Date.now();
+    const e = generateEquityDrill();
+    eqTimes.push(Date.now() - t);
+    const v = e.players.find(p => !p.isHero && p.status === 'active')!.position;
+    const range = ALL_HANDS.map(h => ({ h, w: ((getPreflopMatrix('RFI', v)[h]?.raise || 0) / 100) * handCombos(h) })).filter(x => x.w > 0);
+    const precise = equityVsRange(e.players[0].cards!, e.communityCards, range, 15000);
+    const vals = e.options.map(o => parseFloat(o.label));
+    const nearest = vals.reduce((a, b2) => (Math.abs(b2 - precise) < Math.abs(a - precise) ? b2 : a));
+    ok(e.options.find(o => o.isCorrect)!.label === `${nearest} %`, `equity drill: nearest option to ${precise.toFixed(1)} (${e.why})`);
+    ok(Math.max(...vals) - Math.min(...vals) <= 24, 'equity distractors are close');
+  }
+  ok(Math.max(...eqTimes) < 1500, `equity drill fast enough (${Math.max(...eqTimes)} ms)`);
+  const aa = equityVsRange(C('As Ah') as [Card, Card], [], [{ h: '72o', w: 1 }], 4000);
+  ok(aa > 83 && aa < 92, `AA vs 72o ≈ 88 % (${aa.toFixed(1)})`);
+}
+
+// ---------- sessions ----------
+{
+  const plan = dailyPlan(3, {});
+  ok(plan.length === 10, 'daily = 10');
+  ok(plan.filter(s => s.kind === 'concept').length === 4 && plan.filter(s => s.kind === 'review').length === 3 && plan.filter(s => s.kind === 'mixed').length === 3, 'daily 4+3+3');
+  ok(plan.every((s, i) => i === 0 || s.kind !== plan[i - 1].kind), 'daily interleaved');
+  ok(plan.filter(s => s.kind === 'concept').every(s => s.kind === 'concept' && s.concept === CURRICULUM[3]), 'daily concept = curriculum');
+  ok(PLACEMENT.length === 12 && new Set(PLACEMENT).size === 12, 'placement 12 distinct');
+  ok(placementCurriculum(CURRICULUM.map((c, i) => ({ concept: c, ok: i < 4 }))) === 4, 'placement → first miss');
+  ok(placementCurriculum(CURRICULUM.map(c => ({ concept: c, ok: true }))) === CURRICULUM.length - 1, 'placement all ok → last');
+  ok(advanceCurriculum(0, { rfi_early: { r: 1600, rd: 80, n: 12 } }) === 1, 'unlock after 1550 & 10');
+  ok(advanceCurriculum(0, { rfi_early: { r: 1600, rd: 80, n: 5 } }) === 0, 'no unlock under 10 answers');
+  ok(reviewInterval(1, 'fast') > reviewInterval(1, 'normal') && reviewInterval(2, 'slow') === 3, 'confidence changes interval');
+  ok(confidenceOf(2000, 'flop') === 'fast' && confidenceOf(9000, 'preflop') === 'slow' && confidenceOf(9000, 'river') === 'normal', 'confidence by time');
+  // sprint
+  let mixedSeen = 0;
+  for (let i = 0; i < 500; i++) {
+    const h = sprintHand();
+    const f = getPreflopMatrix('RFI', h.pos)[h.hand]?.raise || 0;
+    ok(f === h.raise, 'sprint freq');
+    if (f > 0 && f < 100) { mixedSeen++; ok(sprintCorrect(h, true) && sprintCorrect(h, false), 'mixed accepts both'); }
+    else ok(sprintCorrect(h, f >= 100) && !sprintCorrect(h, f < 100), 'pure answer');
+  }
+  ok(mixedSeen > 10, 'sprint shows frontier hands');
+  // range builder
+  const t = RANGE_TASKS[0];
+  const m = t.matrix();
+  const exact = new Set(ALL_HANDS.filter(h => (m[h]?.raise || 0) >= 50));
+  ok(rangeScore(t, exact).score >= 85, `exact range scores high (${rangeScore(t, exact).score})`);
+  ok(rangeScore(t, new Set(ALL_HANDS)).score < 30, 'paint all scores low');
+  ok(rangeScore(t, new Set()).score === 0, 'empty scores 0');
+  const missOne = new Set(exact); missOne.delete('AA');
+  ok(rangeScore(t, missOne).missing.includes('AA'), 'reports missing hands');
+}
+
+// ---------- stats: migration and answers ----------
+{
+  const old = { schemaVersion: 3, pedagogicalLevel: 3, totalDecisions: 120, totalCorrectDecisions: 80, totalEvAccumulatedBB: -12.5, recentAnswers: [true], mistakeQueue: [{ id: 'a', key: { kind: 'pre', spot: 'RFI_OPEN', heroPos: 'BTN', hand: 'A5s' }, stage: 0, dueAt: 3, evLostBB: 1 }], preferences: { volume: 30 } };
+  const m = migrateStats(old);
+  ok(m.schemaVersion === 4 && m.rating.r === 1600 && m.rating.rd === 250 && m.placementDone, 'v3 → v4 rating from level');
+  ok(!('pedagogicalLevel' in m) && !('totalEvAccumulatedBB' in m), 'old fields removed');
+  ok(m.mistakeQueue.length === 1 && !('evLostBB' in m.mistakeQueue[0]), 'mistakes kept, EV dropped');
+  ok(m.preferences.volume === 30 && m.preferences.displayUnits === 'bb', 'preferences merged');
+  ok(migrateStats({ schemaVersion: 1 }).rating.r === 1500, 'very old data → 1500');
+  ok(migrateStats(null).rating.r === 1500, 'null → defaults');
+
+  let st = { ...DEFAULT_STATS };
+  let step = generateConceptStep('rfi_late', 1500);
+  while (step.options.every(o => o.isCorrect)) step = generateConceptStep('rfi_late', 1500);
+  const good = step.options.find(o => o.isCorrect)!;
+  const r1s = applyAnswer(st, step, good.id, { ms: 4000 });
+  ok(r1s.result.delta > 0 && r1s.next.rating.r > 1500 && r1s.next.consecutiveCorrect === 1, `correct raises rating (+${r1s.result.delta})`);
+  ok(r1s.next.ratingHistory.length === 1 && !!r1s.next.conceptRatings.rfi_late, 'history and concept rating');
+  ok(r1s.next.leakStats[`${step.heroPosition}|preflop`].n === 1, 'leak stats updated');
+  const bad = step.options.find(o => !o.isCorrect)!;
+  const r2s = applyAnswer(r1s.next, { ...step, trivial: false }, bad.id, { ms: 5000 });
+  ok(r2s.result.delta < 0 && r2s.next.consecutiveCorrect === 0, 'mistake lowers rating and streak');
+  ok(r2s.next.mistakeQueue.length === 1, 'mistake queued for review');
+  const r3s = applyAnswer(r1s.next, { ...step, trivial: true }, bad.id, { ms: 5000 });
+  ok(r3s.next.mistakeQueue.length === 0, 'obvious (trivial) mistake not queued');
+  const slow = applyAnswer(st, step, good.id, { ms: 15000 });
+  ok(slow.result.confidence === 'slow' && slow.next.mistakeQueue.length === 1, 'slow correct answer comes back');
+  const unrated = applyAnswer(st, step, good.id, { rated: false });
+  ok(unrated.next.rating.r === 1500, 'unrated answers keep rating');
+  st = r2s.next;
 }
 
 console.log('\nOptimal answers by street:', JSON.stringify(optimalByStreet));

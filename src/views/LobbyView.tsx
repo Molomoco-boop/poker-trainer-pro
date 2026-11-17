@@ -1,109 +1,85 @@
 import React, { useState } from 'react';
-import { Header } from '../components/Header';
-import { TrainingCategories } from '../components/TrainingCategories';
-import { ToolsSection } from '../components/ToolsSection';
 import { RangeViewerModal } from '../components/RangeViewerModal';
 import { OddsCalculatorModal } from '../components/OddsCalculatorModal';
 import { HandsTableModal } from '../components/HandsTableModal';
-import { StatsMistakesModal } from '../components/StatsMistakesModal';
-import { CategoryId } from '../types/poker';
-import { Play } from 'lucide-react';
 import { useGame } from '../context/useGame';
+import { CONCEPT_ES, CURRICULUM } from '../types/poker';
+import { Panel, Title } from '../components/ui';
+import { ChevronRight } from 'lucide-react';
 
 interface LobbyViewProps {
-  onSelectCategory: (cat: CategoryId) => void;
   onStartDaily: () => void;
-  onStartContinuousPlay: () => void;
+  onStartRated: () => void;
+  onStartPlacement: () => void;
+  onStartSprint: () => void;
+  onStartRangeBuilder: () => void;
 }
 
-export const LobbyView: React.FC<LobbyViewProps> = ({
-  onSelectCategory,
-  onStartDaily,
-  onStartContinuousPlay
-}) => {
-  const { stats } = useGame();
-  const [showRangeViewer, setShowRangeViewer] = useState(false);
-  const [showOddsCalculator, setShowOddsCalculator] = useState(false);
-  const [showHandsTable, setShowHandsTable] = useState(false);
-  const [showStatsModal, setShowStatsModal] = useState(false);
+const Row: React.FC<{ title: string; sub: string; right?: React.ReactNode; onClick: () => void; accent?: boolean; cls?: string }> = ({ title, sub, right, onClick, accent, cls = '' }) => (
+  <button onClick={onClick} className={`${cls} w-full text-left flex items-center gap-3 px-3 min-h-[60px] border-b border-line last:border-b-0 active:bg-panel2 ${accent ? 'bg-good/10' : ''}`}>
+    <div className="flex-1 min-w-0">
+      <div className={`text-[15px] font-semibold ${accent ? 'text-goodtx' : 'text-hi'}`}>{title}</div>
+      <div className="text-[12px] text-dim truncate">{sub}</div>
+    </div>
+    {right}
+    <ChevronRight className="w-4 h-4 text-dim shrink-0" />
+  </button>
+);
 
-  const drillProgress = stats.dailyDrillCount || 0;
+export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated, onStartPlacement, onStartSprint, onStartRangeBuilder }) => {
+  const { stats } = useGame();
+  const [modal, setModal] = useState<'ranges' | 'odds' | 'hands' | null>(null);
+  const daily = stats.dailyDrillCount || 0;
+  const concept = CURRICULUM[Math.min(stats.curriculumIndex, CURRICULUM.length - 1)];
+  const due = stats.mistakeQueue.filter(m => m.dueAt <= stats.totalHandsPlayed).length;
+  const last = stats.ratingHistory.length > 1 ? stats.ratingHistory[stats.ratingHistory.length - 1] - stats.ratingHistory[Math.max(0, stats.ratingHistory.length - 11)] : 0;
 
   return (
-    <div className="space-y-3 animate-fadeIn select-none font-sans">
-      
-      {/* Header */}
-      <Header />
-
-      {/* Daily Drill Card with REAL PROGRESS (0/10) */}
-      <div className="bg-[#121929] border border-slate-800/90 rounded-2xl p-3.5 shadow-sm flex flex-col gap-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full border border-blue-500/40 bg-blue-600/15 flex items-center justify-center text-blue-400 shrink-0">
-              <Play className="w-4 h-4 fill-blue-400 stroke-none ml-0.5" />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold tracking-wider text-blue-400 uppercase">
-                Drill diario
-              </span>
-              <h3 className="text-sm font-[800] text-white">10 decisiones</h3>
-              <p className="text-[11px] text-slate-400">{drillProgress >= 10 ? 'Hecho hoy' : `${drillProgress}/10`}</p>
-            </div>
+    <div className="lobby space-y-3 animate-fadeIn">
+      <div className="flex items-end justify-between px-0.5 pt-1">
+        <div>
+          <div className="text-[12px] text-dim">{stats.username}</div>
+          <div className="flex items-baseline gap-2">
+            <span className="lobby-rating num text-[36px] leading-none font-semibold text-hi">{Math.round(stats.rating.r)}{stats.rating.rd > 110 ? '?' : ''}</span>
+            {last !== 0 && <span className={`num text-[14px] font-semibold ${last > 0 ? 'text-goodtx' : 'text-badtx'}`}>{last > 0 ? '+' : '−'}{Math.abs(last)}</span>}
           </div>
-
-          <button
-            onClick={drillProgress >= 10 ? onStartContinuousPlay : onStartDaily}
-            className="h-10 px-5 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-[800] transition-all active:scale-95 shadow-md shadow-blue-600/20"
-          >
-            {drillProgress >= 10 ? 'Libre' : drillProgress > 0 ? 'Seguir' : 'Jugar'}
-          </button>
         </div>
-
-        {/* Real Progress Bar */}
-        <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-          <div
-            className="h-full bg-gradient-to-r from-blue-600 to-sky-400 rounded-full transition-all duration-300"
-            style={{ width: `${Math.min(100, (drillProgress / 10) * 100)}%` }}
-          />
+        <div className="text-right num text-[12px] text-dim leading-tight">
+          <div>Racha <span className="text-hi">{stats.consecutiveCorrect}</span></div>
+          <div>Días <span className="text-hi">{stats.dayStreak}</span></div>
         </div>
       </div>
 
-      {/* Training Categories (Simulator, Math, Fundamentals) */}
-      <TrainingCategories onSelectCategory={onSelectCategory} />
+      <Panel className="overflow-hidden">
+        {!stats.placementDone && (
+          <Row cls="placement-row" accent title="Test de nivel" sub="12 spots · fija tu rating y tu punto de partida" onClick={onStartPlacement} />
+        )}
+        <Row
+          cls="daily-row"
+          title="Sesión diaria"
+          sub={daily >= 10 ? 'Hecha hoy' : `${CONCEPT_ES[concept]} · 4 tema + 3 repaso + 3 mezcla`}
+          right={<span className="num text-[13px] text-txt">{Math.min(daily, 10)}/10</span>}
+          onClick={onStartDaily}
+        />
+        <Row cls="rated-row" title="Jugar" sub="Manos completas a tu nivel · puntúa" right={due ? <span className="num text-[12px] text-warn">{due} rep.</span> : undefined} onClick={onStartRated} />
+        <Row cls="sprint-row" title="¿Abre? 60 s" sub="Open o fold, tres fallos y fuera" right={<span className="num text-[13px] text-txt">{stats.sprintBest}</span>} onClick={onStartSprint} />
+        <Row cls="builder-row" title="Construir rango" sub="Pinta el rango de memoria" onClick={onStartRangeBuilder} />
+      </Panel>
 
-      {/* Tools Section (Range Viewer, Odds Calculator) */}
-      <ToolsSection
-        onOpenRangeViewer={() => setShowRangeViewer(true)}
-        onOpenOddsCalculator={() => setShowOddsCalculator(true)}
-        onOpenHandsTable={() => setShowHandsTable(true)}
-      />
-
-      {/* Stats & Mistakes quick link */}
-      <button
-        onClick={() => setShowStatsModal(true)}
-        className="w-full bg-[#121929] border border-slate-800/90 rounded-2xl px-3.5 py-2.5 flex items-center justify-between shadow-sm transition-all active:scale-[0.99] cursor-pointer hover:bg-[#162035]"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-800/80 flex items-center justify-center text-slate-300 shrink-0">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><polyline points="18,17 12,11 8,15 2,9"/></svg>
-          </div>
-          <div className="text-left">
-            <h3 className="text-xs font-bold text-white">Estadísticas</h3>
-            <p className="text-[11px] text-slate-400">
-              {stats.totalDecisions > 0
-                ? `${Math.round((stats.totalCorrectDecisions / stats.totalDecisions) * 100)}% · ${stats.totalDecisions} decisiones`
-                : 'Sin manos jugadas'}
-            </p>
-          </div>
+      <div>
+        <Title>Herramientas</Title>
+        <div className="grid grid-cols-3 gap-1.5">
+          {([['ranges', 'Rangos'], ['hands', 'Manos'], ['odds', 'Calculadora']] as const).map(([id, label]) => (
+            <button key={id} onClick={() => setModal(id)} className="tool-card h-11 rounded-[4px] bg-panel border border-line text-[13px] font-semibold text-hi active:bg-panel2">
+              {label}
+            </button>
+          ))}
         </div>
-        <svg className="w-4 h-4 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
+      </div>
 
-      {/* Modals */}
-      {showRangeViewer && <RangeViewerModal onClose={() => setShowRangeViewer(false)} />}
-      {showOddsCalculator && <OddsCalculatorModal onClose={() => setShowOddsCalculator(false)} />}
-      {showHandsTable && <HandsTableModal onClose={() => setShowHandsTable(false)} />}
-      {showStatsModal && <StatsMistakesModal onClose={() => setShowStatsModal(false)} />}
+      {modal === 'ranges' && <RangeViewerModal onClose={() => setModal(null)} />}
+      {modal === 'odds' && <OddsCalculatorModal onClose={() => setModal(null)} />}
+      {modal === 'hands' && <HandsTableModal onClose={() => setModal(null)} />}
     </div>
   );
 };

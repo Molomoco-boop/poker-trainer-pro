@@ -1,33 +1,27 @@
 import React from 'react';
-import { Home, User } from 'lucide-react';
+import { Home, LayoutGrid, LineChart, User } from 'lucide-react';
 
-interface BottomNavProps {
-  currentTab: 'inicio' | 'perfil';
-  onSelectTab: (tab: 'inicio' | 'perfil') => void;
-}
+export type Tab = 'inicio' | 'temas' | 'progreso' | 'perfil';
 
-export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onSelectTab }) => {
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#0a0f1d]/95 backdrop-blur-md border-t border-slate-800/80 px-6 py-2 safe-bottom flex items-center justify-around z-40">
+const TABS: { id: Tab; label: string; Icon: typeof Home }[] = [
+  { id: 'inicio', label: 'Inicio', Icon: Home },
+  { id: 'temas', label: 'Temas', Icon: LayoutGrid },
+  { id: 'progreso', label: 'Progreso', Icon: LineChart },
+  { id: 'perfil', label: 'Perfil', Icon: User }
+];
+
+export const BottomNav: React.FC<{ currentTab: Tab; onSelectTab: (t: Tab) => void }> = ({ currentTab, onSelectTab }) => (
+  <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-panel border-t border-line safe-bottom pt-1 grid grid-cols-4 z-40">
+    {TABS.map(({ id, label, Icon }) => (
       <button
-        onClick={() => onSelectTab('inicio')}
-        className={`flex flex-col items-center justify-center py-1 px-4 transition-colors ${
-          currentTab === 'inicio' ? 'text-blue-500 font-semibold' : 'text-slate-400 hover:text-slate-200'
-        }`}
+        key={id}
+        onClick={() => onSelectTab(id)}
+        data-tab={id}
+        className={`nav-tab h-12 flex flex-col items-center justify-center gap-0.5 ${currentTab === id ? 'text-hi' : 'text-dim'}`}
       >
-        <Home className={`w-5 h-5 mb-1 ${currentTab === 'inicio' ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-        <span className="text-[11px] tracking-wide">Inicio</span>
+        <Icon className="w-5 h-5" strokeWidth={currentTab === id ? 2.4 : 1.8} />
+        <span className="text-[11px]">{label}</span>
       </button>
-
-      <button
-        onClick={() => onSelectTab('perfil')}
-        className={`flex flex-col items-center justify-center py-1 px-4 transition-colors ${
-          currentTab === 'perfil' ? 'text-blue-500 font-semibold' : 'text-slate-400 hover:text-slate-200'
-        }`}
-      >
-        <User className={`w-5 h-5 mb-1 ${currentTab === 'perfil' ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-        <span className="text-[11px] tracking-wide">Perfil</span>
-      </button>
-    </nav>
-  );
-};
+    ))}
+  </nav>
+);

@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { HandStep, StakeLevel, Position, DecisionVerdict } from '../types/poker';
+import React from 'react';
+import { HandStep, StakeLevel, Position, Grade } from '../types/poker';
 import { CardView } from './CardView';
-import { ArrowLeft, Lightbulb, Sliders, Check, X as CloseIcon, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { convertBBToEUR } from '../utils/difficultyEngine';
 import { PreflopSituation } from '../data/preflopRanges';
 import { cardsToHandLabel } from '../utils/handStrength';
 import { mixedLine } from '../utils/fullHandEngine';
+import { GradeBadge, Delta } from './ui';
+import { GRADE_STYLE } from './gradeStyle';
 
 export interface RangeRequest {
   hand?: string;
@@ -23,16 +25,21 @@ interface PokerTableProps {
   deckColorMode: '4color' | '2color';
   selectedOptionId: string | null;
   isSubmitted: boolean;
-  sessionHandsCount: number;
-  sessionCorrectCount: number;
-  totalEvAccumulatedBB: number;
-  recentResults: DecisionVerdict[];
-  progressLabel?: string;
+  /** Current rating and the change from the last answer. */
+  rating: number;
+  delta: number | null;
+  streak: number;
+  /** Session label, e.g. "Diaria 3/10". */
+  title?: string;
+  recentGrades: Grade[];
+  /** Answer given fast but wrong: highlighted (confident mistake). */
+  fastError?: boolean;
+  doubted?: boolean;
+  onDoubt?: () => void;
   onSelectOption: (id: string) => void;
   onNext: () => void;
   onBack: () => void;
   onToggleUnits: () => void;
-  onOpenLevelSettings: () => void;
   onOpenRangeViewer: (req: RangeRequest) => void;
 }
 
@@ -64,6 +71,7 @@ const SEATS: SeatCfg[] = [
     shown: { bottom: 'calc(100% + 4px)', right: '0' } }
 ];
 
+
 const SITUATION_BY_SPOT: Partial<Record<string, PreflopSituation>> = {
   RFI_OPEN: 'RFI',
   BB_DEFENSE: 'VS_OPEN',
@@ -71,135 +79,81 @@ const SITUATION_BY_SPOT: Partial<Record<string, PreflopSituation>> = {
   '3BET_POT': 'VS_3BET'
 };
 
+const BAR_LABEL: Record<string, string> = {
+  fold: 'Fold', call: 'Pagar', check: 'Check', bet_small: 'Peq.', bet_big: 'Grande', raise: 'Subir', '3bet': '3-bet', '4bet': '4-bet', jam: 'All-in'
+};
+const barColor = (id: string) => (id === 'fold' ? 'bg-[#5a5754]' : id === 'call' || id === 'check' ? 'bg-good' : 'bg-acc');
+
 export const PokerTable: React.FC<PokerTableProps> = ({
-  step,
-  stake,
-  displayUnits,
-  deckColorMode,
-  endNote,
-  selectedOptionId,
-  isSubmitted,
-  sessionHandsCount,
-  sessionCorrectCount,
-  totalEvAccumulatedBB,
-  recentResults,
-  progressLabel,
-  onSelectOption,
-  onNext,
-  onBack,
-  onToggleUnits,
-  onOpenLevelSettings,
-  onOpenRangeViewer
+  step, stake, displayUnits, deckColorMode, endNote, selectedOptionId, isSubmitted,
+  rating, delta, streak, title, recentGrades, fastError, doubted, onDoubt,
+  onSelectOption, onNext, onBack, onToggleUnits, onOpenRangeViewer
 }) => {
-  const [showHint, setShowHint] = useState(false);
   const hero = step.players.find(p => p.isHero) || step.players[0];
   const isAction = step.questionType === 'action';
-
   const fmtBB = (v: number) => `${Math.round(v * 10) / 10}`;
   const money = (bb: number) => (displayUnits === 'bb' ? `${fmtBB(bb)} BB` : `${convertBBToEUR(bb, stake).toFixed(2)} €`);
 
   const selectedOpt = step.options.find(o => o.id === selectedOptionId);
-  const verdict = selectedOpt?.verdict || 'error';
+  const grade: Grade = selectedOpt?.grade || 'error';
   const isCorrectAnswer = selectedOpt?.isCorrect === true;
-  const optimalLabels = step.options.filter(o => o.isCorrect).map(o => o.label).join(' / ');
+  const best = [...step.options].sort((a, b) => b.frequencyGTO - a.frequencyGTO)[0];
+  const okLabels = step.options.filter(o => o.isCorrect).map(o => o.label).join(' / ');
   const mixLine = isAction ? mixedLine(step.options) : null;
   const needPct = (amount?: number) => (amount && step.pot > 0 ? Math.round((amount / (step.pot + amount)) * 100) : 0);
 
   const situation = step.street === 'preflop' ? SITUATION_BY_SPOT[step.spotType] : undefined;
-  const opener = step.players
-    .filter(p => !p.isHero && p.status === 'active')
-    .sort((a, b) => b.currentBet - a.currentBet)[0]?.position;
+  const opener = step.players.filter(p => !p.isHero && p.status === 'active').sort((a, b) => b.currentBet - a.currentBet)[0]?.position;
 
   const labelFor = (label: string, amountBB?: number) => {
     if (amountBB === undefined || displayUnits === 'bb') return { main: label, sub: undefined as string | undefined };
-    const eur = `${convertBBToEUR(amountBB, stake).toFixed(2)} €`;
-    return { main: label.replace(/[\d.]+ BB/, eur), sub: `${fmtBB(amountBB)} BB` };
-  };
-
-  const barColor = (id: string) =>
-    id === 'fold' ? 'bg-slate-600' : id === 'call' || id === 'check' ? 'bg-emerald-600' : 'bg-blue-600';
-  const BAR_LABEL: Record<string, string> = {
-    fold: 'Fold', call: 'Pagar', check: 'Check', bet_small: 'Peq.', bet_big: 'Grande', raise: 'Subir', '3bet': '3-bet', '4bet': '4-bet', jam: 'All-in'
+    return { main: label.replace(/[\d.]+ BB/, `${convertBBToEUR(amountBB, stake).toFixed(2)} €`), sub: `${fmtBB(amountBB)} BB` };
   };
 
   return (
-    <div className="w-full h-[100dvh] max-h-[100dvh] flex flex-col justify-between bg-[radial-gradient(circle_at_50%_35%,#0F172A_0%,#060913_100%)] text-slate-100 select-none overflow-hidden relative font-sans">
-      {/* Header */}
-      <div className="w-full px-3 safe-top pb-1 flex flex-col shrink-0 z-30">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={onBack}
-            className="w-10 h-10 rounded-xl bg-slate-900/80 border border-slate-700/60 flex items-center justify-center text-slate-300 active:scale-95"
-            aria-label="Salir"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-
-          <div className="flex items-center bg-[#0F172A]/90 border border-slate-700/80 rounded-full p-0.5 shadow-lg">
-            <button
-              onClick={onOpenLevelSettings}
-              className="h-10 px-3 text-[12px] font-[800] text-slate-200 flex items-center gap-1 border-r border-slate-700/60"
-              aria-label="Nivel y stake"
-            >
-              <span>{stake}</span>
-              <Sliders className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-            <button
-              onClick={onToggleUnits}
-              className="h-10 min-w-[44px] px-3 rounded-full text-[12px] font-black flex items-center justify-center bg-[#2563EB] text-white"
-              aria-label="Cambiar BB / €"
-            >
-              {displayUnits === 'bb' ? 'BB' : '€'}
-            </button>
-          </div>
-
-          <button
-            onClick={() => setShowHint(true)}
-            className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 active:scale-95"
-            aria-label="Pista"
-          >
-            <Lightbulb className="w-5 h-5" />
-          </button>
+    <div className="w-full h-[100dvh] max-h-[100dvh] flex flex-col bg-bg text-txt select-none overflow-hidden relative">
+      {/* Header: back · rating ± · streak · units */}
+      <div className="w-full px-2 safe-top pb-1 shrink-0 flex items-center gap-2 border-b border-line">
+        <button onClick={onBack} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Salir">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div className="flex-1 min-w-0 flex items-baseline gap-2">
+          <span className="table-rating num text-[22px] leading-none font-semibold text-hi">{rating}</span>
+          <Delta value={delta} className="text-[15px]" />
+          {title && <span className="text-[12px] text-dim truncate">{title}</span>}
         </div>
-        <div className="mt-1 px-1 text-[10px] text-slate-500 truncate text-center">{step.actionTicker}</div>
+        <span className="streak num text-[13px] text-txt whitespace-nowrap" aria-label="Racha">Racha <b className="text-hi">{streak}</b></span>
+        <button onClick={onToggleUnits} className="h-10 min-w-[40px] px-2 text-[12px] font-semibold text-txt border border-line rounded-[4px]" aria-label="Cambiar BB / €">
+          {displayUnits === 'bb' ? 'BB' : '€'}
+        </button>
       </div>
+      <div className="px-3 pt-1 text-[11px] text-dim truncate text-center shrink-0">{step.actionTicker}</div>
 
       {/* Table */}
-      <div className="flex-1 w-full flex items-center justify-center px-2 py-0.5 relative z-10 min-h-0">
+      <div className="flex-1 w-full flex items-center justify-center px-2 relative min-h-0">
         <div className="relative w-full max-w-[400px] h-full max-h-[440px] flex items-center justify-center">
-          <div className="absolute inset-[3%] rounded-[150px] bg-[radial-gradient(ellipse_at_center,#13233C_0%,#0B1424_75%,#080E1A_100%)] border-[4px] border-[#1E3A5F] shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_0_30px_rgba(0,0,0,0.85)] overflow-hidden">
-            <div className="absolute inset-[14px] rounded-[136px] border border-sky-400/20 pointer-events-none" />
-          </div>
+          <div className="absolute inset-[3%] rounded-[150px] bg-felt border-2 border-feltline" />
 
           <div className="w-[66%] z-20 flex flex-col items-center justify-center gap-2 pointer-events-none">
-            <div className="bg-[#0B1424]/90 border border-slate-700/80 px-3.5 py-1 rounded-full shadow whitespace-nowrap">
-              <span className="text-[15px] font-black text-amber-300 tabular-nums">{money(step.pot)}</span>
-              {displayUnits === 'units' && (
-                <span className="text-[11px] text-slate-300 font-semibold tabular-nums ml-1.5">({fmtBB(step.pot)} BB)</span>
-              )}
+            <div className="px-3 py-0.5 rounded-[3px] bg-bg/70 whitespace-nowrap">
+              <span className="num text-[15px] font-semibold text-hi">{money(step.pot)}</span>
+              {displayUnits === 'units' && <span className="num text-[11px] text-txt ml-1.5">({fmtBB(step.pot)} BB)</span>}
             </div>
-
             <div className="min-h-[76px] flex items-center justify-center gap-1">
-              {step.communityCards.map((c, i) => (
-                <CardView key={i} card={c} size="board" deckMode={deckColorMode} />
-              ))}
+              {step.communityCards.map((c, i) => <CardView key={i} card={c} size="board" deckMode={deckColorMode} />)}
             </div>
-
-            <div className="bg-[#0F172A]/85 border border-sky-400/25 px-3 py-1 rounded-[10px] text-center shadow-md max-w-[100%]">
-              <span className="text-[11px] font-semibold text-slate-200 leading-tight block truncate">
-                {step.isReviewOfMistake && <span className="text-amber-300 font-[800]">Repaso · </span>}
+            <div className="text-center max-w-full">
+              <span className="text-[12px] text-hi leading-tight block truncate">
+                {step.isReviewOfMistake && <span className="text-warn font-semibold">Repaso · </span>}
                 {step.contextNotice}
               </span>
             </div>
-
-            <div className="flex flex-col items-center mt-1">
-              {hero.cards && (
-                <div className="flex items-center gap-2">
-                  <CardView card={hero.cards[0]} size="hero" deckMode={deckColorMode} className="rotate-[-3deg]" />
-                  <CardView card={hero.cards[1]} size="hero" deckMode={deckColorMode} className="rotate-[3deg]" />
-                </div>
-              )}
-            </div>
+            {hero.cards && (
+              <div className="flex items-center gap-2 mt-1">
+                <CardView card={hero.cards[0]} size="hero" deckMode={deckColorMode} />
+                <CardView card={hero.cards[1]} size="hero" deckMode={deckColorMode} />
+              </div>
+            )}
           </div>
 
           {step.players.map((p, idx) => {
@@ -208,37 +162,24 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             return (
               <div key={p.id} className="absolute z-20" style={cfg.style} data-seat={idx} data-pos={p.position}>
                 <div className="relative flex flex-col items-center">
-                  <div
-                    className={`seat-node w-[70px] h-[48px] rounded-[11px] flex flex-col items-center justify-center shadow-lg relative ${
-                      p.isHero
-                        ? 'bg-[#0F172A] border-[2px] border-[#38BDF8] shadow-[0_0_12px_rgba(56,189,248,0.4)]'
-                        : isFolded
-                        ? 'bg-[#060A14] border border-[#334155] opacity-[0.32]'
-                        : 'bg-[#0F172A] border-[1.5px] border-[#2563EB]'
-                    }`}
-                  >
-                    <span className="text-[14px] font-black text-white leading-none">{p.position}</span>
-                    <span className="text-[12px] font-bold text-slate-200 leading-none mt-1 tabular-nums whitespace-nowrap">
-                      {isFolded ? 'FOLD' : money(p.stack)}
-                    </span>
+                  <div className={`seat-node w-[70px] h-[46px] rounded-[4px] flex flex-col items-center justify-center ${
+                    p.isHero ? 'bg-panel border-2 border-acc' : isFolded ? 'bg-bg border border-line opacity-40' : 'bg-panel border border-line'
+                  }`}>
+                    <span className="text-[13px] font-bold text-hi leading-none">{p.position}</span>
+                    <span className="num text-[12px] text-txt leading-none mt-1 whitespace-nowrap">{isFolded ? 'Fold' : money(p.stack)}</span>
                   </div>
-
                   {p.isDealer && (
-                    <div className="dealer-btn absolute -top-1.5 -right-1.5 w-[22px] h-[22px] rounded-full bg-[#FACC15] border border-white text-black font-black text-[10px] flex items-center justify-center shadow-md z-30">
-                      D
-                    </div>
+                    <div className="dealer-btn absolute -top-1.5 -right-1.5 w-[20px] h-[20px] rounded-full bg-hi text-bg font-bold text-[10px] flex items-center justify-center z-30">D</div>
                   )}
-
                   {!p.isHero && p.cards && (
                     <div className="absolute flex gap-0.5 z-30" style={cfg.shown}>
                       <CardView card={p.cards[0]} size="xs" deckMode={deckColorMode} />
                       <CardView card={p.cards[1]} size="xs" deckMode={deckColorMode} />
                     </div>
                   )}
-
                   {p.currentBet > 0 && (
-                    <div className="bet-chip absolute bg-black/80 border border-slate-700/60 rounded-full px-1.5 py-0.5 shadow whitespace-nowrap z-30" style={cfg.chip}>
-                      <span className="text-[11px] font-bold text-white tabular-nums">{money(p.currentBet)}</span>
+                    <div className="bet-chip absolute bg-bg/85 rounded-[3px] px-1.5 py-0.5 whitespace-nowrap z-30" style={cfg.chip}>
+                      <span className="num text-[11px] font-semibold text-hi">{money(p.currentBet)}</span>
                     </div>
                   )}
                 </div>
@@ -249,29 +190,25 @@ export const PokerTable: React.FC<PokerTableProps> = ({
       </div>
 
       {/* Decision / feedback */}
-      <div className="w-full shrink-0 z-30 bg-[#090E17]/95 border-t border-slate-800/80 p-2 safe-bottom flex flex-col gap-1.5">
+      <div className="w-full shrink-0 z-30 bg-panel border-t border-line px-2 pt-2 safe-bottom flex flex-col gap-1.5">
         {!isSubmitted ? (
-          <div className="w-full flex flex-col gap-2 animate-fadeIn">
-            <div className="text-center text-xs font-semibold text-slate-300">{step.prompt}</div>
-            <div className={`grid gap-2 ${step.options.length <= 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+          <div className="w-full flex flex-col gap-2">
+            <div className="text-center text-[13px] text-txt">{step.prompt}</div>
+            <div className={`grid gap-1.5 ${step.options.length <= 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
               {step.options.map(opt => {
-                const isPassive = opt.id === 'call' || opt.id === 'check';
-                const isAggro = !isPassive && opt.id !== 'fold';
-                let style = 'bg-[#111827] border-[1.5px] border-[#374151] text-[#F87171]';
-                if (!isAction) style = 'bg-[#121929] border-[1.5px] border-blue-500/40 text-blue-200';
-                else if (isPassive) style = 'bg-[#0F2942] border-[1.5px] border-[#2563EB] text-white';
-                else if (isAggro) style = 'bg-[#172554] border-[1.5px] border-[#3B82F6] text-[#60A5FA]';
                 const { main, sub } = labelFor(opt.label, opt.amountBB);
                 return (
                   <button
                     key={opt.id}
                     onClick={() => onSelectOption(opt.id)}
-                    className={`option-btn min-h-[56px] rounded-[14px] p-1.5 flex flex-col items-center justify-center font-[700] text-[14px] leading-tight active:scale-95 shadow-md ${style}`}
+                    className={`option-btn min-h-[56px] rounded-[4px] p-1.5 flex flex-col items-center justify-center font-semibold text-[14px] leading-tight border border-line active:bg-line ${
+                      opt.id === 'fold' ? 'bg-panel2 text-txt' : 'bg-panel2 text-hi'
+                    }`}
                   >
-                    <span className="tracking-wide">{main}</span>
-                    {sub && <span className="text-[10px] font-semibold opacity-75 tabular-nums">{sub}</span>}
+                    <span>{main}</span>
+                    {sub && <span className="num text-[10px] text-dim">{sub}</span>}
                     {isAction && opt.id === 'call' && needPct(opt.amountBB) > 0 && (
-                      <span className="need-pct text-[10px] font-semibold text-sky-300/90 tabular-nums">Necesitas {needPct(opt.amountBB)} %</span>
+                      <span className="need-pct num text-[10px] font-normal text-acc">Necesitas {needPct(opt.amountBB)} %</span>
                     )}
                   </button>
                 );
@@ -279,142 +216,69 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             </div>
           </div>
         ) : isCorrectAnswer ? (
-          <button onClick={onNext} className="correct-card w-full flex flex-col gap-1 animate-fadeIn text-left" aria-label="Siguiente">
-            <div className="w-full flex flex-col gap-1 bg-emerald-500/15 border border-emerald-500/40 rounded-xl px-2.5 py-2 min-h-[56px]">
+          <div onClick={onNext} role="button" aria-label="Siguiente" className="correct-card w-full flex flex-col gap-1 animate-fadeIn text-left cursor-pointer">
+            <div className="w-full flex flex-col gap-1 border-l-4 border-good bg-bg/40 rounded-[3px] px-2.5 py-2 min-h-[56px]">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 shrink-0 rounded-full bg-emerald-500/25 flex items-center justify-center">
-                  <Check className="w-4 h-4 text-emerald-400 stroke-[3]" />
-                </div>
-                <span className="text-sm font-[800] text-emerald-300">Correcto</span>
-                <span className="ml-auto text-[11px] text-emerald-400/80 tabular-nums truncate">{selectedOpt?.label}</span>
-              </div>
-              {step.why && <span className="why-line text-[11px] leading-snug text-slate-200">{step.why}</span>}
-              {mixLine && <span className="mix-line text-[11px] leading-snug font-semibold text-amber-200">{mixLine}</span>}
-              {endNote && <span className="text-[11px] font-semibold text-sky-300">{endNote}</span>}
-            </div>
-            <div className="w-full h-0.5 bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-400 rounded-full animate-shrinkBar" />
-            </div>
-          </button>
-        ) : (
-          <div
-            className="feedback-card w-full bg-[#0F172A] border-t-2 rounded-t-[14px] p-2 flex flex-col gap-1.5 animate-fadeIn"
-            style={{ borderColor: verdict === 'mixed' ? '#F59E0B' : '#EF4444' }}
-          >
-            <div className="flex items-center justify-between gap-2">
-              {verdict === 'mixed' ? (
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-[800] whitespace-nowrap">
-                  Poco usada {selectedOpt?.evDiff}
-                </span>
-              ) : (
-                <span className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[11px] font-[800] flex items-center gap-1 whitespace-nowrap">
-                  <CloseIcon className="w-3 h-3 stroke-[3]" /> {isAction ? `Error ${selectedOpt?.evDiff}` : 'Error'}
-                </span>
-              )}
-              <span className="text-[11px] text-emerald-400 font-bold flex items-center gap-1 truncate">
-                <Check className="w-3.5 h-3.5 stroke-[3] shrink-0" />
-                <span className="truncate">{optimalLabels}</span>
-              </span>
-            </div>
-
-            {isAction && (
-              <div className="gto-bar w-full h-[18px] rounded-md overflow-hidden flex bg-slate-900 border border-slate-700/80">
-                {step.options.filter(o => o.frequencyGTO > 0).map(o => (
-                  <div
-                    key={o.id}
-                    style={{ width: `${o.frequencyGTO}%` }}
-                    className={`h-full ${barColor(o.id)} flex items-center justify-center text-[9px] font-bold text-white whitespace-nowrap overflow-hidden`}
+                <GradeBadge grade={grade} />
+                <span className="text-[12px] text-txt truncate">{selectedOpt?.label}</span>
+                <Delta value={delta} className="ml-auto text-[15px]" />
+                {onDoubt && (
+                  <button
+                    onClick={e => { e.stopPropagation(); onDoubt(); }}
+                    className={`doubt-chip h-10 px-3 rounded-[4px] text-[12px] font-semibold border ${doubted ? 'bg-warn border-warn text-black' : 'border-line text-txt'}`}
                   >
+                    Dudé
+                  </button>
+                )}
+              </div>
+              {step.why && <span className="why-line text-[12px] leading-snug text-hi">{step.why}</span>}
+              {mixLine && <span className="mix-line text-[12px] leading-snug text-warn">{mixLine}</span>}
+              {endNote && <span className="text-[12px] text-acc">{endNote}</span>}
+            </div>
+            {!doubted && <div className="w-full h-0.5 bg-line overflow-hidden"><div className="h-full bg-good animate-shrinkBar" /></div>}
+          </div>
+        ) : (
+          <div className={`feedback-card w-full flex flex-col gap-1.5 animate-fadeIn border-l-4 ${grade === 'imprecise' ? 'border-warn' : 'border-bad'} bg-bg/40 rounded-[3px] px-2.5 py-2 ${fastError ? 'fast-error ring-1 ring-warn' : ''}`}>
+            <div className="flex items-center gap-2 min-w-0">
+              <GradeBadge grade={grade} />
+              <Delta value={delta} className="text-[15px]" />
+              <span className="ml-auto text-[12px] text-goodtx font-semibold truncate">{isAction ? okLabels : best.label}</span>
+            </div>
+            {fastError && <span className="text-[11px] text-warn">Rápido y mal: repásalo</span>}
+            {isAction && (
+              <div className="gto-bar w-full h-[18px] rounded-[3px] overflow-hidden flex bg-bg">
+                {step.options.filter(o => o.frequencyGTO > 0).map(o => (
+                  <div key={o.id} style={{ width: `${o.frequencyGTO}%` }} className={`h-full ${barColor(o.id)} flex items-center justify-center text-[10px] font-semibold text-white whitespace-nowrap overflow-hidden`}>
                     {o.frequencyGTO >= 18 ? `${BAR_LABEL[o.id] || o.label.split(' ')[0]} ${o.frequencyGTO}%` : ''}
                   </div>
                 ))}
               </div>
             )}
-
-            {step.why && <div className="why-line text-[11px] leading-snug text-slate-200">{step.why}</div>}
-            {mixLine && <div className="mix-line text-[11px] leading-snug font-semibold text-amber-200">{mixLine}</div>}
-
+            {step.why && <div className="why-line text-[12px] leading-snug text-hi">{step.why}</div>}
+            {mixLine && <div className="mix-line text-[12px] leading-snug text-warn">{mixLine}</div>}
             <div className="flex items-center gap-2 pt-0.5">
               {situation && hero.cards && (
                 <button
                   onClick={() => onOpenRangeViewer({ hand: cardsToHandLabel(hero.cards!), situation, position: step.heroPosition, opener })}
-                  className="h-11 px-3 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700/80 shrink-0"
+                  className="h-11 px-3 rounded-[4px] bg-panel2 border border-line text-txt text-[13px] font-semibold shrink-0"
                 >
                   Rango
                 </button>
               )}
-              <button
-                onClick={onNext}
-                className="flex-1 h-11 rounded-xl bg-[#2563EB] text-white font-[800] text-xs flex items-center justify-center gap-1.5 active:scale-95 shadow-md shadow-blue-600/30 uppercase tracking-wider"
-              >
-                <span>SIGUIENTE</span>
-                <ArrowRight className="w-4 h-4" />
+              <button onClick={onNext} className="flex-1 h-11 rounded-[4px] bg-acc text-white font-semibold text-[14px] flex items-center justify-center gap-1.5">
+                Siguiente <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
-        {/* Session bar */}
-        <div className="flex items-center justify-between px-2 pt-1 text-xs border-t border-slate-800/60">
-          <div className="flex items-center gap-1.5 font-bold text-emerald-400 tabular-nums">
-            <Check className="w-3.5 h-3.5 stroke-[3]" />
-            <span>{progressLabel ?? `${sessionCorrectCount}/${sessionHandsCount}`}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            {Array.from({ length: 10 }).map((_, i) => {
-              const res = recentResults[i];
-              const bg = res === 'optimal' ? 'bg-emerald-400' : res === 'mixed' ? 'bg-amber-400' : res === 'error' ? 'bg-rose-500' : 'bg-slate-800';
-              return <div key={i} className={`w-2 h-2 rounded-full ${bg}`} />;
-            })}
-          </div>
-          <div className={`font-bold tabular-nums text-xs ${totalEvAccumulatedBB >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-            {totalEvAccumulatedBB.toFixed(1)}
-          </div>
+        <div className="flex items-center justify-center gap-1 h-4">
+          {Array.from({ length: 12 }).map((_, i) => {
+            const g = recentGrades[i];
+            return <div key={i} className={`w-2.5 h-1.5 rounded-[1px] ${g ? GRADE_STYLE[g].split(' ')[0] : 'bg-line'}`} />;
+          })}
         </div>
       </div>
-
-      {showHint && (
-        <div className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-[#0F172A] border border-slate-700 rounded-2xl p-4 max-w-xs w-full shadow-2xl flex flex-col gap-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <div className="flex items-center gap-1.5 font-bold text-amber-400 text-sm">
-                <Lightbulb className="w-4 h-4" />
-                <span>Pista</span>
-              </div>
-              <button onClick={() => setShowHint(false)} className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400" aria-label="Cerrar">
-                <CloseIcon className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="space-y-2 text-xs">
-              {isAction && (
-                <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-lg">
-                  <span className="text-slate-400">Posición</span>
-                  <span className="font-bold text-sky-400">{step.hint.relativePosition === 'IP' ? 'Hablas último' : 'Hablas primero'}</span>
-                </div>
-              )}
-              {step.hint.potOddsPct > 0 && (
-                <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-lg">
-                  <span className="text-slate-400">Para pagar necesitas</span>
-                  <span className="font-bold text-emerald-400">{step.hint.potOddsPct} %</span>
-                </div>
-              )}
-              {step.hint.spr !== undefined && (
-                <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-lg">
-                  <span className="text-slate-400">SPR</span>
-                  <span className="font-bold text-slate-200">{step.hint.spr}</span>
-                </div>
-              )}
-              <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-lg gap-2">
-                <span className="text-slate-400">{isAction ? 'Board' : 'Clave'}</span>
-                <span className="font-semibold text-slate-200 text-right">{step.hint.boardTexture}</span>
-              </div>
-            </div>
-            <button onClick={() => setShowHint(false)} className="w-full h-11 bg-blue-600 rounded-xl text-white font-bold text-xs">
-              Entendido
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

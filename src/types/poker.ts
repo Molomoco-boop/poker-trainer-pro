@@ -81,14 +81,61 @@ export const SPOT_TYPE_NAMES: Record<SpotType, string> = {
 
 export type DecisionVerdict = 'optimal' | 'mixed' | 'error';
 
+/** Honest grade of an answer: frequency based, no invented EV. */
+export type Grade = 'best' | 'valid' | 'imprecise' | 'error' | 'blunder';
+
+export const GRADE_ES: Record<Grade, string> = {
+  best: 'Mejor',
+  valid: 'Válida',
+  imprecise: 'Imprecisa',
+  error: 'Error',
+  blunder: 'Grave'
+};
+
+/** Learning concepts: curriculum order (ranges → postflop), then math. */
+export type ConceptId =
+  | 'rfi_early' | 'rfi_late' | 'bb_def' | 'sb_3b' | 'vs3b' | 'cbet' | 'flop_def' | 'turn' | 'river'
+  | 'm_mdf' | 'm_bluff' | 'm_combos' | 'm_equity' | 'm_odds' | 'm_outs' | 'm_ev';
+
+export const CURRICULUM: ConceptId[] = ['rfi_early', 'rfi_late', 'bb_def', 'sb_3b', 'vs3b', 'cbet', 'flop_def', 'turn', 'river'];
+export const MATH_CONCEPTS: ConceptId[] = ['m_mdf', 'm_bluff', 'm_combos', 'm_equity', 'm_odds', 'm_outs', 'm_ev'];
+
+export const CONCEPT_ES: Record<ConceptId, string> = {
+  rfi_early: 'Open UTG/HJ',
+  rfi_late: 'Open CO/BTN/SB',
+  bb_def: 'Defensa BB',
+  sb_3b: 'SB vs open',
+  vs3b: 'Vs 3-bet',
+  cbet: 'C-bet flop',
+  flop_def: 'Flop sin iniciativa',
+  turn: 'Turn',
+  river: 'River',
+  m_mdf: 'MDF',
+  m_bluff: 'Faroles',
+  m_combos: 'Combos',
+  m_equity: 'Equity vs rango',
+  m_odds: 'Pot odds',
+  m_outs: 'Outs',
+  m_ev: 'EV'
+};
+
+export interface RatingState { r: number; rd: number; n: number }
+
+/** What a practice screen trains. */
+export type SessionSpec =
+  | { kind: 'rated' }
+  | { kind: 'daily' }
+  | { kind: 'placement' }
+  | { kind: 'concept'; concept: ConceptId }
+  | { kind: 'leak'; pos: Position; street: Street };
+
 export interface DecisionOption {
   id: string;
   label: string; // e.g. "FOLD", "CALL 1.5 BB", "RAISE 2.5 BB"
   amountBB?: number;
   isCorrect: boolean;
   verdict: DecisionVerdict;
-  evDiff: string; // e.g. "+0.60 BB" or "-0.65 BB"
-  evDiffNum: number;
+  grade: Grade;
   frequencyGTO: number; // 0-100%
 }
 
@@ -104,7 +151,7 @@ export interface HandStep {
   actionTicker: string;
   contextNotice: string; // Short pill inside table
   prompt: string; // e.g. "¿Cuál es tu jugada?"
-  questionType: 'action' | 'pot_odds' | 'outs' | 'ev';
+  questionType: 'action' | 'pot_odds' | 'outs' | 'ev' | 'mdf' | 'bluff' | 'combos' | 'equity';
   options: DecisionOption[];
   hint: {
     relativePosition: 'IP' | 'OOP';
@@ -114,6 +161,10 @@ export interface HandStep {
   };
   /** One line explaining pot, probabilities or range for this decision. */
   why: string;
+  /** Concept trained by this decision (curriculum, leak map). */
+  concept: ConceptId;
+  /** Spot rating (Glicko opponent), ~1100-1900. */
+  difficulty: number;
   /** Shown after the continuing answer when the hand ends there (e.g. "BTN foldea"). */
   endNote?: string;
   /** Describes the spot so a similar one can be generated for review. */
@@ -140,7 +191,7 @@ export interface FullHandScenario {
   steps: HandStep[];
 }
 
-export type ReviewKind = 'pre' | 'post' | 'odds' | 'equity' | 'ev';
+export type ReviewKind = 'pre' | 'post' | 'odds' | 'equity' | 'ev' | 'math';
 
 export interface ReviewKey {
   kind: ReviewKind;
@@ -153,6 +204,8 @@ export interface ReviewKey {
   /** Postflop: strength class and decision type ('lead' | 'facing' | 'raise'). */
   cls?: string;
   decision?: 'lead' | 'facing' | 'raise';
+  /** Math drills: which drill. */
+  concept?: ConceptId;
 }
 
 export interface MistakeRecord {
@@ -168,7 +221,6 @@ export interface MistakeRecord {
   userAnswerId: string;
   userAnswerLabel: string;
   correctAnswerLabel: string;
-  evLostBB: number;
 }
 
 export interface SessionHandResult {
@@ -177,7 +229,8 @@ export interface SessionHandResult {
   position: Position;
   street: Street;
   verdict: DecisionVerdict;
-  evDiffNum: number;
+  grade: Grade;
+  ratingDelta: number;
   userAnswer: string;
   correctAnswer: string;
 }
@@ -186,14 +239,32 @@ export interface UserStats {
   username: string;
   email: string;
   stake: StakeLevel;
-  pedagogicalLevel: PedagogicalLevel;
-  autoAdjustDifficulty: boolean;
+  /** Global rating (Glicko-1). */
+  rating: RatingState;
+  /** Rating per concept. */
+  conceptRatings: Partial<Record<ConceptId, RatingState>>;
+  /** Last ratings for the sparkline. */
+  ratingHistory: number[];
+  /** Consecutive correct answers (Lichess-style streak). */
   consecutiveCorrect: number;
-  recentAnswers: boolean[]; // last 20 counted answers (level progression)
+  bestStreak: number;
   totalHandsPlayed: number;
   totalCorrectDecisions: number;
   totalDecisions: number;
-  totalEvAccumulatedBB: number;
+  /** Sum of chance of a random answer being correct (for "above chance" accuracy). */
+  totalChance: number;
+  /** Position × street results: key "BTN|flop". */
+  leakStats: Record<string, { n: number; ok: number; chance: number }>;
+  placementDone: boolean;
+  /** Index in CURRICULUM of the concept being learnt. */
+  curriculumIndex: number;
+  sprintBest: number;
+  rangeBest: Record<string, number>;
+  /** Days with at least 3 decisions in a row. */
+  dayStreak: number;
+  lastActiveDay: string;
+  todayDecisions: number;
+  lastReviewAt: number;
   dailyDrillCount: number; // 0-10
   dailyDrillDate: string; // YYYY-MM-DD of dailyDrillCount
   schemaVersion: number;

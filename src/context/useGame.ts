@@ -1,22 +1,28 @@
 import { createContext, useContext } from 'react';
-import { UserStats, HandStep, StakeLevel, PedagogicalLevel, SpotType } from '../types/poker';
+import { UserStats, HandStep, StakeLevel, Grade } from '../types/poker';
 
-export interface LevelNotice { level: PedagogicalLevel; up: boolean }
+export interface AnswerResult {
+  isCorrect: boolean;
+  grade: Grade;
+  /** Rating change (rounded). */
+  delta: number;
+  rating: number;
+  confidence: 'fast' | 'normal' | 'slow';
+}
 
 export interface GameContextType {
   stats: UserStats;
-  recordStepAnswer: (step: HandStep, selectedOptionId: string, opts?: { daily?: boolean }) => { isCorrect: boolean; levelChanged?: boolean };
+  recordStepAnswer: (step: HandStep, selectedOptionId: string, opts?: { daily?: boolean; ms?: number; rated?: boolean }) => AnswerResult;
+  markDoubt: (step: HandStep) => void;
+  finishPlacement: (curriculumIndex: number) => void;
+  recordSprint: (score: number) => void;
+  recordRange: (task: string, score: number) => void;
   setStake: (stake: StakeLevel) => void;
-  setPedagogicalLevel: (lvl: PedagogicalLevel) => void;
-  setAutoAdjustDifficulty: (enabled: boolean) => void;
   toggleDisplayUnits: () => void;
   updatePreferences: (newPrefs: Partial<UserStats['preferences']>) => void;
   updateUserProfile: (name: string, email: string) => void;
   resetAllStats: () => void;
   clearMistakes: () => void;
-  getTopLeaks: () => Array<{ spotType: SpotType; accuracyPct: number; totalHands: number }>;
-  levelNotice: LevelNotice | null;
-  clearLevelNotice: () => void;
 }
 
 export const GameContext = createContext<GameContextType | undefined>(undefined);
