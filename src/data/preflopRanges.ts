@@ -1,4 +1,4 @@
-import { Rank } from '../types/poker';
+import { Rank, Position } from '../types/poker';
 
 export const RANKS_ORDER: Rank[] = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
@@ -198,24 +198,26 @@ const RFI_SB = createMatrix(
   }
 );
 
-// BB vs BTN Open Defense
-const DEFENSE_BB_VS_BTN = createMatrix(
-  // 3-Bet pure (Raise)
+// ---------------------------------------------------------------------------
+// Defensa vs open (6-max 100bb, open 2.5bb; SB abre a 3bb)
+// ---------------------------------------------------------------------------
+
+// BB vs BTN / SB (rango amplio)
+const DEFENSE_BB_VS_LATE = createMatrix(
   [
     'AA', 'KK', 'QQ', 'JJ', 'TT',
-    'AKs', 'AQs', 'AJs', 'ATs', 'A5s', 'A4s', 'A3s', 'A2s',
+    'AKs', 'AQs', 'AJs', 'ATs', 'A3s', 'A2s',
     'KQs', 'KJs',
     'AKo', 'AQo'
   ],
-  // Calls
   [
     '99', '88', '77', '66', '55', '44', '33', '22',
     'A9s', 'A8s', 'A7s', 'A6s',
-    'KTs', 'K9s', 'K8s', 'K7s', 'K6s', 'K5s', 'K4s', 'K3s', 'K2s',
+    'KTs', 'K9s', 'K8s', 'K7s', 'K6s', 'K4s', 'K3s', 'K2s',
     'QJs', 'QTs', 'Q9s', 'Q8s', 'Q7s', 'Q6s', 'Q5s',
     'JTs', 'J9s', 'J8s', 'J7s',
     'T9s', 'T8s', 'T7s',
-    '98s', '97s', '87s', '86s', '76s', '75s', '65s', '64s', '54s',
+    '98s', '97s', '87s', '86s', '76s', '65s', '54s',
     'AJo', 'ATo', 'A9o', 'A8o', 'A7o', 'A6o', 'A5o', 'A4o', 'A3o', 'A2o',
     'KQo', 'KJo', 'KTo', 'K9o', 'K8o', 'K7o',
     'QJo', 'QTo', 'Q9o', 'Q8o',
@@ -238,96 +240,181 @@ const DEFENSE_BB_VS_BTN = createMatrix(
   }
 );
 
-// SB vs CO Open Defense (Strict 3-Bet or Fold; weak hands fold pure)
-const DEFENSE_SB_VS_CO = createMatrix(
-  // 3-Bet
+// BB vs CO
+const DEFENSE_BB_VS_CO = createMatrix(
+  ['AA', 'KK', 'QQ', 'JJ', 'AKs', 'AQs', 'AKo'],
   [
-    'AA', 'KK', 'QQ', 'JJ', 'TT', '99',
+    'TT', '99', '88', '77', '66', '55', '44', '33', '22',
+    'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A3s', 'A2s',
+    'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'K6s',
+    'QJs', 'QTs', 'Q9s', 'Q8s',
+    'JTs', 'J9s', 'J8s',
+    'T9s', 'T8s', '98s', '97s', '87s', '86s', '76s', '75s', '65s', '64s', '54s',
+    'AQo', 'AJo', 'ATo', 'A9o',
+    'KQo', 'KJo', 'KTo',
+    'QJo', 'QTo', 'JTo'
+  ],
+  {
+    'A5s': { raise: 60, call: 40 },
+    'A4s': { raise: 55, call: 45 },
+    'KQs': { raise: 40, call: 60 },
+    'A8o': { call: 50, fold: 50 },
+    'K9o': { call: 40, fold: 60 },
+    'Q9o': { call: 40, fold: 60 },
+    'J9o': { call: 40, fold: 60 },
+    'T9o': { call: 50, fold: 50 },
+    '98o': { call: 30, fold: 70 }
+  }
+);
+
+// BB vs UTG / HJ
+const DEFENSE_BB_VS_EARLY = createMatrix(
+  ['AA', 'KK', 'QQ', 'AKs', 'AKo'],
+  [
+    'TT', '99', '88', '77', '66', '55', '44', '33', '22',
+    'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A4s', 'A3s', 'A2s',
+    'KQs', 'KJs', 'KTs', 'K9s',
+    'QJs', 'QTs', 'Q9s',
+    'JTs', 'J9s', 'T9s', 'T8s', '98s', '97s', '87s', '86s', '76s', '65s', '54s',
+    'AQo', 'AJo', 'KQo'
+  ],
+  {
+    'JJ': { raise: 40, call: 60 },
+    'A5s': { raise: 50, call: 50 },
+    'ATo': { call: 50, fold: 50 },
+    'KJo': { call: 50, fold: 50 },
+    'QJo': { call: 40, fold: 60 }
+  }
+);
+
+// SB vs open: 3-bet o fold (sin flat)
+const DEFENSE_SB_VS_EARLY = createMatrix(
+  ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AQs', 'AJs', 'KQs', 'AKo', 'AQo'],
+  [],
+  {
+    '99': { raise: 60, fold: 40 },
+    'A5s': { raise: 50, fold: 50 },
+    'ATs': { raise: 45, fold: 55 },
+    'KJs': { raise: 40, fold: 60 }
+  }
+);
+
+const DEFENSE_SB_VS_CO = createMatrix(
+  [
+    'AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88',
     'AKs', 'AQs', 'AJs', 'ATs', 'A5s', 'A4s',
     'KQs', 'KJs',
     'AKo', 'AQo'
   ],
-  // Small Call frequencies for pairs/suited broadways
-  [
-    '88', '77', '66', '55',
-    'KTs', 'QJs', 'QTs', 'JTs', 'T9s', '98s'
-  ],
+  [],
   {
+    '77': { raise: 70, fold: 30 },
+    '66': { raise: 50, fold: 50 },
     'A3s': { raise: 45, fold: 55 },
     'A2s': { raise: 35, fold: 65 },
+    'KTs': { raise: 60, fold: 40 },
+    'QJs': { raise: 60, fold: 40 },
+    'QTs': { raise: 45, fold: 55 },
+    'JTs': { raise: 50, fold: 50 },
+    'T9s': { raise: 40, fold: 60 },
     'K9s': { raise: 30, fold: 70 },
     'AJo': { raise: 60, fold: 40 },
-    'KQo': { raise: 50, fold: 50 },
-    'Q5o': { fold: 100 }
+    'KQo': { raise: 50, fold: 50 }
   }
 );
 
-export const GTO_PREFLOP_SOLUTIONS: Record<string, Record<string, RangeMatrix>> = {
-  RFI: {
-    UTG: RFI_UTG,
-    HJ: RFI_HJ,
-    CO: RFI_CO,
-    BTN: RFI_BTN,
-    SB: RFI_SB,
-    BB: RFI_BTN // Default placeholder
-  },
-  VS_OPEN: {
-    UTG: RFI_UTG,
-    HJ: RFI_HJ,
-    CO: DEFENSE_SB_VS_CO,
-    BTN: DEFENSE_BB_VS_BTN,
-    SB: DEFENSE_SB_VS_CO,
-    BB: DEFENSE_BB_VS_BTN
-  },
-  VS_3BET: {
-    UTG: RFI_UTG,
-    HJ: RFI_HJ,
-    CO: RFI_CO,
-    BTN: DEFENSE_BB_VS_BTN,
-    SB: DEFENSE_SB_VS_CO,
-    BB: DEFENSE_BB_VS_BTN
-  },
-  BB_DEFENSE: {
-    UTG: DEFENSE_BB_VS_BTN,
-    HJ: DEFENSE_BB_VS_BTN,
-    CO: DEFENSE_BB_VS_BTN,
-    BTN: DEFENSE_BB_VS_BTN,
-    SB: DEFENSE_BB_VS_BTN,
-    BB: DEFENSE_BB_VS_BTN
+const DEFENSE_SB_VS_BTN = createMatrix(
+  [
+    'AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66',
+    'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A5s', 'A4s', 'A3s',
+    'KQs', 'KJs', 'KTs', 'K9s',
+    'QJs', 'QTs', 'JTs', 'T9s',
+    'AKo', 'AQo', 'AJo', 'KQo'
+  ],
+  [],
+  {
+    '55': { raise: 60, fold: 40 },
+    '44': { raise: 40, fold: 60 },
+    'A7s': { raise: 60, fold: 40 },
+    'A6s': { raise: 55, fold: 45 },
+    'A2s': { raise: 55, fold: 45 },
+    'Q9s': { raise: 50, fold: 50 },
+    'J9s': { raise: 45, fold: 55 },
+    '98s': { raise: 50, fold: 50 },
+    '87s': { raise: 40, fold: 60 },
+    'ATo': { raise: 60, fold: 40 },
+    'KJo': { raise: 55, fold: 45 },
+    'QJo': { raise: 35, fold: 65 }
   }
+);
+
+// Opener vs 3-bet (call / 4-bet / fold)
+const VS_3BET = createMatrix(
+  ['AA', 'KK', 'AKs'],
+  [
+    'JJ', 'TT', '99', '88', '77',
+    'AJs', 'ATs', 'KQs', 'KJs', 'QJs', 'JTs', 'T9s', '98s'
+  ],
+  {
+    'QQ': { raise: 60, call: 40 },
+    'AKo': { raise: 55, call: 45 },
+    'AQs': { raise: 25, call: 75 },
+    'A5s': { raise: 45, fold: 55 },
+    'A4s': { raise: 30, fold: 70 },
+    'AQo': { call: 55, fold: 45 },
+    '66': { call: 45, fold: 55 },
+    'KTs': { call: 50, fold: 50 },
+    'QTs': { call: 45, fold: 55 },
+    '87s': { call: 40, fold: 60 },
+    '76s': { call: 35, fold: 65 }
+  }
+);
+
+const RFI_BY_POS: Record<Position, RangeMatrix> = {
+  UTG: RFI_UTG, HJ: RFI_HJ, CO: RFI_CO, BTN: RFI_BTN, SB: RFI_SB, BB: RFI_SB
 };
 
-// 80% Borderline Zone hands per position
-export const BORDERLINE_HANDS_PER_POS: Record<string, string[]> = {
-  UTG: ['66', '55', 'A9s', 'A8s', 'A4s', 'A3s', 'K9s', 'Q9s', 'J9s', '87s', '76s', 'AJo', 'KQo', 'ATo'],
-  HJ: ['55', '44', 'A8s', 'A7s', 'A3s', 'A2s', 'K8s', 'Q8s', 'J8s', '76s', '65s', 'ATo', 'KJo', 'QJo'],
-  CO: ['44', '33', '22', 'A7s', 'A6s', 'A2s', 'K7s', 'K6s', 'Q8s', 'Q7s', 'J8s', 'T8s', '97s', '54s', 'ATo', 'A9o', 'KTo', 'QTo', 'JTo'],
-  BTN: ['33', '22', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'K6s', 'K5s', 'K4s', 'Q7s', 'Q6s', 'J7s', 'T7s', '96s', '85s', '75s', '64s', '53s', 'A8o', 'A7o', 'A6o', 'A5o', 'K9o', 'K8o', 'Q9o', 'Q8o', 'J9o', 'J8o', 'T8o', '98o', '87o'],
-  SB: ['55', '44', '33', '22', 'A5s', 'A4s', 'A3s', 'A2s', 'K5s', 'K4s', 'Q7s', 'Q6s', 'J7s', 'T7s', '97s', '86s', '75s', '64s', '54s', 'A9o', 'A8o', 'A7o', 'KTo', 'K9o', 'QTo', 'Q9o', 'JTo', '98o'],
-  BB: ['A5s', 'A4s', 'A3s', 'A2s', 'K7s', 'K6s', 'K5s', 'Q7s', 'Q6s', 'J7s', 'T7s', '97s', '86s', '75s', '64s', '53s', 'A8o', 'A7o', 'A6o', 'A5o', 'K8o', 'K7o', 'Q8o', 'Q7o', 'J8o', 'J7o', 'T8o', '97o', '86o', '76o']
-};
-
-export function getHandFrequency(situation: string, position: string, hand: string): HandFrequency {
-  const sit = GTO_PREFLOP_SOLUTIONS[situation] || GTO_PREFLOP_SOLUTIONS.RFI;
-  const pos = sit[position] || sit.BTN || RFI_BTN;
-  return pos[hand] || { raise: 0, call: 0, fold: 100 };
+export function getBBDefenseMatrix(opener: Position): RangeMatrix {
+  if (opener === 'BTN' || opener === 'SB') return DEFENSE_BB_VS_LATE;
+  if (opener === 'CO') return DEFENSE_BB_VS_CO;
+  return DEFENSE_BB_VS_EARLY;
 }
 
-export function getPositionStats(pos: string, situation = 'RFI'): { percentage: number; count: number } {
-  const sit = GTO_PREFLOP_SOLUTIONS[situation] || GTO_PREFLOP_SOLUTIONS.RFI;
-  const range = sit[pos] || RFI_BTN;
+export function getSBDefenseMatrix(opener: Position): RangeMatrix {
+  if (opener === 'BTN') return DEFENSE_SB_VS_BTN;
+  if (opener === 'CO') return DEFENSE_SB_VS_CO;
+  return DEFENSE_SB_VS_EARLY;
+}
+
+export type PreflopSituation = 'RFI' | 'VS_OPEN' | 'VS_3BET';
+
+/** Matrix for hero at heroPos. VS_OPEN needs the opener; VS_3BET uses one opener-vs-3bet range. */
+export function getPreflopMatrix(situation: PreflopSituation, heroPos: Position, opener?: Position): RangeMatrix {
+  if (situation === 'RFI') return RFI_BY_POS[heroPos];
+  if (situation === 'VS_3BET') return VS_3BET;
+  if (heroPos === 'BB') return getBBDefenseMatrix(opener || 'BTN');
+  if (heroPos === 'SB') return getSBDefenseMatrix(opener || 'CO');
+  return VS_3BET;
+}
+
+export function getHandFrequency(matrix: RangeMatrix, hand: string): HandFrequency {
+  return matrix[hand] || { raise: 0, call: 0, fold: 100 };
+}
+
+export const ALL_HANDS: string[] = (() => {
+  const out: string[] = [];
+  for (let r = 0; r < 13; r++) for (let c = 0; c < 13; c++) out.push(getHandLabel(r, c));
+  return out;
+})();
+
+export function getRangeStats(range: RangeMatrix): { percentage: number; count: number } {
   let weight = 0;
   for (let r = 0; r < 13; r++) {
     for (let c = 0; c < 13; c++) {
-      const hand = getHandLabel(r, c);
-      const freq = range[hand];
+      const freq = range[getHandLabel(r, c)];
       const combos = r === c ? 6 : (r < c ? 4 : 12);
-      if (freq) {
-        const playablePct = (freq.raise + freq.call) / 100;
-        weight += combos * playablePct;
-      }
+      if (freq) weight += combos * (freq.raise + freq.call) / 100;
     }
   }
-  const percentage = Math.round((weight / 1326) * 1000) / 10;
-  return { percentage, count: Math.round(weight) };
+  return { percentage: Math.round((weight / 1326) * 1000) / 10, count: Math.round(weight) };
 }

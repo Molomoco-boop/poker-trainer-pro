@@ -9,16 +9,16 @@ export const RANK_VALUES: Record<Rank, number> = {
 };
 
 export const HAND_NAMES_ES = [
-  'Carta Alta',
+  'Carta alta',
   'Pareja',
-  'Doble Pareja',
+  'Doble pareja',
   'Trío',
   'Escalera',
   'Color',
-  'Full House',
+  'Full',
   'Póker',
-  'Escalera de Color',
-  'Escalera Real'
+  'Escalera de color',
+  'Escalera real'
 ];
 
 export interface HandEvaluation {
@@ -99,9 +99,9 @@ function eval5Cards(cards: Card[]): HandEvaluation {
   // 9: Royal Flush / 8: Straight Flush
   if (isFlush && isStraight) {
     if (straightHigh === 14 && values.includes(10)) {
-      return { score: 9, name: HAND_NAMES_ES[9], tiebreakers: [14], descr: 'Escalera Real de ' + cardToString(sorted[0]).slice(1) };
+      return { score: 9, name: HAND_NAMES_ES[9], tiebreakers: [14], descr: 'Escalera real' };
     }
-    return { score: 8, name: HAND_NAMES_ES[8], tiebreakers: [straightHigh], descr: `Escalera de Color al ${sorted[0].rank}` };
+    return { score: 8, name: HAND_NAMES_ES[8], tiebreakers: [straightHigh], descr: `Escalera de color al ${rankLabelSingle(straightHigh)}` };
   }
 
   // 7: Four of a Kind (Póker)
@@ -130,7 +130,7 @@ function eval5Cards(cards: Card[]): HandEvaluation {
       score: 5,
       name: HAND_NAMES_ES[5],
       tiebreakers: values,
-      descr: `Color al ${rankLabel(values[0])}`
+      descr: `Color al ${rankLabelSingle(values[0])}`
     };
   }
 
@@ -140,7 +140,7 @@ function eval5Cards(cards: Card[]): HandEvaluation {
       score: 4,
       name: HAND_NAMES_ES[4],
       tiebreakers: [straightHigh],
-      descr: `Escalera al ${rankLabel(straightHigh)}`
+      descr: `Escalera al ${rankLabelSingle(straightHigh)}`
     };
   }
 
@@ -160,7 +160,7 @@ function eval5Cards(cards: Card[]): HandEvaluation {
       score: 2,
       name: HAND_NAMES_ES[2],
       tiebreakers: [countEntries[0].val, countEntries[1].val, countEntries[2].val],
-      descr: `Doble Pareja de ${rankLabel(countEntries[0].val)} y ${rankLabel(countEntries[1].val)}`
+      descr: `Doble pareja ${rankLabel(countEntries[0].val)} y ${rankLabel(countEntries[1].val)}`
     };
   }
 
@@ -179,7 +179,7 @@ function eval5Cards(cards: Card[]): HandEvaluation {
     score: 0,
     name: HAND_NAMES_ES[0],
     tiebreakers: values,
-    descr: `Carta Alta ${rankLabel(values[0])}`
+    descr: `Carta alta ${rankLabelSingle(values[0])}`
   };
 }
 
@@ -191,6 +191,11 @@ export function compareEvaluations(a: HandEvaluation, b: HandEvaluation): number
     if (valA !== valB) return valA - valB;
   }
   return 0; // split pot
+}
+
+function rankLabelSingle(val: number): string {
+  const map: Record<number, string> = { 14: 'As', 13: 'Rey', 12: 'Dama', 11: 'Jota', 10: '10' };
+  return map[val] || `${val}`;
 }
 
 function rankLabel(val: number): string {

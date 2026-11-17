@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { ModalPortal } from './ModalPortal';
 import { X, AlertCircle, Trash2, CheckCircle2, Filter, Layers } from 'lucide-react';
-import { useGame } from '../context/GameContext';
+import { useGame } from '../context/useGame';
 
 interface StatsMistakesModalProps {
   onClose: () => void;
@@ -23,18 +24,18 @@ export const StatsMistakesModal: React.FC<StatsMistakesModalProps> = ({ onClose 
     : sessionHistory;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-3 animate-fadeIn font-sans select-none">
-      <div className="w-full max-w-md bg-[#0e1422] border border-slate-800 rounded-2xl flex flex-col max-h-[92vh] shadow-2xl overflow-hidden">
+    <ModalPortal>
+    <div className="fixed inset-0 z-[60] bg-black/85 flex flex-col items-center justify-center p-3 animate-fadeIn font-sans select-none">
+      <div className="w-full max-w-md bg-[#0e1422] border border-slate-800 rounded-2xl flex flex-col max-h-[calc(100dvh-24px)] shadow-2xl overflow-hidden">
         
         {/* Header */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div className="px-4 py-2 border-b border-slate-800 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-[800] text-white">Estadísticas y Errores (GTO)</h2>
-            <p className="text-xs text-slate-400">Historial de rendimiento</p>
+            <h2 className="text-sm font-[800] text-white">Estadísticas</h2>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300"
+            className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-300" aria-label="Cerrar"
           >
             <X className="w-5 h-5" />
           </button>
@@ -113,7 +114,7 @@ export const StatsMistakesModal: React.FC<StatsMistakesModalProps> = ({ onClose 
                         {m.userAnswerLabel} (-{m.evLostBB.toFixed(2)} BB)
                       </div>
                       <div className="text-emerald-400 font-semibold">
-                        <span className="block text-[10px] text-slate-400">GTO Óptimo:</span>
+                        <span className="block text-[10px] text-slate-400">Óptimo:</span>
                         {m.correctAnswerLabel}
                       </div>
                     </div>
@@ -133,7 +134,7 @@ export const StatsMistakesModal: React.FC<StatsMistakesModalProps> = ({ onClose 
 
               <button
                 onClick={() => setOnlyErrorsFilter(!onlyErrorsFilter)}
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 transition-all ${
+                className={`h-10 px-3 rounded-full text-[11px] font-bold border flex items-center gap-1 transition-all ${
                   onlyErrorsFilter
                     ? 'bg-rose-500/20 border-rose-500 text-rose-300'
                     : 'bg-slate-800 border-slate-700 text-slate-400'
@@ -182,5 +183,6 @@ export const StatsMistakesModal: React.FC<StatsMistakesModalProps> = ({ onClose 
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 };

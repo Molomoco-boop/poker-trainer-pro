@@ -24,7 +24,7 @@ export type SubcategoryId =
   | 'hand_ranking'
   | 'best_hand';
 
-export type PracticeMode = 'continuous' | SubcategoryId;
+export type PracticeMode = 'continuous' | 'daily' | SubcategoryId;
 
 export type PlayerStatus = 'hero' | 'active' | 'folded';
 
@@ -54,13 +54,11 @@ export const STAKE_CONFIG: Record<StakeLevel, { label: string; bbInEuros: number
 export type PedagogicalLevel = 1 | 2 | 3 | 4;
 
 export const PEDAGOGICAL_LEVEL_NAMES: Record<PedagogicalLevel, { name: string; desc: string }> = {
-  1: { name: 'Básico', desc: 'Open raise, fold y decisiones claras' },
-  2: { name: 'Estándar', desc: 'Defensa de ciegas y C-bet' },
-  3: { name: 'Intermedio', desc: 'Spots marginales y semi-bluffs' },
-  4: { name: 'Avanzado', desc: 'Bluff-catchers y frecuencias mixtas' },
+  1: { name: 'Básico', desc: 'Open raise y defensa de BB' },
+  2: { name: 'Estándar', desc: '+ SB vs open, C-bet' },
+  3: { name: 'Intermedio', desc: '+ Botes 3-bet' },
+  4: { name: 'Avanzado', desc: 'Todo, solo manos frontera' },
 };
-
-export type OpponentProfile = 'gto_balanced' | 'micro_exploitative';
 
 export type SpotType =
   | 'RFI_OPEN'
@@ -73,14 +71,14 @@ export type SpotType =
   | 'POT_ODDS_DRILL';
 
 export const SPOT_TYPE_NAMES: Record<SpotType, string> = {
-  RFI_OPEN: 'Open Raise (RFI)',
-  BB_DEFENSE: 'Defensa de BB',
-  SB_VS_OPEN: 'SB vs Open',
-  '3BET_POT': '3-Bet Pots',
-  CBET_FLOP: 'C-Bet Flop',
-  FACING_CBET: 'Defensa vs C-Bet',
-  TURN_RIVER_DECISION: 'Decisiones Turn/River',
-  POT_ODDS_DRILL: 'Cálculo de Pot Odds'
+  RFI_OPEN: 'Open raise',
+  BB_DEFENSE: 'Defensa BB',
+  SB_VS_OPEN: 'SB vs open',
+  '3BET_POT': 'Bote 3-bet',
+  CBET_FLOP: 'C-bet',
+  FACING_CBET: 'Vs C-bet',
+  TURN_RIVER_DECISION: 'Turn/River',
+  POT_ODDS_DRILL: 'Pot odds'
 };
 
 export type DecisionVerdict = 'optimal' | 'mixed' | 'error';
@@ -96,12 +94,6 @@ export interface DecisionOption {
   frequencyGTO: number; // 0-100%
 }
 
-export interface GtoFrequencies {
-  fold: number;
-  call: number;
-  raise: number;
-}
-
 export interface HandStep {
   id: string;
   street: Street;
@@ -114,21 +106,8 @@ export interface HandStep {
   actionTicker: string;
   contextNotice: string; // Short pill inside table
   prompt: string; // e.g. "¿Cuál es tu jugada?"
-  questionType: 'action' | 'pot_odds' | 'outs' | 'equity' | 'best_hand';
+  questionType: 'action' | 'pot_odds' | 'outs' | 'ev' | 'hand_ranking' | 'best_hand';
   options: DecisionOption[];
-  gtoFrequencies: GtoFrequencies;
-  tacticalExplanation: {
-    headline: string;
-    positionAndRange: string;
-    math: {
-      payBB: number;
-      finalPotBB: number;
-      potOddsPct: number;
-      estimatedEquityPct: number;
-      spr?: number;
-    };
-    gameplan: string;
-  };
   hint: {
     relativePosition: 'IP' | 'OOP';
     potOddsPct: number;
@@ -136,6 +115,8 @@ export interface HandStep {
   };
   handStrengthName?: string;
   isReviewOfMistake?: boolean;
+  /** Option id the next street of the scenario assumes. Any other answer ends the hand. */
+  continueWith?: string;
 }
 
 export interface FullHandScenario {
@@ -175,7 +156,6 @@ export interface UserStats {
   email: string;
   stake: StakeLevel;
   pedagogicalLevel: PedagogicalLevel;
-  opponentProfile: OpponentProfile;
   autoAdjustDifficulty: boolean;
   consecutiveCorrect: number;
   recentAnswers: boolean[]; // last 5 answers
@@ -184,6 +164,8 @@ export interface UserStats {
   totalDecisions: number;
   totalEvAccumulatedBB: number;
   dailyDrillCount: number; // 0-10
+  dailyDrillDate: string; // YYYY-MM-DD of dailyDrillCount
+  schemaVersion: number;
   sessionHands: SessionHandResult[];
   preferences: {
     volume: number; // 0-100
@@ -194,6 +176,7 @@ export interface UserStats {
     displayUnits: 'bb' | 'units'; // 'bb' | 'units' (€)
     deckColorMode: '4color' | '2color';
     showHandStrength: boolean;
+    trainingPositions: Position[];
   };
   categoryStats: Record<SpotType, { total: number; correct: number }>;
   mistakeQueue: MistakeRecord[];

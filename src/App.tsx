@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { GameProvider } from './context/GameContext';
 import { BottomNav } from './components/BottomNav';
 import { LobbyView } from './views/LobbyView';
@@ -47,7 +47,7 @@ function AppContent() {
               }}
             />
           ) : activeCategory ? (
-            <div className="p-3.5 pb-16">
+            <div className="p-3.5 pb-[76px]">
               <CategoryView
                 categoryId={activeCategory}
                 onBack={() => setActiveCategory(null)}
@@ -57,15 +57,15 @@ function AppContent() {
               />
             </div>
           ) : currentTab === 'inicio' ? (
-            <div className="p-3.5 pb-16">
+            <div className="p-3.5 pb-[76px]">
               <LobbyView
                 onSelectCategory={handleSelectCategory}
+                onStartDaily={() => handleStartPractice('daily')}
                 onStartContinuousPlay={() => handleStartPractice('continuous')}
-                onStartForcedSpot={(spot) => handleStartPractice('continuous', spot)}
               />
             </div>
           ) : (
-            <div className="p-3.5 pb-16">
+            <div className="p-3.5 pb-[76px]">
               <ProfileView />
             </div>
           )}

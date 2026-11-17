@@ -3,7 +3,7 @@ import { Card, Suit } from '../types/poker';
 
 interface CardViewProps {
   card: Card;
-  size?: 'hero' | 'board' | 'sm';
+  size?: 'hero' | 'board' | 'sm' | 'xs';
   faceDown?: boolean;
   deckMode?: '4color' | '2color';
   className?: string;
@@ -95,7 +95,7 @@ export const CardView: React.FC<CardViewProps> = ({
   if (size === 'board') {
     return (
       <div
-        className={`w-[54px] h-[76px] rounded-[8px] bg-[#F8FAFC] shadow-md border border-slate-300 p-1 flex flex-col items-center justify-between select-none shrink-0 animate-fadeIn ${colorClass} ${className}`}
+        className={`w-[50px] h-[72px] rounded-[8px] bg-[#F8FAFC] shadow-md border border-slate-300 p-1 flex flex-col items-center justify-between select-none shrink-0 animate-fadeIn ${colorClass} ${className}`}
       >
         <span className="text-[16px] font-[800] leading-none tracking-tighter tabular-nums mt-0.5">
           {rankDisplay}
@@ -103,6 +103,17 @@ export const CardView: React.FC<CardViewProps> = ({
         <span className="text-[24px] leading-none mb-1">
           {suitSymbols[card.suit]}
         </span>
+      </div>
+    );
+  }
+
+  if (size === 'xs') {
+    return (
+      <div
+        className={`w-[28px] h-[38px] rounded-[5px] bg-[#F8FAFC] shadow-md border border-slate-300 flex flex-col items-center justify-center select-none shrink-0 leading-none ${colorClass} ${className}`}
+      >
+        <span className="text-[12px] font-[800] tabular-nums">{rankDisplay}</span>
+        <span className="text-[12px]">{suitSymbols[card.suit]}</span>
       </div>
     );
   }

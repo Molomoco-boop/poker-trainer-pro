@@ -1,18 +1,21 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { GameContext } from './useGame';
 import {
   UserStats,
   HandStep,
   StakeLevel,
   PedagogicalLevel,
-  OpponentProfile,
   SpotType,
   SessionHandResult,
-  DecisionOption
+  CLOCKWISE_POSITIONS
 } from '../types/poker';
 import { playSuccessSound, playErrorSound, playLevelUpSound, triggerHaptic } from '../utils/audio';
 import { evaluatePedagogicalDifficulty } from '../utils/difficultyEngine';
 
 const STORAGE_KEY = 'poker_trainer_pro_v5';
+const SCHEMA_VERSION = 2;
+
+const todayKey = () => new Date().toLocaleDateString('sv-SE');
 
 const DEFAULT_CATEGORY_STATS: Record<SpotType, { total: number; correct: number }> = {
   RFI_OPEN: { total: 0, correct: 0 },
@@ -26,11 +29,10 @@ const DEFAULT_CATEGORY_STATS: Record<SpotType, { total: number; correct: number 
 };
 
 const DEFAULT_STATS: UserStats = {
-  username: 'Molomoco',
-  email: 'miguelmuletginer@gmail.com',
+  username: 'Jugador',
+  email: '',
   stake: 'NL10',
   pedagogicalLevel: 2, // Nivel 2 - Estándar
-  opponentProfile: 'gto_balanced',
   autoAdjustDifficulty: true,
   consecutiveCorrect: 0,
   recentAnswers: [],
@@ -38,9 +40,9 @@ const DEFAULT_STATS: UserStats = {
   totalCorrectDecisions: 0,
   totalDecisions: 0,
   totalEvAccumulatedBB: 0,
-  streakDays: 4,
-  xp: 450,
   dailyDrillCount: 0,
+  dailyDrillDate: '',
+  schemaVersion: SCHEMA_VERSION,
   sessionHands: [],
   preferences: {
     volume: 80,
@@ -50,28 +52,14 @@ const DEFAULT_STATS: UserStats = {
     dailyReminder: true,
     displayUnits: 'bb',
     deckColorMode: '4color',
-    showHandStrength: true
+    showHandStrength: true,
+    trainingPositions: [...CLOCKWISE_POSITIONS]
   },
   categoryStats: { ...DEFAULT_CATEGORY_STATS },
   mistakeQueue: []
 };
 
-interface GameContextType {
-  stats: UserStats;
-  recordStepAnswer: (step: HandStep, selectedOptionId: string) => { isCorrect: boolean; levelChanged?: boolean };
-  setStake: (stake: StakeLevel) => void;
-  setPedagogicalLevel: (lvl: PedagogicalLevel) => void;
-  setOpponentProfile: (profile: OpponentProfile) => void;
-  setAutoAdjustDifficulty: (enabled: boolean) => void;
-  toggleDisplayUnits: () => void;
-  updatePreferences: (newPrefs: Partial<UserStats['preferences']>) => void;
-  updateUserProfile: (name: string, email: string) => void;
-  resetAllStats: () => void;
-  clearMistakes: () => void;
-  getTopLeaks: () => Array<{ spotType: SpotType; accuracyPct: number; totalHands: number }>;
-}
 
-const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [stats, setStats] = useState<UserStats>(() => {
@@ -79,6 +67,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
+        if (parsed.schemaVersion !== SCHEMA_VERSION) {
+          // step format changed: drop stored steps, keep totals and preferences
+          parsed.mistakeQueue = [];
+          parsed.sessionHands = [];
+          parsed.schemaVersion = SCHEMA_VERSION;
+          delete parsed.opponentProfile;
+          delete parsed.xp;
+          delete parsed.streakDays;
+          if (parsed.email === 'miguelmuletginer@gmail.com') parsed.email = '';
+        }
+        if (parsed.dailyDrillDate !== todayKey()) {
+          parsed.dailyDrillCount = 0;
+          parsed.dailyDrillDate = todayKey();
+        }
         return {
           ...DEFAULT_STATS,
           ...parsed,
@@ -110,7 +112,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
-  const recordStepAnswer = (step: HandStep, selectedOptionId: string) => {
+  const recordStepAnswer = (step: HandStep, selectedOptionId: string, opts: { daily?: boolean } = {}) => {
     const selectedOption = step.options.find(o => o.id === selectedOptionId);
     const isCorrect = !!selectedOption?.isCorrect;
     const evDiffNum = selectedOption?.evDiffNum || 0;
@@ -220,8 +222,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         totalCorrectDecisions: prev.totalCorrectDecisions + (isCorrect ? 1 : 0),
         totalDecisions: prev.totalDecisions + 1,
         totalEvAccumulatedBB: Math.round((prev.totalEvAccumulatedBB + evDiffNum) * 100) / 100,
-        xp: prev.xp + (isCorrect ? 25 : 5),
-        dailyDrillCount: Math.min(10, prev.dailyDrillCount + 1),
+        dailyDrillCount: opts.daily
+          ? Math.min(10, (prev.dailyDrillDate === todayKey() ? prev.dailyDrillCount : 0) + 1)
+          : (prev.dailyDrillDate === todayKey() ? prev.dailyDrillCount : 0),
+        dailyDrillDate: todayKey(),
         categoryStats: updatedCatStats,
         mistakeQueue: updatedQueue,
         sessionHands: updatedSession
@@ -237,10 +241,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const setPedagogicalLevel = (lvl: PedagogicalLevel) => {
     setStats(prev => ({ ...prev, pedagogicalLevel: lvl }));
-  };
-
-  const setOpponentProfile = (profile: OpponentProfile) => {
-    setStats(prev => ({ ...prev, opponentProfile: profile }));
   };
 
   const setAutoAdjustDifficulty = (enabled: boolean) => {
@@ -276,13 +276,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getTopLeaks = () => {
     const list = Object.entries(stats.categoryStats || {}) as [SpotType, { total: number; correct: number }][];
-    const withHands = list.filter(([_, data]) => data.total >= 2);
-    if (withHands.length === 0) {
-      return [
-        { spotType: 'FACING_CBET' as SpotType, accuracyPct: 42, totalHands: 12 },
-        { spotType: 'SB_VS_OPEN' as SpotType, accuracyPct: 48, totalHands: 10 }
-      ];
-    }
+    const withHands = list.filter(([, data]) => data.total >= 2);
+    if (withHands.length === 0) return [];
     withHands.sort((a, b) => (a[1].correct / a[1].total) - (b[1].correct / b[1].total));
     return withHands.slice(0, 2).map(([spot, data]) => ({
       spotType: spot,
@@ -298,7 +293,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         recordStepAnswer,
         setStake,
         setPedagogicalLevel,
-        setOpponentProfile,
         setAutoAdjustDifficulty,
         toggleDisplayUnits,
         updatePreferences,
@@ -313,10 +307,3 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useGame = () => {
-  const context = useContext(GameContext);
-  if (!context) {
-    throw new Error('useGame must be used within a GameProvider');
-  }
-  return context;
-};

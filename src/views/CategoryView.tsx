@@ -14,11 +14,11 @@ import {
   ListOrdered,
   Trophy
 } from 'lucide-react';
-import { CategoryId, SubcategoryId, SPOT_TYPE_NAMES } from '../types/poker';
+import { CategoryId, SubcategoryId } from '../types/poker';
 import { StatsMistakesModal } from '../components/StatsMistakesModal';
 import { CustomizeSetupModal } from '../components/CustomizeSetupModal';
 import { GameplanModal } from '../components/GameplanModal';
-import { useGame } from '../context/GameContext';
+import { useGame } from '../context/useGame';
 import { PEDAGOGICAL_LEVEL_NAMES } from '../types/poker';
 
 interface CategoryViewProps {
@@ -49,26 +49,26 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
     }
   > = {
     simulator: {
-      title: 'Poker Simulator',
+      title: 'Simulador',
       subcategories: [
-        { id: 'full_hand', title: 'Full hand', icon: Layers },
+        { id: 'full_hand', title: 'Mano completa', icon: Layers },
         { id: 'preflop', title: 'Preflop', icon: SquareDashedBottomCode },
         { id: 'postflop', title: 'Postflop', icon: LayoutGrid }
       ]
     },
     math: {
-      title: 'Poker Math',
+      title: 'Matemáticas',
       subcategories: [
-        { id: 'odds', title: 'Odds', icon: Percent },
-        { id: 'equity', title: 'Equity', icon: PieChart },
+        { id: 'odds', title: 'Pot odds', icon: Percent },
+        { id: 'equity', title: 'Outs', icon: PieChart },
         { id: 'ev', title: 'EV', icon: TrendingUp }
       ]
     },
     fundamentals: {
-      title: 'Fundamentals',
+      title: 'Fundamentos',
       subcategories: [
-        { id: 'hand_ranking', title: 'Hand ranking', icon: ListOrdered },
-        { id: 'best_hand', title: 'Best hand', icon: Trophy }
+        { id: 'hand_ranking', title: 'Jugadas', icon: ListOrdered },
+        { id: 'best_hand', title: 'Mejor mano', icon: Trophy }
       ]
     }
   };
@@ -82,12 +82,12 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   const accuracyPct = hasDecisions ? Math.round((correctDecisions / totalDecisions) * 100) : null;
 
   return (
-    <div className="space-y-4 pb-12 animate-fadeIn select-none font-sans">
+    <div className="space-y-3 animate-fadeIn select-none font-sans">
       {/* Top Navigation */}
       <div className="flex items-center gap-3 pt-1">
         <button
           onClick={onBack}
-          className="w-9 h-9 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center text-slate-300 transition-colors"
+          className="w-10 h-10 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center text-slate-300 transition-colors" aria-label="Volver"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -97,7 +97,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
       {/* Training Section */}
       <div className="space-y-2">
         <div className="mb-1">
-          <h2 className="text-sm font-[800] text-white">Training</h2>
+          <h2 className="text-sm font-[800] text-white">Entrenamiento</h2>
         </div>
 
         {/* Overall level summary */}
@@ -146,54 +146,35 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
 
       {/* Simulator Extra Cards (Decision Accuracy, Customize Setup, Gameplan) */}
       {categoryId === 'simulator' && (
-        <div className="space-y-2.5 pt-1">
-          {/* Decision Accuracy Card */}
-          <div className="bg-[#121929] border border-slate-800/90 rounded-2xl p-4 shadow-sm text-center">
-            <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-              Precisión
-            </span>
-
-            {hasDecisions ? (
-              <>
-                <div className="text-3xl font-black text-emerald-400 my-1 tabular-nums">
-                  {accuracyPct}%
-                </div>
-                <div className="text-[11px] text-slate-400">
-                  {correctDecisions} de {totalDecisions} decisiones acertadas
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="text-3xl font-black text-[#64748B] my-1">
-                  —
-                </div>
-                <p className="text-xs text-slate-400">
-                  Sin datos
-                </p>
-              </>
-            )}
-
+        <div className="space-y-2">
+          {/* Decision Accuracy */}
+          <div className="bg-[#121929] border border-slate-800/90 rounded-2xl pl-3.5 pr-1.5 py-1.5 shadow-sm flex items-center justify-between">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Precisión</span>
+              <span className={`text-xl font-black tabular-nums ${hasDecisions ? 'text-emerald-400' : 'text-[#64748B]'}`}>{hasDecisions ? `${accuracyPct}%` : '—'}</span>
+              <span className="text-[11px] text-slate-400">{hasDecisions ? `${correctDecisions}/${totalDecisions}` : 'Sin datos'}</span>
+            </div>
             <button
               onClick={() => setShowStatsMistakes(true)}
-              className="text-xs font-semibold text-slate-400 hover:text-white flex items-center justify-center gap-1 mx-auto mt-2 transition-colors"
+              className="h-10 px-3 text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1 transition-colors"
             >
-              <span>View stats & mistakes</span>
-              <ChevronDown className="w-4 h-4" />
+              <span>Ver estadísticas</span>
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
           {/* Customize Setup Button */}
           <div
             onClick={() => setShowCustomize(true)}
-            className="w-full bg-[#121929] hover:bg-[#162035] border border-slate-800/90 rounded-2xl p-3.5 flex items-center justify-between shadow-sm cursor-pointer transition-all active:scale-[0.99]"
+            className="w-full bg-[#121929] hover:bg-[#162035] border border-slate-800/90 rounded-2xl px-3.5 py-2.5 flex items-center justify-between shadow-sm cursor-pointer transition-all active:scale-[0.99]"
           >
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-slate-800/80 flex items-center justify-center text-slate-300">
                 <Sliders className="w-4 h-4" />
               </div>
               <div className="text-left">
-                <h3 className="text-xs font-bold text-white">Customize setup</h3>
-                <p className="text-[11px] text-slate-400">6-max · Cash - 100 bb GTO</p>
+                <h3 className="text-xs font-bold text-white">Configurar mesa</h3>
+                <p className="text-[11px] text-slate-400">6-max · 100 BB · {stats.preferences.trainingPositions.length === 6 ? 'todas las posiciones' : stats.preferences.trainingPositions.join(', ')}</p>
               </div>
             </div>
             <ChevronDown className="w-4 h-4 text-slate-400" />
@@ -202,7 +183,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
           {/* Gameplan Button */}
           <div
             onClick={() => setShowGameplan(true)}
-            className="w-full bg-[#121929] hover:bg-[#162035] border border-slate-800/90 rounded-2xl p-3.5 flex items-center justify-between shadow-sm cursor-pointer transition-all active:scale-[0.99]"
+            className="w-full bg-[#121929] hover:bg-[#162035] border border-slate-800/90 rounded-2xl px-3.5 py-2.5 flex items-center justify-between shadow-sm cursor-pointer transition-all active:scale-[0.99]"
           >
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-blue-600/15 border border-blue-500/20 flex items-center justify-center text-blue-400">
@@ -210,7 +191,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
               </div>
               <div className="text-left">
                 <h3 className="text-xs font-bold text-white">Gameplan</h3>
-                <p className="text-[11px] text-slate-400">Explore postflop strategy</p>
+                <p className="text-[11px] text-slate-400">Postflop</p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-slate-400" />

@@ -1,123 +1,67 @@
 import React, { useState } from 'react';
-import { X, Check } from 'lucide-react';
+import { X } from 'lucide-react';
+import { useGame } from '../context/useGame';
+import { Position, CLOCKWISE_POSITIONS } from '../types/poker';
+import { ModalPortal } from './ModalPortal';
 
 interface CustomizeSetupModalProps {
   onClose: () => void;
 }
 
 export const CustomizeSetupModal: React.FC<CustomizeSetupModalProps> = ({ onClose }) => {
-  const [tableFormat, setTableFormat] = useState<'6-max' | 'Heads-Up' | 'MTT 8-max'>('6-max');
-  const [stackDepth, setStackDepth] = useState<number>(100);
-  const [activePositions, setActivePositions] = useState<string[]>(['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB']);
+  const { stats, updatePreferences } = useGame();
+  const [active, setActive] = useState<Position[]>(stats.preferences.trainingPositions || [...CLOCKWISE_POSITIONS]);
 
-  const togglePos = (p: string) => {
-    setActivePositions(prev =>
-      prev.includes(p) ? (prev.length > 2 ? prev.filter(x => x !== p) : prev) : [...prev, p]
-    );
+  const toggle = (p: Position) =>
+    setActive(prev => (prev.includes(p) ? (prev.length > 1 ? prev.filter(x => x !== p) : prev) : [...prev, p]));
+
+  const save = () => {
+    updatePreferences({ trainingPositions: CLOCKWISE_POSITIONS.filter(p => active.includes(p)) });
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-3 animate-fadeIn font-sans select-none">
-      <div className="w-full max-w-md bg-[#0e1422] border border-slate-800 rounded-2xl flex flex-col shadow-2xl overflow-hidden max-h-[92vh]">
-        
-        {/* Header */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-[800] text-white">Customize Setup</h2>
-            <p className="text-xs text-slate-400">Configura la estructura de mesa, stacks y posiciones</p>
+    <ModalPortal>
+      <div className="fixed inset-0 z-[60] bg-black/85 flex items-center justify-center p-3 animate-fadeIn select-none">
+        <div className="w-full max-w-md bg-[#0e1422] border border-slate-800 rounded-2xl flex flex-col shadow-2xl overflow-hidden max-h-[calc(100dvh-24px)]">
+          <div className="px-4 py-2 border-b border-slate-800 flex items-center justify-between">
+            <h2 className="text-sm font-[800] text-white">Configurar mesa</h2>
+            <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-300" aria-label="Cerrar">
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
-        <div className="p-4 space-y-4 text-xs overflow-y-auto">
-          
-          {/* Table Format */}
-          <div>
-            <label className="text-slate-400 font-bold block mb-2 uppercase text-[10px] tracking-wider">
-              Formato de Mesa
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['6-max', 'Heads-Up', 'MTT 8-max'] as const).map(fmt => (
-                <button
-                  key={fmt}
-                  onClick={() => setTableFormat(fmt)}
-                  className={`py-2 px-2 rounded-xl border text-center font-bold transition-all ${
-                    tableFormat === fmt
-                      ? 'bg-blue-600 border-blue-500 text-white shadow-md'
-                      : 'bg-[#121929] border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {fmt}
-                </button>
-              ))}
+          <div className="p-4 space-y-3 text-xs">
+            <div className="flex items-center justify-between text-slate-300">
+              <span className="font-bold">Formato</span>
+              <span className="text-white font-bold">6-max · 100 BB</span>
+            </div>
+            <div>
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Posiciones del Hero</div>
+              <div className="grid grid-cols-6 gap-1.5">
+                {CLOCKWISE_POSITIONS.map(pos => {
+                  const on = active.includes(pos);
+                  return (
+                    <button
+                      key={pos}
+                      onClick={() => toggle(pos)}
+                      className={`h-11 rounded-xl font-bold border ${on ? 'bg-indigo-600/30 border-indigo-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-500'}`}
+                    >
+                      {pos}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          {/* Stack Depth */}
-          <div>
-            <label className="text-slate-400 font-bold block mb-2 uppercase text-[10px] tracking-wider">
-              Profundidad de Stack Efectivo
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { bb: 100, label: '100 BB (Deep Cash GTO)' },
-                { bb: 40, label: '40 BB (Mid Stack MTT)' },
-                { bb: 20, label: '20 BB (Short Stack Nash)' }
-              ].map(s => (
-                <button
-                  key={s.bb}
-                  onClick={() => setStackDepth(s.bb)}
-                  className={`p-2.5 rounded-xl border text-center font-bold transition-all flex flex-col items-center justify-center ${
-                    stackDepth === s.bb
-                      ? 'bg-blue-600/30 border-blue-500 text-white shadow'
-                      : 'bg-[#121929] border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <span className="text-sm font-black">{s.bb} BB</span>
-                  <span className="text-[9px] opacity-75 mt-0.5">{s.label.split('(')[1].replace(')', '')}</span>
-                </button>
-              ))}
-            </div>
+          <div className="p-3 border-t border-slate-800">
+            <button onClick={save} className="w-full h-11 rounded-xl bg-blue-600 text-white font-bold text-xs uppercase tracking-wider">
+              Guardar
+            </button>
           </div>
-
-          {/* Active Positions Filter */}
-          <div>
-            <label className="text-slate-400 font-bold block mb-2 uppercase text-[10px] tracking-wider">
-              Posiciones Activas en el Entrenamiento
-            </label>
-            <div className="grid grid-cols-6 gap-1.5">
-              {['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'].map(pos => {
-                const isAct = activePositions.includes(pos);
-                return (
-                  <button
-                    key={pos}
-                    onClick={() => togglePos(pos)}
-                    className={`py-2 rounded-lg font-black text-xs border transition-all ${
-                      isAct
-                        ? 'bg-indigo-600/30 border-indigo-500 text-white'
-                        : 'bg-slate-900 border-slate-800 text-slate-600'
-                    }`}
-                  >
-                    {pos}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="w-full mt-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-[800] text-xs uppercase tracking-wider transition-transform active:scale-95 shadow-md"
-          >
-            Guardar Configuración
-          </button>
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };

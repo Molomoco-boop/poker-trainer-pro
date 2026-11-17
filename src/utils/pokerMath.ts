@@ -1,5 +1,5 @@
-import { Card, Rank, Suit } from '../types/poker';
-import { RANKS, SUITS, evaluateHand } from './pokerEvaluator';
+import { Card, Suit } from '../types/poker';
+import { RANKS, SUITS, RANK_VALUES, evaluateHand, compareEvaluations } from './pokerEvaluator';
 
 export function calculatePotOddsPct(callAmountBB: number, potBeforeCallBB: number): number {
   if (callAmountBB <= 0) return 0;
@@ -12,6 +12,35 @@ export function calculateSPR(effectiveStackBB: number, currentPotBB: number): nu
   return Math.round((effectiveStackBB / currentPotBB) * 10) / 10;
 }
 
+/** Exact equity of hitting one of `outs` clean outs with `cardsToCome` cards from `unseen` cards. */
+export function hitProbabilityPct(outs: number, unseen: number, cardsToCome: 1 | 2): number {
+  if (outs <= 0) return 0;
+  if (cardsToCome === 1) return Math.round((outs / unseen) * 1000) / 10;
+  const miss = ((unseen - outs) * (unseen - outs - 1)) / (unseen * (unseen - 1));
+  return Math.round((1 - miss) * 1000) / 10;
+}
+
+export function remainingDeck(known: Card[]): Card[] {
+  const out: Card[] = [];
+  for (const s of SUITS) for (const r of RANKS) {
+    if (!known.some(c => c.rank === r && c.suit === s)) out.push({ rank: r, suit: s });
+  }
+  return out;
+}
+
+/** Category of the board alone (pairs/trips on a 3-4 card board, full eval on 5). */
+export function boardCategory(board: Card[]): number {
+  if (board.length >= 5) return evaluateHand(board).score;
+  const counts: Record<string, number> = {};
+  board.forEach(c => { counts[c.rank] = (counts[c.rank] || 0) + 1; });
+  const v = Object.values(counts).sort((a, b) => b - a);
+  if (v[0] === 4) return 7;
+  if (v[0] === 3) return 3;
+  if (v[0] === 2 && v[1] === 2) return 2;
+  if (v[0] === 2) return 1;
+  return 0;
+}
+
 export interface DrawDetectionResult {
   drawLabels: string[];
   cleanOuts: Card[];
@@ -20,129 +49,82 @@ export interface DrawDetectionResult {
   equityRiverPct: number;
 }
 
+/**
+ * Outs = unseen cards that improve hero to a stronger category that uses a hole card
+ * (cards that only improve the board, e.g. pairing it, are not counted).
+ */
 export function detectCleanOuts(heroCards: [Card, Card], board: Card[]): DrawDetectionResult {
-  if (board.length < 3 || heroCards.length < 2) {
-    return {
-      drawLabels: [],
-      cleanOuts: [],
-      totalCleanOutsCount: 0,
-      equityTurnPct: 0,
-      equityRiverPct: 0
-    };
+  const empty = { drawLabels: [], cleanOuts: [], totalCleanOutsCount: 0, equityTurnPct: 0, equityRiverPct: 0 };
+  if (board.length < 3 || board.length > 4 || heroCards.length < 2) return empty;
+
+  const known = [...heroCards, ...board];
+  const current = evaluateHand(known);
+  const deck = remainingDeck(known);
+  const outs: Card[] = [];
+  let flushOuts = 0;
+  let straightOuts = 0;
+  let pairOuts = 0;
+
+  for (const c of deck) {
+    const newBoard = [...board, c];
+    const trial = evaluateHand([...heroCards, ...newBoard]);
+    if (trial.score <= current.score) continue;
+    if (trial.score <= boardCategory(newBoard)) continue; // board improved, not hero
+    const pairsBoard = board.some(b => b.rank === c.rank) && !heroCards.some(h => h.rank === c.rank);
+    if (pairsBoard && trial.score < 6) continue; // board pair helps both players
+    if (trial.score === 1 && current.score === 0) {
+      // pairing a hole card only counts as an out if it is above every board card
+      const boardMax = Math.max(...board.map(b => RANK_VALUES[b.rank]));
+      if (RANK_VALUES[c.rank] < boardMax) continue;
+      pairOuts++;
+    } else if (trial.score === 5 || trial.score === 8) flushOuts++;
+    else if (trial.score === 4) straightOuts++;
+    outs.push(c);
   }
 
-  const allKnown = [...heroCards, ...board];
-  const currentBest = evaluateHand(allKnown);
-  const drawLabels: string[] = [];
+  const labels: string[] = [];
+  if (flushOuts >= 7) labels.push(`Proyecto de color (${flushOuts})`);
+  if (straightOuts >= 6) labels.push(`Escalera abierta (${straightOuts})`);
+  else if (straightOuts > 0) labels.push(`Gutshot (${straightOuts})`);
+  if (pairOuts > 0) labels.push(`Overcards (${pairOuts})`);
 
-  // Generate all remaining 52-card deck cards
-  const remainingDeck: Card[] = [];
-  for (const s of SUITS) {
-    for (const r of RANKS) {
-      if (!allKnown.some(c => c.rank === r && c.suit === s)) {
-        remainingDeck.push({ rank: r, suit: s });
-      }
-    }
-  }
-
-  // Check Flush Draw
-  const suitCounts: Record<Suit, number> = { s: 0, h: 0, d: 0, c: 0 };
-  allKnown.forEach(c => suitCounts[c.suit]++);
-  let flushSuit: Suit | null = null;
-  for (const s of SUITS) {
-    if (suitCounts[s] === 4) {
-      flushSuit = s;
-      drawLabels.push('Proyecto de Color (9 outs)');
-      break;
-    }
-  }
-
-  // Find all cards in remaining deck that strictly improve the hand above current rank
-  const improvingCards: Card[] = [];
-
-  for (const candidate of remainingDeck) {
-    const trialHand = evaluateHand([...allKnown, candidate]);
-    if (trialHand.score > currentBest.score) {
-      improvingCards.push(candidate);
-    }
-  }
-
-  // Deduplicate and categorize
-  // Check for straight draws
-  const rankIndices = Array.from(new Set(allKnown.map(c => RANKS.indexOf(c.rank)))).sort((a, b) => a - b);
-  let hasOESD = false;
-  let hasGutshot = false;
-
-  // Simple heuristic for label naming
-  const straightImprovers = improvingCards.filter(c => {
-    const trial = evaluateHand([...allKnown, c]);
-    return trial.name.includes('Escalera');
-  });
-
-  if (straightImprovers.length >= 8) {
-    hasOESD = true;
-    drawLabels.push('Escalera Abierta / OESD (8 outs)');
-  } else if (straightImprovers.length >= 4) {
-    hasGutshot = true;
-    drawLabels.push('Escalera Interna / Gutshot (4 outs)');
-  }
-
-  // Check Overcards
-  const boardMaxRankIdx = Math.max(...board.map(c => RANKS.indexOf(c.rank)));
-  const heroOvercards = heroCards.filter(c => RANKS.indexOf(c.rank) > boardMaxRankIdx);
-  if (heroOvercards.length > 0 && currentBest.score < 2000000) {
-    // Only highlight overcards if not already paired on board
-    drawLabels.push(`Overcards (${heroOvercards.length * 3} outs)`);
-  }
-
-  // Unique clean improving cards
-  const uniqueCleanOuts = improvingCards.filter((card, index, self) =>
-    index === self.findIndex(c => c.rank === card.rank && c.suit === card.suit)
-  );
-
-  const totalCount = uniqueCleanOuts.length;
-  const equityTurnPct = Math.min(100, Math.round(totalCount * 2));
-  const equityRiverPct = Math.min(100, Math.round(totalCount * 4));
-
+  const unseen = 52 - known.length;
   return {
-    drawLabels,
-    cleanOuts: uniqueCleanOuts,
-    totalCleanOutsCount: totalCount,
-    equityTurnPct,
-    equityRiverPct
+    drawLabels: labels,
+    cleanOuts: outs,
+    totalCleanOutsCount: outs.length,
+    equityTurnPct: hitProbabilityPct(outs.length, unseen, 1),
+    equityRiverPct: board.length === 3 ? hitProbabilityPct(outs.length, unseen, 2) : hitProbabilityPct(outs.length, unseen, 1)
   };
+}
+
+/** Cards that make hero strictly beat villain on the next card (ties excluded). */
+export function countOutsVsVillain(hero: [Card, Card], villain: [Card, Card], board: Card[]): Card[] {
+  const deck = remainingDeck([...hero, ...villain, ...board]);
+  return deck.filter(c => {
+    const b = [...board, c];
+    return compareEvaluations(evaluateHand([...hero, ...b]), evaluateHand([...villain, ...b])) > 0;
+  });
+}
+
+export function isWetBoard(board: Card[]): boolean {
+  const flop = board.slice(0, 3);
+  const suitCounts: Record<string, number> = {};
+  flop.forEach(c => { suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1; });
+  const maxSuit = Math.max(...Object.values(suitCounts));
+  const vals = [...new Set(flop.map(c => RANK_VALUES[c.rank]))].sort((a, b) => a - b);
+  const span = vals[vals.length - 1] - vals[0];
+  const connected = vals.length === 3 && span <= 4;
+  return maxSuit >= 3 || (maxSuit === 2 && connected) || (connected && vals[0] >= 6);
 }
 
 export function analyzeBoardTexture(board: Card[]): string {
   if (board.length < 3) return 'Preflop';
-  
-  const suits = board.map(c => c.suit);
-  const suitCounts = suits.reduce((acc, s) => ({ ...acc, [s]: (acc[s] || 0) + 1 }), {} as Record<string, number>);
-  const maxSuitCount = Math.max(...Object.values(suitCounts));
-  const isMonotone = maxSuitCount >= 3;
-  const isTwoTone = maxSuitCount === 2;
-  const isRainbow = maxSuitCount === 1;
-
-  const ranks = board.map(c => RANKS.indexOf(c.rank)).sort((a, b) => a - b);
-  const rankCounts = ranks.reduce((acc, r) => ({ ...acc, [r]: (acc[r] || 0) + 1 }), {} as Record<number, number>);
-  const isPaired = Object.values(rankCounts).some(c => c >= 2);
-
-  let connectedness = 'Desconectado (Seco)';
-  let maxGap = 0;
-  for (let i = 0; i < ranks.length - 1; i++) {
-    const diff = Math.abs(ranks[i + 1] - ranks[i]);
-    if (diff === 1 || diff === 2) maxGap++;
-  }
-  if (maxGap >= 2) connectedness = 'Coordinado / Húmedo';
-
-  if (isPaired) {
-    return `Board Pareado · ${isTwoTone ? 'Dos Palos' : isRainbow ? 'Rainbow' : 'Monocolor'}`;
-  }
-  if (isMonotone) {
-    return 'Board Monocolor (3 cartas del mismo palo) · Muy Dinámico';
-  }
-  if (connectedness.includes('Coordinado')) {
-    return `Board Coordinado / Húmedo · ${isTwoTone ? 'Dos Palos (Flush draw activo)' : 'Rainbow'}`;
-  }
-  return `Board Seco · ${isRainbow ? 'Rainbow' : 'Dos Palos'} (Baja interacción)`;
+  const suitCounts: Record<Suit, number> = { s: 0, h: 0, d: 0, c: 0 };
+  board.forEach(c => { suitCounts[c.suit]++; });
+  const maxSuit = Math.max(...Object.values(suitCounts));
+  const paired = boardCategory(board) >= 1;
+  const suitTxt = maxSuit >= 3 ? 'monocolor' : maxSuit === 2 ? 'dos palos' : 'rainbow';
+  if (paired) return `Pareado · ${suitTxt}`;
+  return `${isWetBoard(board) ? 'Húmedo' : 'Seco'} · ${suitTxt}`;
 }
