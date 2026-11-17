@@ -93,7 +93,9 @@ export function detectCleanOuts(heroCards: [Card, Card], board: Card[]): DrawDet
     const pairsBoard = board.some(b => b.rank === c.rank) && !heroCards.some(h => h.rank === c.rank);
     if (pairsBoard && trial.score < 6) continue; // board pair helps both players
     if (trial.score <= 2 && boardHasFourToHand(newBoard)) continue; // a pair is no good on a straight/flush board
-    if (trial.score === 1 && current.score === 0) {
+    // on a paired board, "two pair" from pairing a hole card is like a plain pair: same rule
+    const boardPairOnly = boardCategory(board) === 1 && current.score === 1 && trial.score === 2;
+    if ((trial.score === 1 && current.score === 0) || boardPairOnly) {
       // pairing a hole card only counts as an out if it is above every board card
       const boardMax = Math.max(...board.map(b => RANK_VALUES[b.rank]));
       if (RANK_VALUES[c.rank] < boardMax) continue;

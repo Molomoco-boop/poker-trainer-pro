@@ -141,8 +141,10 @@ export const PracticeView: React.FC<PracticeViewProps> = ({ session, onExit }) =
       setNextInHand(null);
       return;
     }
+    // session finished: keep the last step, the summary covers the screen
+    if (total > 0 && answered >= total - (session.kind === 'daily' ? startDaily.current : 0)) return;
     setStep(makeStep(answered));
-  }, [nextInHand, makeStep, answered]);
+  }, [nextInHand, makeStep, answered, total, session.kind]);
 
   const advanceRef = useRef(advance);
   useEffect(() => { advanceRef.current = advance; }, [advance]);
@@ -206,7 +208,7 @@ export const PracticeView: React.FC<PracticeViewProps> = ({ session, onExit }) =
       />
 
       {done && (
-        <div className="session-end fixed inset-0 z-[70] bg-black/75 flex items-center justify-center p-4">
+        <div className="session-end fixed inset-0 z-[70] bg-bg flex items-center justify-center p-4">
           <Panel className="w-full max-w-xs p-4 flex flex-col gap-3">
             <span className="text-[13px] text-dim uppercase tracking-[0.08em]">{session.kind === 'placement' ? 'Test terminado' : 'Sesión diaria hecha'}</span>
             <div className="flex items-baseline gap-2">

@@ -21,6 +21,11 @@ android/*.iml
 android/app/*.iml
 capturas/
 
+# Signing keys: never commit
+*.jks
+*.keystore
+keystore.properties
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

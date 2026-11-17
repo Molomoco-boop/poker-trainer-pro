@@ -1,5 +1,14 @@
 apply plugin: 'com.android.application'
 
+// One persistent signing key for every build (debug and release), so new APKs install
+// over old ones. The properties file lives outside the repo and is never committed:
+// set POKER_KEYSTORE_PROPERTIES=/path/keystore.properties or -PpokerKeystore=/path/...
+// (keys: storeFile, storePassword, keyAlias, keyPassword). Without it, the default debug key is used.
+def keystorePropsPath = System.getenv('POKER_KEYSTORE_PROPERTIES') ?: (project.findProperty('pokerKeystore') ?: '')
+def keystoreProps = new Properties()
+def hasKeystore = keystorePropsPath && file(keystorePropsPath).exists()
+if (hasKeystore) file(keystorePropsPath).withInputStream { keystoreProps.load(it) }
+
 android {
     namespace = "com.pokertrainer.pro"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +16,8 @@ android {
         applicationId "com.pokertrainer.pro"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 21
+        versionName "2.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +25,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (hasKeystore) {
+            poker {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
+        debug {
+            if (hasKeystore) signingConfig signingConfigs.poker
+        }
         release {
+            if (hasKeystore) signingConfig signingConfigs.poker
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

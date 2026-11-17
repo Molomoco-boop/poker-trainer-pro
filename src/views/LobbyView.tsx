@@ -38,7 +38,10 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated
     <div className="lobby space-y-3 animate-fadeIn">
       <div className="flex items-end justify-between px-0.5 pt-1">
         <div>
-          <div className="text-[12px] text-dim">{stats.username}</div>
+          <div className="flex items-center gap-1.5 text-[12px] text-dim">
+            <img src="/icon-32.png" alt="" width="16" height="16" className="rounded-[3px]" />
+            {stats.username}
+          </div>
           <div className="flex items-baseline gap-2">
             <span className="lobby-rating num text-[36px] leading-none font-semibold text-hi">{Math.round(stats.rating.r)}{stats.rating.rd > 110 ? '?' : ''}</span>
             {last !== 0 && <span className={`num text-[14px] font-semibold ${last > 0 ? 'text-goodtx' : 'text-badtx'}`}>{last > 0 ? '+' : '−'}{Math.abs(last)}</span>}

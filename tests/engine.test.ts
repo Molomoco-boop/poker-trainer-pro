@@ -85,6 +85,10 @@ const qt = detectCleanOuts(C('Qd Th') as [Card, Card], C('8c Ts Jd'));
 ok(qt.drawLabels.includes('Gutshot') && qt.straightOuts === 4, `QT on 8TJ: gutshot to the 9 (${qt.drawLabels.join('/')}, ${qt.straightOuts})`);
 const kq = detectCleanOuts(C('Kd Qh') as [Card, Card], C('Jc Ts 4d'));
 ok(kq.drawLabels.includes('Escalera abierta') && kq.straightOuts === 8, `KQ on JT4: open-ended (${kq.straightOuts})`);
+{
+  const a6 = detectCleanOuts(C('Ah 6h') as [Card, Card], C('2h Qd 3h Qs'));
+  ok(a6.totalCleanOutsCount === 11 && !a6.cleanOuts.some(c => c.rank === '6'), `A6h on 2hQd3hQs: 8 flush + 3 aces, no 6s (${a6.totalCleanOutsCount})`);
+}
 ok(classifyHand(C('2c 3d') as [Card, Card], C('5h 6s 7c 8d 9h')).cls === 'air', 'board straight, 23 plays the board = air');
 ok(classifyHand(C('Tc 2d') as [Card, Card], C('5h 6s 7c 8d 9h')).cls === 'strong', 'T beats the board straight = strong');
 ok(classifyHand(C('Ac Kc') as [Card, Card], C('5c 9c Jd')).cls === 'draw', 'nut flush draw on 2-flush flop = draw');
