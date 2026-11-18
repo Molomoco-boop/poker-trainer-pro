@@ -55,6 +55,15 @@ function weighted<T>(items: [T, number][]): T {
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const fmt = (n: number) => `${r1(n)}`;
 const pctR = (n: number) => Math.round(n);
+
+/** "1 de cada 5 manos" for a 19 % range, etc. */
+export function oneInN(pct: number): string {
+  if (pct <= 0) return 'casi nunca';
+  if (pct >= 95) return 'casi todas las manos';
+  const n = Math.max(2, Math.round(100 / pct));
+  return `1 de cada ${n} manos`;
+}
+
 const uid = (p: string) => `${p}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 function randomCard(exclude: Card[] = []): Card {
@@ -196,20 +205,20 @@ export function spotDifficulty(concept: ConceptId, defs: { freq: number }[], obv
 }
 
 export const ACTION_ES: Record<string, string> = {
-  fold: 'Fold', call: 'Pagar', raise: 'Subir', check: 'Check', bet_small: 'Apuesta peq.',
-  bet_big: 'Apuesta grande', '3bet': '3-bet', '4bet': '4-bet', jam: 'All-in', limp: 'Limp'
+  fold: 'Tirar', call: 'Pagar', raise: 'Subir', check: 'Pasar', bet_small: 'Apuesta peq.',
+  bet_big: 'Apuesta grande', '3bet': 'Resubir', '4bet': 'Resubir', jam: 'All-in', limp: 'Completar'
 };
 
 /** "Paga." / "Check o apuesta peq." from the correct options, most frequent first. */
 function verdictText(defs: OptionDef[]): string {
   const ok = [...defs].sort((a, b) => b.freq - a.freq).filter((d, i) => i === 0 || d.freq >= CORRECT_FREQ);
-  const words = ok.map(d => (d.id === 'call' ? 'paga' : d.id === 'fold' ? 'fold' : d.id === 'raise' ? 'sube' : ACTION_ES[d.id].toLowerCase()));
+  const words = ok.map(d => (d.id === 'call' ? 'paga' : d.id === 'fold' ? 'tira' : d.id === 'raise' ? 'sube' : ACTION_ES[d.id].toLowerCase()));
   if (ok.length >= 3) return 'Las tres valen.';
   const s = words.join(' o ');
   return s.charAt(0).toUpperCase() + s.slice(1) + (s.endsWith('.') ? '' : '.');
 }
 
-/** "Pagar 60 % · Fold 40 %: ambas valen" when two or more actions are correct, else null. */
+/** "Pagar 60 % · Tirar 40 %: ambas valen" when two or more actions are correct, else null. */
 export function mixedLine(options: DecisionOption[]): string | null {
   const ok = options.filter(o => o.frequencyGTO >= CORRECT_FREQ).sort((a, b) => b.frequencyGTO - a.frequencyGTO);
   if (ok.length < 2) return null;
@@ -582,7 +591,7 @@ function prePlan(spot: SpotType, heroPos: Position, hand: string, f: HandFrequen
   return 'Fold: dominada por su rango';
 }
 
-const oddsRow = (call: number, pot: number): DetailRow => ({ k: 'odds', label: 'Pot odds', value: `pagas ${fmt(call)} · necesitas ${pctR(calculatePotOddsPct(call, pot))} %` });
+const oddsRow = (call: number, pot: number): DetailRow => ({ k: 'odds', label: 'Para pagar', value: `pagas ${fmt(call)} · necesitas ${pctR(calculatePotOddsPct(call, pot))} %` });
 
 function buildPreflopStep(
   spot: SpotType,
@@ -638,18 +647,18 @@ function buildPreflopStep(
     // limping is never part of this strategy (SB is raise-or-fold too): always an error
     const limp = heroPos === 'SB' ? 0.5 : 1;
     defs = [
-      { id: 'fold', label: 'FOLD', freq: f.fold },
-      { id: 'limp', label: heroPos === 'SB' ? 'COMPLETAR 0.5 BB' : 'LIMP 1 BB', amountBB: limp, freq: 0 },
-      { id: 'raise', label: `RAISE ${fmt(open)} BB`, amountBB: open, freq: f.raise }
+      { id: 'fold', label: 'TIRAR', freq: f.fold },
+      { id: 'limp', label: heroPos === 'SB' ? 'COMPLETAR 0.5 BB' : 'COMPLETAR 1 BB', amountBB: limp, freq: 0 },
+      { id: 'raise', label: `SUBIR ${fmt(open)} BB`, amountBB: open, freq: f.raise }
     ];
     context = `Acción en ti (${heroPos})`;
     ticker = folded.length ? `Foldean ${folded.join(', ')}` : 'Primero en hablar';
     const pct = getRangeStats(matrix).percentage;
     const early = earliestOpenPosition(hand);
     const extra = f.raise <= 0 && early ? ` (se abre desde ${early})` : '';
-    why = `${heroPos} abre el ${pctR(pct)} %: ${hand} ${openWord(f)}${extra}.`;
+    why = `${heroPos} sube con ${oneInN(pct)} (${pctR(pct)} %): ${hand} ${openWord(f)}${extra}.`;
     detail = [
-      { k: 'range', label: 'Rango', value: `${heroPos} abre el ${pctR(pct)} % · nunca limp` },
+      { k: 'range', label: 'Rango', value: `${heroPos} sube con ${oneInN(pct)} (${pctR(pct)} %) · nunca completa` },
       { k: 'hand', label: 'Tu mano', value: `${hand} · ${f.raise >= 100 ? 'dentro' : f.raise <= 0 ? 'fuera' : 'frontera'}` },
       { k: 'plan', label: 'Plan', value: prePlan(spot, heroPos, hand, f, early) }
     ];
@@ -675,9 +684,9 @@ function buildPreflopStep(
     hand = force.hand || sampleHand(matrix, level, mustContinue ? (_h, f) => f.call >= 50 : undefined);
     const f = getHandFrequency(matrix, hand);
     defs = [
-      { id: 'fold', label: 'FOLD', freq: f.fold },
-      { id: 'call', label: `CALL ${fmt(open - 1)} BB`, amountBB: r1(open - 1), freq: f.call },
-      { id: '3bet', label: `3-BET ${fmt(threeBet)} BB`, amountBB: threeBet, freq: f.raise }
+      { id: 'fold', label: 'TIRAR', freq: f.fold },
+      { id: 'call', label: `PAGAR ${fmt(open - 1)} BB`, amountBB: r1(open - 1), freq: f.call },
+      { id: '3bet', label: `RESUBIR ${fmt(threeBet)} BB`, amountBB: threeBet, freq: f.raise }
     ];
     context = caller ? `${villainPos} abre · ${caller} paga` : `${villainPos} abre a ${fmt(open)} BB`;
     ticker = caller ? `${villainPos} abre · ${caller} paga · acción en BB` : villainPos === 'SB' ? 'Foldean hasta SB' : `${villainPos} abre · resto foldea`;
@@ -716,15 +725,15 @@ function buildPreflopStep(
     hand = force.hand || sampleHand(matrix, level, mustContinue ? (_h, f) => f.raise >= 50 : undefined);
     const f = getHandFrequency(matrix, hand);
     defs = [
-      { id: 'fold', label: 'FOLD', freq: f.fold },
-      { id: 'call', label: 'CALL 2 BB', amountBB: 2, freq: f.call },
-      { id: '3bet', label: '3-BET 11 BB', amountBB: 11, freq: f.raise }
+      { id: 'fold', label: 'TIRAR', freq: f.fold },
+      { id: 'call', label: 'PAGAR 2 BB', amountBB: 2, freq: f.call },
+      { id: '3bet', label: 'RESUBIR 11 BB', amountBB: 11, freq: f.raise }
     ];
     context = `${villainPos} abre a 2.5 BB`;
     ticker = `${villainPos} abre · acción en SB`;
     why = `SB vs ${villainPos}: 3-bet o fold, sin call (3-bet el ${pctR(getRangeStats(matrix).percentage)} %). ${hand} ${defendWord(f, '3-bet')}.`;
     detail = [
-      { k: 'range', label: 'Rango', value: `SB: 3-bet el ${pctR(getRangeStats(matrix).percentage)} % · casi nunca call` },
+      { k: 'range', label: 'Rango', value: `SB resube con ${oneInN(getRangeStats(matrix).percentage)} (${pctR(getRangeStats(matrix).percentage)} %) · casi nunca paga` },
       { k: 'hand', label: 'Tu mano', value: `${hand}${preBlocker(hand) ? ` · ${preBlocker(hand)}` : ''}` },
       { k: 'plan', label: 'Plan', value: prePlan(spot, 'SB', hand, f, null) }
     ];
@@ -748,9 +757,9 @@ function buildPreflopStep(
     hand = force.hand || sampleHand(matrix, level, (h, f) => getHandFrequency(rfi, h).raise >= 50 && (!mustContinue || f.call >= 50));
     const f = getHandFrequency(matrix, hand);
     defs = [
-      { id: 'fold', label: 'FOLD', freq: f.fold },
-      { id: 'call', label: `CALL ${fmt(threeBet - 2.5)} BB`, amountBB: r1(threeBet - 2.5), freq: f.call },
-      { id: '4bet', label: '4-BET 22 BB', amountBB: 22, freq: f.raise }
+      { id: 'fold', label: 'TIRAR', freq: f.fold },
+      { id: 'call', label: `PAGAR ${fmt(threeBet - 2.5)} BB`, amountBB: r1(threeBet - 2.5), freq: f.call },
+      { id: '4bet', label: 'RESUBIR 22 BB', amountBB: 22, freq: f.raise }
     ];
     context = `${villainPos} 3-bet a ${fmt(threeBet)} BB`;
     ticker = `Abres 2.5 · ${villainPos} 3-bet`;
@@ -950,7 +959,7 @@ function makeStep(
     },
     why: extra.why,
     detail: [
-      extra.toCall > 0 ? oddsRow(extra.toCall, pot) : { k: 'board', label: 'Board', value: `${info.texture} · SPR ${fmt(info.spr)}` },
+      extra.toCall > 0 ? oddsRow(extra.toCall, pot) : { k: 'board', label: 'Mesa', value: `${info.texture} · pilas ${fmt(info.spr)} veces el bote` },
       { k: 'hand', label: 'Tu mano', value: handLine(info, st) },
       { k: 'plan', label: 'Plan', value: extra.plan.replace(/\.$/, '') }
     ],
@@ -1106,9 +1115,9 @@ function leadStep(st: PostState, villainChecked: boolean): HandStep {
   const sizeSmall = r1(Math.max(0.5, Math.min(info.potStart * 0.33, info.eff * 0.5)));
   const same = sizeSmall >= sizeBig;
   const defs: OptionDef[] = [
-    { id: 'check', label: 'CHECK', freq: chk },
-    { id: 'bet_small', label: `BET ${fmt(sizeSmall)} BB`, amountBB: sizeSmall, freq: same ? 0 : sm },
-    { id: 'bet_big', label: sizeBig >= info.eff ? `ALL-IN ${fmt(sizeBig)} BB` : `BET ${fmt(sizeBig)} BB`, amountBB: sizeBig, freq: same ? sm + bg : bg }
+    { id: 'check', label: 'PASAR', freq: chk },
+    { id: 'bet_small', label: `APOSTAR ${fmt(sizeSmall)} BB`, amountBB: sizeSmall, freq: same ? 0 : sm },
+    { id: 'bet_big', label: sizeBig >= info.eff ? `ALL-IN ${fmt(sizeBig)} BB` : `APOSTAR ${fmt(sizeBig)} BB`, amountBB: sizeBig, freq: same ? sm + bg : bg }
   ];
 
   const topId = [...defs].sort((a, b) => b.freq - a.freq)[0].id;
@@ -1161,10 +1170,10 @@ function facingStep(st: PostState, frac: number, heroChecked = false): HandStep 
   const raiseTo = r1(Math.min(info.eff, bet * 3));
   const allInCall = bet >= info.eff;
   const defs: OptionDef[] = [
-    { id: 'fold', label: 'FOLD', freq: fo },
-    { id: 'call', label: `CALL ${fmt(bet)} BB`, amountBB: bet, freq: allInCall ? ca + ra : ca },
+    { id: 'fold', label: 'TIRAR', freq: fo },
+    { id: 'call', label: `PAGAR ${fmt(bet)} BB`, amountBB: bet, freq: allInCall ? ca + ra : ca },
   ];
-  if (!allInCall) defs.push({ id: 'raise', label: raiseTo >= info.eff ? `ALL-IN ${fmt(raiseTo)} BB` : `RAISE ${fmt(raiseTo)} BB`, amountBB: raiseTo, freq: ra });
+  if (!allInCall) defs.push({ id: 'raise', label: raiseTo >= info.eff ? `ALL-IN ${fmt(raiseTo)} BB` : `SUBIR ${fmt(raiseTo)} BB`, amountBB: raiseTo, freq: ra });
   const pctBet = pctR(frac * 100);
   const topId = [...defs].sort((a, b) => b.freq - a.freq)[0].id;
   const plan = facingReason(info, st, topId, frac);
@@ -1203,8 +1212,8 @@ function raiseStep(st: PostState, heroBet: number): HandStep {
   });
   const allInCall = raiseTo >= info.eff;
   const defs: OptionDef[] = [
-    { id: 'fold', label: 'FOLD', freq: fo },
-    { id: 'call', label: `CALL ${fmt(toCall)} BB`, amountBB: toCall, freq: allInCall ? ca + ra : ca }
+    { id: 'fold', label: 'TIRAR', freq: fo },
+    { id: 'call', label: `PAGAR ${fmt(toCall)} BB`, amountBB: toCall, freq: allInCall ? ca + ra : ca }
   ];
   if (!allInCall) defs.push({ id: 'jam', label: `ALL-IN ${fmt(info.eff)} BB`, amountBB: info.eff, freq: ra });
   const ip = isPlayerInPosition(info.heroPos, info.villainPos);
@@ -1302,8 +1311,8 @@ export function generatePotOddsDrill(): HandStep {
     pot: r1(pot + bet),
     players: drillPlayers(heroCards, villain, bet, pot / 2),
     actionTicker: `Bote ${fmt(pot)} BB · ${villain} apuesta ${fmt(bet)} BB`,
-    contextNotice: `${villain} apuesta ${fmt(bet)} en ${fmt(pot)}`,
-    prompt: '¿Equity mínima para pagar?',
+    contextNotice: `${villain} apuesta ${fmt(bet)} en un bote de ${fmt(pot)}`,
+    prompt: '¿Qué % de veces tienes que ganar para que pagar salga a cuenta?',
     questionType: 'pot_odds',
     options: numericOptions(pct, [(bet / (pot + bet)) * 100, pct + pick([4, 5, 6]), pct - pick([3, 4, 5])], ' %'),
     hint: { relativePosition: 'OOP', potOddsPct: 0, boardTexture: 'Pago / bote final' },
@@ -1326,9 +1335,9 @@ export function generateEvDrill(): HandStep {
     ...drillBase('ev', heroCards, board, villain, 'm_ev', CONCEPT_BASE.m_ev + fracBonus(frac)),
     pot: r1(pot + bet),
     players: drillPlayers(heroCards, villain, bet, pot / 2),
-    actionTicker: `Bote ${fmt(pot)} BB · apuesta ${fmt(bet)} BB · equity ${eq}%`,
-    contextNotice: `Equity ${eq}% · pagas ${fmt(bet)}`,
-    prompt: 'EV del call (BB)',
+    actionTicker: `Bote ${fmt(pot)} BB · apuesta ${fmt(bet)} BB · ganas el ${eq} %`,
+    contextNotice: `Ganas el ${eq} % · pagas ${fmt(bet)} en un bote de ${fmt(pot)}`,
+    prompt: 'Si pagas, ¿cuánto ganas o pierdes de media (en BB)?',
     questionType: 'ev',
     options: numericOptions(ev, [e * pot - (1 - e) * bet, e * (pot + 2 * bet) - bet, ev + 1.5, ev - 1.5], ' BB', 1, true),
     hint: { relativePosition: 'OOP', potOddsPct: calculatePotOddsPct(bet, pot + bet), boardTexture: 'EV = eq·(bote+apuesta) − (1−eq)·apuesta' },
@@ -1383,11 +1392,11 @@ export function generateMdfDrill(): HandStep {
     players: drillPlayers(heroCards, villain, bet, pot / 2),
     actionTicker: `River · ${villain} apuesta ${fmt(bet)} en ${fmt(pot)}`,
     contextNotice: `${villain} apuesta ${fmt(bet)} en ${fmt(pot)}`,
-    prompt: 'MDF: ¿qué % de tu rango defiendes?',
+    prompt: '¿Qué % de tus manos tienes que pagar o subir para que farolear no le salga gratis?',
     questionType: 'mdf',
     options: numericOptions(mdf, [((pot + bet) / (pot + 2 * bet)) * 100, mdf + pick([5, 6, 7]), mdf - pick([5, 6, 7]), (pot / (pot + 2 * bet)) * 100], ' %'),
     hint: { relativePosition: 'OOP', potOddsPct: 0, boardTexture: 'Bote / (bote + apuesta)' },
-    why: `MDF = ${fmt(pot)} / (${fmt(pot)} + ${fmt(bet)}) = ${pctR(mdf)} %`
+    why: `Tienes que defender ${pctR(mdf)} %: ${fmt(pot)} / (${fmt(pot)} + ${fmt(bet)})`
   };
 }
 
@@ -1408,8 +1417,8 @@ export function generateBluffDrill(): HandStep {
     pot: r1(pot + bet),
     players: buildRotated6MaxPlayers(heroPos, { [heroPos]: bet }, folded, heroCards, { [heroPos]: pot / 2, BB: pot / 2 }),
     actionTicker: `River · apuestas ${fmt(bet)} en ${fmt(pot)}`,
-    contextNotice: `Apuestas ${fmt(bet)} en ${fmt(pot)}`,
-    prompt: '¿% de faroles en tu rango de apuesta?',
+    contextNotice: `Apuestas ${fmt(bet)} en un bote de ${fmt(pot)}`,
+    prompt: `Apuestas ${fmt(bet)} en un bote de ${fmt(pot)}. ¿Qué % de tus apuestas pueden ser farol para que a BB le dé igual pagar?`,
     questionType: 'bluff',
     options: numericOptions(b, [(bet / (pot + bet)) * 100, b + pick([5, 6, 7]), b - pick([4, 5, 6])], ' %'),
     hint: { relativePosition: 'IP', potOddsPct: 0, boardTexture: 'Apuesta / (bote + 2·apuesta)' },
@@ -1461,8 +1470,8 @@ export function generateCombosDrill(): HandStep {
       pot: 12,
       players: drillPlayers(heroCards, villain, 0, 6),
       actionTicker: `Bloqueadores: tus cartas y el board`,
-      contextNotice: `Combos de ${label} que quedan`,
-      prompt: `¿Cuántos combos de ${label}?`,
+      contextNotice: `Combinaciones de ${label} que quedan`,
+      prompt: `¿Cuántas combinaciones de ${label} quedan (sin tus cartas ni la mesa)?`,
       questionType: 'combos',
       options: numericOptions(n, [full, n + (pair ? 1 : 2), n - (pair ? 1 : 3), n + 4], ''),
       hint: { relativePosition: 'OOP', potOddsPct: 0, boardTexture: 'Cartas que quedan × cartas que quedan' },
@@ -1527,17 +1536,17 @@ export function generateEquityDrill(): HandStep {
   const pctOpen = pctR(getRangeStats(rfi).percentage);
   const vsRandom = (EQUITY_VS_RANDOM as Record<string, number>)[hand];
   const why = flop
-    ? `${hand} vs open ${villain} (${pctOpen} %) en este flop: ${eq} %`
-    : `${hand} vs open ${villain} (${pctOpen} %): ${eq} % · vs mano al azar ${pctR(vsRandom)} %`;
+    ? `${hand} vs la subida de ${villain} (${pctOpen} %) en este flop: ganas el ${eq} %`
+    : `${hand} vs la subida de ${villain} (${pctOpen} %): ganas el ${eq} % · vs una mano al azar ${pctR(vsRandom)} %`;
   return {
     ...drillBase('equity', heroCards, board, villain, 'm_equity', CONCEPT_BASE.m_equity + (flop ? 60 : 0)),
     street: flop ? 'flop' : 'preflop',
     pot: flop ? 5.5 : 3.5,
     players: flop ? drillPlayers(heroCards, villain, 0, 2.5) : buildRotated6MaxPlayers('BB', { SB: 0, BB: 1, [villain]: 2.5 },
       CLOCKWISE_POSITIONS.filter(p => p !== 'BB' && p !== villain), heroCards),
-    actionTicker: flop ? `Pagas el open de ${villain} · flop` : `${villain} abre el ${pctOpen} %`,
-    contextNotice: `Tu equity vs el rango de ${villain}`,
-    prompt: '¿Equity vs su rango?',
+    actionTicker: flop ? `Pagas la subida de ${villain} · flop` : `${villain} sube con ${oneInN(Number(pctOpen))} (${pctOpen} %)`,
+    contextNotice: `Tu % de ganar contra las manos con las que ${villain} sube`,
+    prompt: '¿Con qué % ganas contra las manos con las que sube?',
     questionType: 'equity',
     options: numericOptions(eq, [eq + off[0], eq + off[1]], ' %'),
     hint: { relativePosition: 'OOP', potOddsPct: 0, boardTexture: flop ? analyzeBoardTexture(board) : 'Preflop' },

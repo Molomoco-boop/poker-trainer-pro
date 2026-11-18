@@ -48,9 +48,10 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated
             <img src="/icon-32.png" alt="" width="16" height="16" className="rounded-[3px]" />
             {stats.username}
           </div>
+          <div className="text-[11px] text-dim leading-none mb-0.5">Rating · tu nivel</div>
           <div className="flex items-baseline gap-2">
             <span className="lobby-rating num text-[36px] leading-none font-semibold text-hi">{Math.round(stats.rating.r)}{stats.rating.rd > 110 ? '?' : ''}</span>
-            {last !== 0 && <span className={`num text-[14px] font-semibold ${last > 0 ? 'text-goodtx' : 'text-badtx'}`}>{last > 0 ? '+' : '−'}{Math.abs(last)}</span>}
+            {last !== 0 && <span className={`num text-[14px] font-semibold ${last > 0 ? 'text-goodtx' : 'text-badtx'}`}>{last > 0 ? '+' : '−'}{Math.abs(last)} <span className="text-[11px] font-normal text-dim">últimas</span></span>}
           </div>
         </div>
         <div className="text-right num text-[12px] text-dim leading-tight">
@@ -61,12 +62,12 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated
 
       <Panel className="overflow-hidden">
         {!stats.placementDone && (
-          <Row cls="placement-row" accent title="Test de nivel" sub="12 spots · fija tu rating y tu punto de partida" onClick={onStartPlacement} />
+          <Row cls="placement-row" accent title="Prueba de nivel" sub="12 decisiones · fija tu rating de partida" onClick={onStartPlacement} />
         )}
         <Row
           cls="daily-row"
           title="Sesión diaria"
-          sub={daily >= 10 ? 'Hecha hoy' : `${CONCEPT_ES[concept]} · 4 tema + 3 repaso + 3 mezcla`}
+          sub={daily >= 10 ? 'Hecha hoy' : `${CONCEPT_ES[concept]} · 4 del tema, 3 de repaso, 3 mezcladas`}
           right={<span className="num text-[13px] text-txt">{Math.min(daily, 10)}/10</span>}
           onClick={onStartDaily}
         />
@@ -84,11 +85,11 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated
             </button>
           ))}
         </div>
-        <Row cls="review-row" title="Revisión de partidas" sub="Tus manos, calle a calle" onClick={onOpenReview} />
-        <Row cls="flops-row" title="Informes de flop" sub="Textura, c-bet y defensa" onClick={onOpenFlops} />
-        <Row cls="rated-row" title="Spots" sub="Decisiones sueltas a tu nivel" onClick={onStartRated} />
-        <Row cls="sprint-row" title="¿Abre? 60 s" sub="Open o fold, tres fallos y fuera" right={<span className="num text-[13px] text-txt">{stats.sprintBest}</span>} onClick={onStartSprint} />
-        <Row cls="builder-row" title="Construir rango" sub="Pinta el rango de memoria" onClick={onStartRangeBuilder} />
+        <Row cls="review-row" title="Revisión de partidas" sub="Vuelve a ver tus manos, calle a calle" onClick={onOpenReview} />
+        <Row cls="flops-row" title="Cómo se juega cada flop" sub="Según el tipo de cartas en mesa" onClick={onOpenFlops} />
+        <Row cls="rated-row" title="Decisiones sueltas" sub="Una jugada cada vez, a tu nivel" onClick={onStartRated} />
+        <Row cls="sprint-row" title="¿Subo primero? 60 s" sub="Subir o tirar, tres fallos y fuera" right={<span className="num text-[13px] text-txt">{stats.sprintBest}</span>} onClick={onStartSprint} />
+        <Row cls="builder-row" title="Construir un rango" sub="Marca de memoria con qué manos subirías" onClick={onStartRangeBuilder} />
       </Panel>
 
       <div>

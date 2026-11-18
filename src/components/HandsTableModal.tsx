@@ -38,8 +38,8 @@ export const HandsTableModal: React.FC<HandsTableModalProps> = ({ onClose }) => 
         <div className="w-full max-w-md mx-auto bg-panel border border-line rounded-[4px] p-2.5 flex flex-col gap-2 shrink-0">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-[800] text-hi">Manos · 169</h2>
-              <p className="text-[11px] text-dim">Orden: desde dónde se abre, luego equity</p>
+              <h2 className="text-sm font-[800] text-hi">Las 169 manos</h2>
+              <p className="text-[11px] text-dim leading-snug">Color: desde qué asiento se sube primero. UTG habla primero, BTN es el botón.</p>
             </div>
             <button onClick={onClose} className="w-10 h-10 rounded-full bg-panel2 flex items-center justify-center text-txt" aria-label="Cerrar">
               <X className="w-5 h-5" />

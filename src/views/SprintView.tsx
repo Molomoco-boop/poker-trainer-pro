@@ -71,7 +71,7 @@ export const SprintView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
     <div className="sprint-view w-full h-[100dvh] flex flex-col bg-bg overflow-hidden">
       <div className="safe-top px-2 pb-1 flex items-center gap-2 border-b border-line shrink-0">
         <button onClick={onExit} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Salir"><ArrowLeft className="w-5 h-5" /></button>
-        <span className="text-[15px] text-hi font-semibold">¿Abre?</span>
+        <span className="text-[15px] text-hi font-semibold">¿Subo primero?</span>
         <span className="ml-auto num text-[13px] text-dim">Récord {stats.sprintBest}</span>
       </div>
 
@@ -96,8 +96,8 @@ export const SprintView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
       </div>
 
       <div className="grid grid-cols-2 gap-2 px-2 pt-2 safe-bottom border-t border-line bg-panel shrink-0">
-        <button onClick={() => answer(false)} className="sprint-fold h-16 rounded-[4px] bg-panel2 border border-line text-txt text-[18px] font-semibold">Fold</button>
-        <button onClick={() => answer(true)} className="sprint-open h-16 rounded-[4px] bg-good text-white text-[18px] font-semibold">Abre</button>
+        <button onClick={() => answer(false)} className="sprint-fold h-16 rounded-[4px] bg-panel2 border border-line text-txt text-[18px] font-semibold">Tirar</button>
+        <button onClick={() => answer(true)} className="sprint-open h-16 rounded-[4px] bg-good text-white text-[18px] font-semibold">Subir</button>
       </div>
 
       {over && !hideEnd && (
@@ -111,7 +111,7 @@ export const SprintView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
             {misses.length > 0 && (
               <div className="text-[13px] text-txt space-y-0.5">
                 {misses.map((m, i) => (
-                  <div key={i} className="num">{m.pos} {m.hand}: <span className="text-hi">{m.raise >= 100 ? 'abre' : 'fold'}</span></div>
+                  <div key={i} className="num">{m.pos} {m.hand}: <span className="text-hi">{m.raise >= 100 ? 'sube' : 'tira'}</span></div>
                 ))}
               </div>
             )}

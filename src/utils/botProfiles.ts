@@ -10,30 +10,30 @@ export type BotProfile = 'regular' | 'recreativo' | 'nit' | 'maniac';
 export type TableMode = BotProfile | 'mixto';
 
 export const PROFILE_ES: Record<BotProfile, string> = {
-  regular: 'Regular',
+  regular: 'Equilibrado',
   recreativo: 'Recreativo',
-  nit: 'Nit',
-  maniac: 'Maníaco'
+  nit: 'Cerrado',
+  maniac: 'Agresivo'
 };
 export const PROFILE_SHORT: Record<BotProfile, string> = {
-  regular: 'Reg',
+  regular: 'Eq',
   recreativo: 'Rec',
-  nit: 'Nit',
-  maniac: 'Man'
+  nit: 'Cer',
+  maniac: 'Agr'
 };
 export const MODE_ES: Record<TableMode, string> = {
-  regular: 'Regular',
+  regular: 'Equilibrado',
   recreativo: 'Recreativo',
-  nit: 'Nit',
-  maniac: 'Maníaco',
-  mixto: 'Mixto'
+  nit: 'Cerrado',
+  maniac: 'Agresivo',
+  mixto: 'Mezcla'
 };
 export const MODE_SUB: Record<TableMode, string> = {
-  regular: 'Cerca del GTO',
-  recreativo: 'Paga de más, pasivo',
-  nit: 'Muy tight, foldea',
-  maniac: 'Sobrebluffea',
-  mixto: 'Un perfil distinto en cada asiento'
+  regular: 'Juega como el libro',
+  recreativo: 'Paga de más, farolea poco',
+  nit: 'Juega pocas manos y foldea de más',
+  maniac: 'Apuesta y farolea de más',
+  mixto: 'Un estilo distinto en cada asiento'
 };
 export const ALL_PROFILES: BotProfile[] = ['regular', 'recreativo', 'nit', 'maniac'];
 export const ALL_MODES: TableMode[] = ['regular', 'recreativo', 'nit', 'maniac', 'mixto'];

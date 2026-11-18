@@ -68,8 +68,8 @@ export const RangeBuilderView: React.FC<{ onExit: () => void }> = ({ onExit }) =
     <div className="range-builder w-full h-[100dvh] flex flex-col bg-bg overflow-hidden">
       <div className="safe-top px-2 pb-1 flex items-center gap-2 border-b border-line shrink-0">
         <button onClick={onExit} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Salir"><ArrowLeft className="w-5 h-5" /></button>
-        <span className="text-[15px] text-hi font-semibold">Construir rango</span>
-        <span className="ml-auto num text-[13px] text-dim">Mejor {stats.rangeBest[task.id] ?? 0} %</span>
+        <span className="text-[15px] text-hi font-semibold">Construir un rango</span>
+        <span className="ml-auto num text-[13px] text-dim">Mejor acierto {stats.rangeBest[task.id] ?? 0} %</span>
       </div>
 
       <div className="grid grid-cols-3 gap-1 px-2 pt-2 shrink-0">

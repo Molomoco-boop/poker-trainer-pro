@@ -58,9 +58,9 @@ export const STAKE_CONFIG: Record<StakeLevel, { label: string; bbInEuros: number
 export type PedagogicalLevel = 1 | 2 | 3 | 4;
 
 export const PEDAGOGICAL_LEVEL_NAMES: Record<PedagogicalLevel, { name: string; desc: string }> = {
-  1: { name: 'Básico', desc: 'Open raise y defensa de BB' },
-  2: { name: 'Estándar', desc: '+ SB vs open, C-bet' },
-  3: { name: 'Intermedio', desc: '+ Botes 3-bet' },
+  1: { name: 'Básico', desc: 'Subir primero y defender la ciega grande' },
+  2: { name: 'Estándar', desc: '+ Ciega pequeña cuando te suben, apostar en el flop' },
+  3: { name: 'Intermedio', desc: '+ Cuando alguien resube (3-bet)' },
   4: { name: 'Avanzado', desc: 'Todo, solo manos frontera' },
 };
 
@@ -75,14 +75,14 @@ export type SpotType =
   | 'POT_ODDS_DRILL';
 
 export const SPOT_TYPE_NAMES: Record<SpotType, string> = {
-  RFI_OPEN: 'Open raise',
-  BB_DEFENSE: 'Defensa BB',
-  SB_VS_OPEN: 'SB vs open',
-  '3BET_POT': 'Bote 3-bet',
-  CBET_FLOP: 'C-bet',
-  FACING_CBET: 'Vs C-bet',
-  TURN_RIVER_DECISION: 'Turn/River',
-  POT_ODDS_DRILL: 'Pot odds'
+  RFI_OPEN: 'Subir primero',
+  BB_DEFENSE: 'BB cuando te suben',
+  SB_VS_OPEN: 'SB cuando te suben',
+  '3BET_POT': 'Te resuben (3-bet)',
+  CBET_FLOP: 'Apuestas en el flop',
+  FACING_CBET: 'Te apuestan en el flop',
+  TURN_RIVER_DECISION: 'Turn / river',
+  POT_ODDS_DRILL: 'Lo que necesitas para pagar'
 };
 
 export type DecisionVerdict = 'optimal' | 'mixed' | 'error';
@@ -107,22 +107,22 @@ export const CURRICULUM: ConceptId[] = ['rfi_early', 'rfi_late', 'bb_def', 'sb_3
 export const MATH_CONCEPTS: ConceptId[] = ['m_mdf', 'm_bluff', 'm_combos', 'm_equity', 'm_odds', 'm_outs', 'm_ev'];
 
 export const CONCEPT_ES: Record<ConceptId, string> = {
-  rfi_early: 'Open UTG/HJ',
-  rfi_late: 'Open CO/BTN/SB',
-  bb_def: 'Defensa BB',
-  sb_3b: 'SB vs open',
-  vs3b: 'Vs 3-bet',
-  cbet: 'C-bet flop',
-  flop_def: 'Flop sin iniciativa',
+  rfi_early: 'Subir primero (UTG/HJ)',
+  rfi_late: 'Subir primero (CO/BTN/SB)',
+  bb_def: 'BB cuando te suben',
+  sb_3b: 'SB cuando te suben',
+  vs3b: 'Te resuben (3-bet)',
+  cbet: 'Apuestas en el flop',
+  flop_def: 'Flop: te apuestan',
   turn: 'Turn',
   river: 'River',
-  m_mdf: 'MDF',
+  m_mdf: 'Mínimo a defender',
   m_bluff: 'Faroles',
-  m_combos: 'Combos',
-  m_equity: 'Equity vs rango',
-  m_odds: 'Pot odds',
+  m_combos: 'Combinaciones',
+  m_equity: '% de ganar vs su rango',
+  m_odds: 'Lo que necesitas para pagar',
   m_outs: 'Outs',
-  m_ev: 'EV'
+  m_ev: 'Valor medio'
 };
 
 /** Plain-Spanish description of each topic (back of the topic card). */

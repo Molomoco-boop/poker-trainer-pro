@@ -17,7 +17,7 @@ const SUIT_BTNS: { s: Suit; sym: string; cls: string }[] = [
   { s: 'd', sym: '♦', cls: 'text-acc' },
   { s: 'c', sym: '♣', cls: 'text-goodtx' }
 ];
-const DRAW_ES: Record<string, string> = { 'Proyecto de color': 'color', 'Escalera abierta': 'escalera abierta', Gutshot: 'gutshot', Overcards: 'overcards' };
+const DRAW_ES: Record<string, string> = { 'Proyecto de color': 'color', 'Escalera abierta': 'escalera abierta', Gutshot: 'escalera interior', Overcards: 'cartas más altas' };
 
 const Num: React.FC<{ label: string; value: number; set: (v: number) => void; step?: number }> = ({ label, value, set, step = 1 }) => (
   <div className="flex-1 min-w-0 flex flex-col gap-0.5">
@@ -118,7 +118,7 @@ export const OddsCalculatorModal: React.FC<OddsCalculatorModalProps> = ({ onClos
               <div className="flex gap-1">{[0, 1].map(slot)}</div>
             </div>
             <div className="flex flex-col gap-1 items-end">
-              <StepTitle n={2} done={board.length >= 3}>Board</StepTitle>
+              <StepTitle n={2} done={board.length >= 3}>Mesa</StepTitle>
               <div className="flex gap-1">{[2, 3, 4, 5].map(slot)}</div>
             </div>
           </div>
@@ -174,7 +174,7 @@ export const OddsCalculatorModal: React.FC<OddsCalculatorModalProps> = ({ onClos
           </div>
           {verdict && (
             <div className={`calc-verdict h-11 rounded-[4px] flex items-center justify-center gap-2 text-[15px] font-semibold ${verdict === 'ok' ? 'bg-good text-white' : 'bg-bad text-white'}`}>
-              {verdict === 'ok' ? 'Pagar es rentable' : 'No rentable: fold'}
+              {verdict === 'ok' ? 'Pagar es rentable' : 'No rentable: mejor tirar'}
               <span className="num text-[12px] font-normal opacity-90">{Math.round(nextCard)} % {verdict === 'ok' ? '≥' : '<'} {need} %</span>
             </div>
           )}

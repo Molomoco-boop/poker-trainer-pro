@@ -48,12 +48,12 @@ export const ProfileView: React.FC = () => {
             aria-label="Nombre"
             className="flex-1 min-w-0 h-10 bg-bg border border-line rounded-[4px] px-2 text-[14px] text-hi"
           />
-          <span className="num text-[20px] font-semibold text-hi">{Math.round(stats.rating.r)}</span>
+          <span className="text-right"><span className="block text-[10px] text-dim leading-none">Rating</span><span className="num text-[20px] font-semibold text-hi">{Math.round(stats.rating.r)}</span></span>
         </Panel>
       </div>
 
       <div>
-        <Title>Stake para mostrar €</Title>
+        <Title>Mesa para mostrar euros</Title>
         <div className="grid grid-cols-6 gap-1">
           {STAKES.map(s => (
             <button key={s} onClick={() => setStake(s)} className={`h-10 rounded-[4px] text-[12px] font-semibold border ${stats.stake === s ? 'bg-acc border-acc text-white' : 'bg-panel border-line text-txt'}`}>

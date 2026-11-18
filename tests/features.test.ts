@@ -44,7 +44,7 @@ function C(rank: Rank, suit: Suit): Card { return { rank, suit }; }
   const mixed = assignProfiles('mixto', () => 0.1);
   ok(mixed[0] === 'regular' && mixed.length === 6, 'mixed: 6 seats, hero regular');
   ok(new Set(assignProfiles('nit').slice(1)).size === 1 && assignProfiles('nit')[2] === 'nit', 'nit table: all bots nit');
-  ok(vsLabel(['nit', 'nit']) === 'Vs nit', `vsLabel nit ${vsLabel(['nit','nit'])}`);
+  ok(vsLabel(['nit', 'nit']) === 'Vs cerrado', `vsLabel nit ${vsLabel(['nit','nit'])}`);
 }
 
 // --- flop groups ---

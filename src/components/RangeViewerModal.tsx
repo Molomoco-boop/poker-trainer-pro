@@ -14,9 +14,9 @@ interface RangeViewerModalProps {
 }
 
 const SITUATIONS: { id: PreflopSituation; label: string }[] = [
-  { id: 'RFI', label: 'Open' },
-  { id: 'VS_OPEN', label: 'Vs open' },
-  { id: 'VS_3BET', label: 'Vs 3-bet' }
+  { id: 'RFI', label: 'Subo primero' },
+  { id: 'VS_OPEN', label: 'Me suben' },
+  { id: 'VS_3BET', label: 'Me resuben' }
 ];
 
 const HERO_POSITIONS: Record<PreflopSituation, Position[]> = {
@@ -68,7 +68,7 @@ export const RangeViewerModal: React.FC<RangeViewerModalProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-[800] text-hi">Rangos</h2>
-              <p className="text-[11px] text-dim tabular-nums">{stats.percentage}% · {stats.count} combos</p>
+              <p className="text-[11px] text-dim tabular-nums leading-snug">Juegas {stats.percentage} % de las manos · {stats.count} combinaciones</p>
             </div>
             <button onClick={onClose} className="w-10 h-10 rounded-full bg-panel2 flex items-center justify-center text-txt" aria-label="Cerrar">
               <X className="w-5 h-5" />
@@ -89,7 +89,7 @@ export const RangeViewerModal: React.FC<RangeViewerModalProps> = ({
 
           {openers.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-dim w-10 shrink-0">{situation === 'VS_OPEN' ? 'Abre' : '3-bet'}</span>
+              <span className="text-[10px] text-dim w-12 shrink-0 leading-tight">{situation === 'VS_OPEN' ? 'Sube' : 'Resube'}</span>
               <div className="grid flex-1 gap-1.5" style={{ gridTemplateColumns: `repeat(${openers.length}, minmax(0, 1fr))` }}>
                 {openers.map(p => (
                   <button key={p} onClick={() => setOpener(p)} className={chip(effOpener === p)}>{p}</button>
@@ -124,9 +124,9 @@ export const RangeViewerModal: React.FC<RangeViewerModalProps> = ({
             )}
           </div>
           <div className="w-full max-w-md mx-auto flex items-center justify-center gap-4 text-[11px] font-semibold">
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-acc" /> <span className="text-txt">{situation === 'RFI' ? 'Raise' : situation === 'VS_OPEN' ? '3-bet' : '4-bet'}</span></span>
-            {situation !== 'RFI' && <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-600" /> <span className="text-txt">Call</span></span>}
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-panel2 border border-line" /> <span className="text-dim">Fold</span></span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-acc" /> <span className="text-txt">{situation === 'RFI' ? 'Sube' : situation === 'VS_OPEN' ? 'Resube' : 'Vuelve a resubir'}</span></span>
+            {situation !== 'RFI' && <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-600" /> <span className="text-txt">Paga</span></span>}
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-panel2 border border-line" /> <span className="text-dim">Tira</span></span>
           </div>
         </div>
       </div>

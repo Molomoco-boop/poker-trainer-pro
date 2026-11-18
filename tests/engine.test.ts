@@ -135,7 +135,7 @@ ok(mixed[0].isCorrect && mixed[0].grade === 'valid' && mixed[1].isCorrect && mix
 ok(!mixed[2].isCorrect && mixed[2].verdict === 'error' && mixed[2].grade === 'error', 'freq 0 = Error');
 ok(buildOptions([{ id: 'fold', label: 'F', freq: 0 }, { id: 'raise', label: 'R', freq: 100 }], ['fold'])[0].grade === 'blunder', 'severe freq 0 = Grave');
 ok(!('evDiff' in mixed[0]) && !('evDiffNum' in mixed[0]), 'no invented EV on options');
-ok(mixedLine(mixed) === 'Pagar 60 % · Fold 40 %: ambas valen', `mixed line (${mixedLine(mixed)})`);
+ok(mixedLine(mixed) === 'Pagar 60 % · Tirar 40 %: ambas valen', `mixed line (${mixedLine(mixed)})`);
 const rare = buildOptions([{ id: 'check', label: 'CHECK', freq: 85 }, { id: 'bet_small', label: 'BET', freq: 15 }]);
 ok(!rare[1].isCorrect && rare[1].verdict === 'mixed' && rare[1].grade === 'imprecise', 'freq 15 % = Imprecisa');
 ok(mixedLine(rare) === null, 'single answer: no mixed line');
@@ -486,7 +486,7 @@ for (let i = 0; i < 200; i++) {
   ok(Math.abs(parseFloat(b.options.find(o => o.isCorrect)!.label) - hb / (bp + 2 * hb) * 100) <= 0.5, `bluff answer ${b.why}`);
   const c = generateCombosDrill();
   checkSeats(c, 'combos');
-  const label = c.prompt.match(/de (\w+)\?/)![1];
+  const label = c.prompt.match(/de (\w+) quedan/)![1];
   const dead = [...c.players[0].cards!, ...c.communityCards];
   // brute force
   const deck = '23456789TJQKA'.split('').flatMap(r => 'shdc'.split('').map(su => ({ rank: r, suit: su })));

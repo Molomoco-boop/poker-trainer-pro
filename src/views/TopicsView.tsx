@@ -40,10 +40,10 @@ export const TopicsView: React.FC<{ onStart: (c: ConceptId) => void }> = ({ onSt
         onClick={() => setFlipped(f => !f)}
         className="flip-topics w-full h-10 rounded-[4px] border border-line bg-panel text-[13px] font-semibold text-txt"
       >
-        {flipped ? 'Ver ratings' : '¿Qué es cada tema?'}
+        {flipped ? 'Ver tu nivel en cada tema' : '¿Qué es cada tema?'}
       </button>
       <div>
-        <Title>Rangos → postflop</Title>
+        <Title>Rangos → después del flop</Title>
         <div className="grid grid-cols-2 gap-1.5">{CURRICULUM.map((c, i) => tile(c, i))}</div>
       </div>
       <div>

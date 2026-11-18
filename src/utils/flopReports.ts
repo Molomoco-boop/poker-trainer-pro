@@ -11,23 +11,23 @@ import { FLOP_REPORT_TABLE } from '../data/flopReportTable';
 
 export type FlopGroupId = 'ace' | 'kq' | 'midconn' | 'low' | 'paired' | 'mono' | 'twotone' | 'rainbow';
 
-export const FLOP_GROUPS: { id: FlopGroupId; label: string; sub: string }[] = [
-  { id: 'ace', label: 'A alta', sub: 'Sin pareja' },
-  { id: 'kq', label: 'K/Q alta', sub: 'Sin as ni pareja' },
-  { id: 'midconn', label: 'Medio conectado', sub: 'Conectado, del 8 al 10' },
-  { id: 'low', label: 'Bajo', sub: 'Nueve o menos' },
-  { id: 'paired', label: 'Pareado', sub: '' },
-  { id: 'mono', label: 'Monocolor', sub: 'Tres del mismo palo' },
-  { id: 'twotone', label: 'Dos palos', sub: '' },
-  { id: 'rainbow', label: 'Rainbow', sub: 'Tres palos' }
+export const FLOP_GROUPS: { id: FlopGroupId; label: string; sub: string; sit: string; learn: string }[] = [
+  { id: 'ace', label: 'A alta', sub: 'Sin pareja', sit: 'Flop A-alto', learn: 'Pasa mucho: el as ayuda a los dos' },
+  { id: 'kq', label: 'K/Q alta', sub: 'Sin as ni pareja', sit: 'Flop K o Q altos', learn: 'Apuesta más: K y Q golpea a quien subió' },
+  { id: 'midconn', label: 'Medio conectado', sub: 'Conectado, del 8 al 10', sit: 'Flop medio conectado', learn: 'Hay muchos proyectos: no apuestes siempre' },
+  { id: 'low', label: 'Bajo', sub: 'Nueve o menos', sit: 'Flop bajo', learn: 'Quien subió suele ir por delante' },
+  { id: 'paired', label: 'Pareado', sub: 'Hay una pareja en mesa', sit: 'Flop pareado', learn: 'Apuesta más: es difícil encajar dos pares' },
+  { id: 'mono', label: 'Un palo', sub: 'Tres del mismo palo', sit: 'Flop de un palo', learn: 'Cuidado con el color: no siempre apuestes' },
+  { id: 'twotone', label: 'Dos palos', sub: 'Dos cartas del mismo palo', sit: 'Flop de dos palos', learn: 'Hay color posible: mezcla apuesta y pasa' },
+  { id: 'rainbow', label: 'Tres palos', sub: 'Un palo distinto cada carta', sit: 'Flop de tres palos', learn: 'Sin color: puedes apostar más a menudo' }
 ];
 
 export type ReportSpotId = 'srp_btn_bb' | 'srp_co_bb' | 'threebet';
 
-export const REPORT_SPOTS: { id: ReportSpotId; label: string; sub: string; ip: Position; oop: Position }[] = [
-  { id: 'srp_btn_bb', label: 'SRP BTN vs BB', sub: 'Bote a una subida', ip: 'BTN', oop: 'BB' },
-  { id: 'srp_co_bb', label: 'SRP CO vs BB', sub: 'Bote a una subida', ip: 'CO', oop: 'BB' },
-  { id: 'threebet', label: 'Bote 3-bet', sub: 'BTN abre, BB 3-betea', ip: 'BB', oop: 'BTN' }
+export const REPORT_SPOTS: { id: ReportSpotId; label: string; sub: string; ip: Position; oop: Position; agg: Position; def: Position; raisedBy: string }[] = [
+  { id: 'srp_btn_bb', label: 'BTN sube, BB paga', sub: 'Solo ha habido una subida', ip: 'BTN', oop: 'BB', agg: 'BTN', def: 'BB', raisedBy: 'BTN fue el que subió' },
+  { id: 'srp_co_bb', label: 'CO sube, BB paga', sub: 'Solo ha habido una subida', ip: 'CO', oop: 'BB', agg: 'CO', def: 'BB', raisedBy: 'CO fue el que subió' },
+  { id: 'threebet', label: 'BB resube (3-bet), BTN paga', sub: 'BB ha resubido y BTN ha pagado', ip: 'BB', oop: 'BTN', agg: 'BB', def: 'BTN', raisedBy: 'BB fue el que resubió' }
 ];
 
 const RANK_VAL: Record<Rank, number> = {
@@ -304,7 +304,7 @@ export function makeFlopDrill(): FlopDrill {
     group,
     spot: spot.id,
     flop: exampleFlop(group),
-    question: `¿Con qué frecuencia apuesta? · ${FLOP_GROUPS[gi].label} · ${spot.label}`,
+    question: `${FLOP_GROUPS[gi].sit} · ${spot.label}. ${spot.raisedBy}. ¿De cada 100 veces, en cuántas apuesta ${spot.agg} en este flop?`,
     answer,
     options
   };

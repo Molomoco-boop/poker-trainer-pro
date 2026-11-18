@@ -30,9 +30,9 @@ const STREET_ES: Record<string, string> = { preflop: 'Preflop', flop: 'Flop', tu
 
 function sessionTitle(s: SessionSpec): string {
   switch (s.kind) {
-    case 'rated': return 'Puntuada';
+    case 'rated': return 'Decisiones';
     case 'cash': return 'Mesa';
-    case 'daily': return 'Diaria';
+    case 'daily': return 'Sesión diaria';
     case 'placement': return 'Test de nivel';
     case 'concept': return CONCEPT_ES[s.concept];
     case 'leak': return `${s.pos} · ${STREET_ES[s.street]}`;

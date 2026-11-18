@@ -1,6 +1,6 @@
 /* Run: npx tsx tests/cash.test.ts */
 import { CLOCKWISE_POSITIONS, Position } from '../src/types/poker';
-import { newCashTable, startHand, applyHeroAction, posOf, seatOf, CashTable, CashRun } from '../src/utils/cashTable';
+import { newCashTable, startHand, applyHeroAction, posOf, seatOf, CashTable, CashRun, applyHeroChoice, settleAfterHeroFold } from '../src/utils/cashTable';
 import { r1, populationFreqs, preflopFreqs } from '../src/utils/actionModel';
 
 let failures = 0;
@@ -156,17 +156,22 @@ function playOut(table: CashTable, maxDecisions = 24): CashRun {
     for (let i = 0; i < 24 && run.step && !run.award; i++) {
       const step = run.step;
       const bots = step.players.filter(p => !p.isHero && p.streetAction);
-      const checks = bots.filter(p => /^Check$/i.test(p.streetAction || ''));
+      const checks = bots.filter(p => /^(Check|Pasa)$/i.test(p.streetAction || ''));
       const ticker = step.actionTicker || '';
       for (const p of bots) {
         const act = (p.streetAction || '').toLowerCase();
-        const word = act.startsWith('check') ? 'check'
+        const word = /^(pasa)\b/.test(act) ? 'pasa'
+          : /^(tira)\b/.test(act) ? 'tira'
+          : /^(paga)\b/.test(act) ? 'paga'
+          : /^completa/.test(act) ? 'completa'
+          : /^(apuesta)\b/.test(act) ? 'apuesta'
+          : /^(resube)\b/.test(act) ? 'resube'
+          : /^(sube)\b/.test(act) ? 'sube'
+          : act.startsWith('check') ? 'check'
           : act.startsWith('fold') ? 'fold'
           : act.startsWith('call') ? 'call'
-          : act.startsWith('limp') || act.startsWith('completar') ? 'limp'
+          : act.startsWith('limp') ? 'limp'
           : act.startsWith('bet') ? 'bet'
-          : act.includes('3-bet') ? '3-bet'
-          : act.includes('4-bet') ? '4-bet'
           : act.startsWith('raise') ? 'raise' : '';
         if (word) {
           ok(ticker.toLowerCase().includes(`${p.position.toLowerCase()} ${word}`),
@@ -187,6 +192,35 @@ function playOut(table: CashTable, maxDecisions = 24): CashRun {
     }
   }
   ok(foundCheck >= 1, `found bot checks in front of hero (${foundCheck})`);
+}
+
+
+// After a hero fold the pot is settled off-screen; hero is not a winner.
+{
+  let settled = 0;
+  for (let h = 0; h < 80 && settled < 3; h++) {
+    const table: CashTable = { stacks: [100, 100, 100, 100, 100, 100], buttonSeat: h % 6, handNo: h, startHero: 100 };
+    let run = startHand(table);
+    for (let i = 0; i < 16 && run.step && !run.award; i++) {
+      const canFold = run.step.options.some(o => o.id === 'fold');
+      if (canFold && run.awaitingHero) {
+        applyHeroChoice(run, 'fold');
+        ok(run.seats[0].folded, 'hero is folded after the choice');
+        ok(!run.award, 'hand is not shown as finished until settle');
+        settleAfterHeroFold(run);
+        ok(!!run.award, 'settleAfterHeroFold awards the pot');
+        ok(run.seats[0].folded, 'hero stays folded');
+        ok(!run.award.winners.includes(0), `folded hero is not a winner (${run.award.text})`);
+        const sum = run.table.stacks.reduce((a, b) => a + b, 0);
+        ok(sum >= 599 && sum <= 700, `stacks conserved after silent settle (${sum})`);
+        settled++;
+        break;
+      }
+      const pick = run.step.options.find(o => o.isCorrect && o.id !== 'fold') || run.step.options.find(o => o.id !== 'fold') || run.step.options[0];
+      run = applyHeroAction(run, pick.id);
+    }
+  }
+  ok(settled >= 1, `silently settled ${settled} hero folds`);
 }
 
 console.log(`${checks} checks, ${failures} failures`);

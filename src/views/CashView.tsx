@@ -4,7 +4,7 @@ import { PokerTable, RangeRequest } from '../components/PokerTable';
 import { RangeViewerModal } from '../components/RangeViewerModal';
 import { useBackLayer } from '../navigation/BackProvider';
 import {
-  newCashTable, startHand, applyHeroChoice, advanceTable, heroDelta, posOf, CashRun, CashTable
+  newCashTable, startHand, applyHeroChoice, advanceTable, settleAfterHeroFold, heroDelta, posOf, CashRun, CashTable
 } from '../utils/cashTable';
 import { Grade } from '../types/poker';
 import { assignProfiles, TableMode } from '../utils/botProfiles';
@@ -102,7 +102,17 @@ export const CashView: React.FC<{ onExit: () => void; mode?: TableMode }> = ({ o
     timer.current = setTimeout(tick, BOT_MS);
   }, []);
 
-  /** Apply the queued hero action and start bot playback (or showdown). */
+  const dealNext = (from: CashRun) => {
+    persistHand(from);
+    tableRef.current = from.table;
+    decisionsRef.current = [];
+    savedKey.current = null;
+    const next = startHand(from.table, profilesRef.current);
+    publish(next);
+    if (next.award) persistHand(next);
+  };
+
+  /** Apply the queued hero action and start bot playback — or, if he folded, skip to the next hand. */
   const commitAction = useCallback(() => {
     if (committing.current) return;
     const optId = pendingAction.current;
@@ -116,6 +126,13 @@ export const CashView: React.FC<{ onExit: () => void; mode?: TableMode }> = ({ o
     pendingStepId.current = null;
     applyHeroChoice(current, optId);
     resetFeedback();
+    setPlayingBots(false);
+    if (current.seats[0].folded) {
+      settleAfterHeroFold(current);
+      dealNext(current);
+      committing.current = false;
+      return;
+    }
     publish(current);
     playBots();
   }, [playBots]);
@@ -125,14 +142,7 @@ export const CashView: React.FC<{ onExit: () => void; mode?: TableMode }> = ({ o
     clearTimer();
     resetFeedback();
     setPlayingBots(false);
-    persistHand(runRef.current);
-    const table = runRef.current.table;
-    tableRef.current = table;
-    decisionsRef.current = [];
-    savedKey.current = null;
-    const next = startHand(table, profilesRef.current);
-    publish(next);
-    if (next.award) persistHand(next);
+    dealNext(runRef.current);
   }, []);
 
   useEffect(() => () => clearTimer(), []);

@@ -23,13 +23,13 @@ export const ProgressView: React.FC<{ onTrainLeak: (pos: Position, street: Stree
       <Panel className="p-3">
         <div className="flex items-baseline gap-2">
           <span className="num text-[40px] leading-none font-semibold text-hi">{Math.round(stats.rating.r)}{provisional ? '?' : ''}</span>
-          <span className="text-[12px] text-dim">rating</span>
+          <span className="text-[12px] text-dim">Rating · tu nivel</span>
         </div>
         <div className="mt-2"><Sparkline values={stats.ratingHistory} /></div>
         <div className="grid grid-cols-4 gap-1 mt-2 text-center">
           {[
             ['Decisiones', String(stats.totalDecisions)],
-            ['Acierto real', real === null ? '—' : `${real} %`],
+            ['Mejor que adivinar', real === null ? '—' : `${real} %`],
             ['Mejor racha', String(stats.bestStreak)],
             ['Días', String(stats.dayStreak)]
           ].map(([k, v]) => (
@@ -42,7 +42,8 @@ export const ProgressView: React.FC<{ onTrainLeak: (pos: Position, street: Stree
       </Panel>
 
       <div>
-        <Title right={<span className="text-[10px] text-dim">sobre el azar</span>}>Fugas</Title>
+        <Title right={<span className="text-[10px] text-dim">% sobre el azar</span>}>Dónde fallas</Title>
+        <p className="text-[11px] text-dim px-0.5 mb-1 leading-snug">Verde: aciertas más que el azar. Rojo: menos. El número es ese margen.</p>
         <Panel className="p-1.5">
           <div className="leak-map grid gap-[3px]" style={{ gridTemplateColumns: '40px repeat(4, minmax(0, 1fr))' }}>
             <div />
@@ -60,8 +61,8 @@ export const ProgressView: React.FC<{ onTrainLeak: (pos: Position, street: Stree
                       onClick={() => setSel({ pos, street })}
                       className={`leak-cell h-10 rounded-[3px] num text-[13px] font-semibold flex flex-col items-center justify-center leading-none ${tone(v, d?.n || 0)} ${active ? 'ring-2 ring-acc' : ''}`}
                     >
-                      <span>{d && d.n >= 3 && v !== null ? v : '·'}</span>
-                      {d && <span className="text-[9px] opacity-75 mt-0.5">{d.n}</span>}
+                      <span>{d && d.n >= 3 && v !== null ? `${v} %` : '·'}</span>
+                      {d && <span className="text-[9px] opacity-75 mt-0.5">{d.n} dec.</span>}
                     </button>
                   );
                 })}
@@ -82,12 +83,12 @@ export const ProgressView: React.FC<{ onTrainLeak: (pos: Position, street: Stree
 
       <Panel className="overflow-hidden">
         <button onClick={onOpenReview} className="progress-review w-full text-left px-3 min-h-[52px] border-b border-line text-[14px] font-semibold text-hi active:bg-panel2">Revisión de partidas</button>
-        <button onClick={onOpenFlops} className="progress-flops w-full text-left px-3 min-h-[52px] text-[14px] font-semibold text-hi active:bg-panel2">Informes de flop</button>
+        <button onClick={onOpenFlops} className="progress-flops w-full text-left px-3 min-h-[52px] text-[14px] font-semibold text-hi active:bg-panel2">Cómo se juega cada flop</button>
       </Panel>
 
       <div className="flex items-center justify-between px-0.5 text-[13px] text-txt num">
         <span>Repasos pendientes <b className="text-hi">{stats.mistakeQueue.length}</b></span>
-        <span>¿Abre? <b className="text-hi">{stats.sprintBest}</b></span>
+        <span>¿Subo primero? <b className="text-hi">{stats.sprintBest}</b></span>
       </div>
     </div>
   );

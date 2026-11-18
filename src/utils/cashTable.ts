@@ -259,23 +259,23 @@ function optionsFor(run: CashRun, seat: number): { defs: { id: string; label: st
     const callAmt = r1(Math.min(s.stack, toCall));
     if (ctx.raises === 0) {
       return { toCall, defs: [
-        { id: 'fold', label: 'FOLD', freq: f.fold },
-        { id: 'limp', label: ctx.pos === 'SB' ? `COMPLETAR ${fmt(limpAmt)} BB` : `LIMP ${fmt(limpAmt)} BB`, amountBB: limpAmt, freq: f.limp },
-        { id: 'raise', label: `RAISE ${fmt(raiseTo)} BB`, amountBB: raiseAmt, freq: f.raise }
+        { id: 'fold', label: 'TIRAR', freq: f.fold },
+        { id: 'limp', label: ctx.pos === 'SB' ? `COMPLETAR ${fmt(limpAmt)} BB` : `COMPLETAR ${fmt(limpAmt)} BB`, amountBB: limpAmt, freq: f.limp },
+        { id: 'raise', label: `SUBIR ${fmt(raiseTo)} BB`, amountBB: raiseAmt, freq: f.raise }
       ] };
     }
     const raiseId = ctx.raises === 1 ? '3bet' : '4bet';
-    const raiseLab = ctx.raises === 1 ? '3-BET' : '4-BET';
+    const raiseLab = 'RESUBIR';
     const defs = [
-      { id: 'fold', label: 'FOLD', freq: f.fold },
-      { id: 'call', label: callAmt >= s.stack ? `CALL ${fmt(callAmt)} BB` : `CALL ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call },
+      { id: 'fold', label: 'TIRAR', freq: f.fold },
+      { id: 'call', label: callAmt >= s.stack ? `PAGAR ${fmt(callAmt)} BB` : `PAGAR ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call },
       { id: raiseId, label: raiseAmt >= s.stack ? `ALL-IN ${fmt(s.stack + s.streetBet)} BB` : `${raiseLab} ${fmt(raiseTo)} BB`, amountBB: raiseAmt, freq: f.raise }
     ];
     if (s.stack <= toCall + 0.05) {
       // no raise left
       return { toCall, defs: [
-        { id: 'fold', label: 'FOLD', freq: f.fold + f.raise },
-        { id: 'call', label: `CALL ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call }
+        { id: 'fold', label: 'TIRAR', freq: f.fold + f.raise },
+        { id: 'call', label: `PAGAR ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call }
       ] };
     }
     return { toCall, defs };
@@ -286,9 +286,9 @@ function optionsFor(run: CashRun, seat: number): { defs: { id: string; label: st
     const sm = r1(Math.min(s.stack, Math.max(0.5, potOf(run.seats) * betFrac(run.street, false))));
     const bg = r1(Math.min(s.stack, Math.max(sm + 0.5, potOf(run.seats) * betFrac(run.street, true))));
     return { toCall, defs: [
-      { id: 'check', label: 'CHECK', freq: f.check },
-      { id: 'bet_small', label: `BET ${fmt(sm)} BB`, amountBB: sm, freq: f.bet_small },
-      { id: 'bet_big', label: `BET ${fmt(bg)} BB`, amountBB: bg, freq: f.bet_big }
+      { id: 'check', label: 'PASAR', freq: f.check },
+      { id: 'bet_small', label: `APOSTAR ${fmt(sm)} BB`, amountBB: sm, freq: f.bet_small },
+      { id: 'bet_big', label: `APOSTAR ${fmt(bg)} BB`, amountBB: bg, freq: f.bet_big }
     ] };
   }
   const f = facingFreqs(ctx);
@@ -297,14 +297,14 @@ function optionsFor(run: CashRun, seat: number): { defs: { id: string; label: st
   const raiseAmt = r1(Math.min(s.stack, raiseTo - s.streetBet));
   if (s.stack <= toCall + 0.05) {
     return { toCall, defs: [
-      { id: 'fold', label: 'FOLD', freq: f.fold + f.raise },
-      { id: 'call', label: `CALL ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call }
+      { id: 'fold', label: 'TIRAR', freq: f.fold + f.raise },
+      { id: 'call', label: `PAGAR ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call }
     ] };
   }
   return { toCall, defs: [
-    { id: 'fold', label: 'FOLD', freq: f.fold },
-    { id: 'call', label: `CALL ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call },
-    { id: 'raise', label: raiseAmt >= s.stack ? `ALL-IN ${fmt(s.stack + s.streetBet)} BB` : `RAISE ${fmt(raiseTo)} BB`, amountBB: raiseAmt, freq: f.raise }
+    { id: 'fold', label: 'TIRAR', freq: f.fold },
+    { id: 'call', label: `PAGAR ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call },
+    { id: 'raise', label: raiseAmt >= s.stack ? `ALL-IN ${fmt(s.stack + s.streetBet)} BB` : `SUBIR ${fmt(raiseTo)} BB`, amountBB: raiseAmt, freq: f.raise }
   ] };
 }
 
@@ -325,10 +325,10 @@ function whyFor(run: CashRun, seat: number, defs: { id: string; freq: number; am
       why,
       detail: [
         toCall > 0 && need
-          ? { k: 'odds', label: 'Pot odds', value: `pagas ${fmt(toCall)} · necesitas ${need}` }
+          ? { k: 'odds', label: 'Para pagar', value: `pagas ${fmt(toCall)} · necesitas ${need}` }
           : { k: 'range', label: 'Mesa', value: mw },
         { k: 'hand', label: 'Tu mano', value: hand },
-        { k: 'plan', label: 'Plan', value: plan.id === 'fold' ? 'Fold: no llega' : plan.id === 'call' || plan.id === 'limp' ? 'Pagar: precio o jugabilidad' : 'Subir: valor o presión' }
+        { k: 'plan', label: 'Plan', value: plan.id === 'fold' ? 'Tirar: no llega' : plan.id === 'call' || plan.id === 'limp' ? 'Pagar: el precio está bien' : 'Subir: valor o presión' }
       ]
     };
   }
@@ -344,8 +344,8 @@ function whyFor(run: CashRun, seat: number, defs: { id: string; freq: number; am
     why,
     detail: [
       toCall > 0
-        ? { k: 'odds', label: 'Pot odds', value: `pagas ${fmt(toCall)} · necesitas ${need} %` }
-        : { k: 'board', label: 'Board', value: `${texture} · ${mw}` },
+        ? { k: 'odds', label: 'Para pagar', value: `pagas ${fmt(toCall)} · necesitas ${need} %` }
+        : { k: 'board', label: 'Mesa', value: `${texture} · ${mw}` },
       { k: 'hand', label: 'Tu mano', value: CLASS_ES[hc.cls] },
       { k: 'plan', label: 'Plan', value: hc.cls === 'monster' || hc.cls === 'strong' ? 'Valor' : hc.cls === 'draw' || hc.cls === 'weakdraw' ? 'Proyecto' : toCall > 0 ? 'Sin fuerza: foldea o farolea poco' : 'Sin fuerza: pasa o farolea poco' }
     ]
@@ -474,28 +474,28 @@ function applyAction(run: CashRun, seat: number, id: string, defs: { id: string;
   };
   if (id === 'fold') {
     s.folded = true;
-    noteAction(run, seat, 'fold', 'Fold');
-    return emit(`${pos} fold`);
+    noteAction(run, seat, 'fold', 'Tira');
+    return emit(`${pos} tira`);
   }
   if (id === 'check') {
-    noteAction(run, seat, 'check', 'Check');
-    return emit(`${pos} check`);
+    noteAction(run, seat, 'check', 'Pasa');
+    return emit(`${pos} pasa`);
   }
   const amt = def.amountBB || 0;
   post(s, amt);
   if (id === 'call' || id === 'limp') {
-    const label = id === 'limp' && pos === 'SB' ? `Completar ${fmt(amt)}` : id === 'limp' ? `Limp ${fmt(amt)}` : `Call ${fmt(amt)}`;
+    const label = id === 'limp' ? `Completa ${fmt(amt)}` : `Paga ${fmt(amt)}`;
     noteAction(run, seat, id, label, amt);
-    return emit(`${pos} ${id === 'limp' ? 'limp' : 'call'} ${fmt(amt)}`);
+    return emit(`${pos} ${id === 'limp' ? 'completa' : 'paga'} ${fmt(amt)}`);
   }
   run.lastAggressor = seat;
   const kind = (id === 'bet_small' || id === 'bet_big') ? 'bet' : 'raise';
-  const label = kind === 'bet' ? `Bet ${fmt(s.streetBet)}`
-    : id === '3bet' ? `3-bet ${fmt(s.streetBet)}`
-    : id === '4bet' ? `4-bet ${fmt(s.streetBet)}`
-    : `Raise ${fmt(s.streetBet)}`;
+  const word = kind === 'bet' ? 'apuesta' : (id === '3bet' || id === '4bet') ? 'resube' : 'sube';
+  const label = kind === 'bet' ? `Apuesta ${fmt(s.streetBet)}`
+    : (id === '3bet' || id === '4bet') ? `Resube ${fmt(s.streetBet)}`
+    : `Sube ${fmt(s.streetBet)}`;
   noteAction(run, seat, kind, label, s.streetBet);
-  return emit(`${pos} ${kind === 'bet' ? 'bet' : (id === '3bet' ? '3-bet' : id === '4bet' ? '4-bet' : 'raise')} ${fmt(s.streetBet)}`);
+  return emit(`${pos} ${word} ${fmt(s.streetBet)}`);
 }
 
 function closeStreet(run: CashRun) {
@@ -798,6 +798,14 @@ export function applyHeroAction(run: CashRun, optionId: string): CashRun {
   return run;
 }
 
+/** After hero has folded, finish the pot off-screen so stacks stay consistent. */
+export function settleAfterHeroFold(run: CashRun): CashRun {
+  if (!run.seats[0].folded || run.award) return run;
+  autoUntilHero(run, tickList(run));
+  return run;
+}
+
 export function heroDelta(table: CashTable): number {
+
   return r1(table.stacks[0] - (table.startHero || 100));
 }
