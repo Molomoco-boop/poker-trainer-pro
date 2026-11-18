@@ -1,7 +1,7 @@
 /* Run: npx tsx tests/features.test.ts */
 import { assignProfiles, profilePre, profileFacing, exploitPre, exploitFacing, exploitLead, profileLead, vsLabel } from '../src/utils/botProfiles';
 import { preflopFreqs, leadFreqs, facingFreqs } from '../src/utils/actionModel';
-import { flopGroups, flopInGroup, reportFor, FLOP_GROUPS, sampleFlops, makeFlopDrill, formatFlop } from '../src/utils/flopReports';
+import { flopGroups, flopInGroup, reportFor, allReports, FLOP_GROUPS, REPORT_SPOTS, sampleFlops, makeFlopDrill, formatFlop } from '../src/utils/flopReports';
 import { pushHand, loadHands, saveHands, isErrorOrDoubt, HISTORY_MAX, ReviewHand, HISTORY_KEY } from '../src/utils/handHistory';
 import { startHand, newCashTable, applyHeroAction, posOf } from '../src/utils/cashTable';
 import { Card, Rank, Suit } from '../src/types/poker';
@@ -79,6 +79,18 @@ function C(rank: Rank, suit: Suit): Card { return { rank, suit }; }
   const d = makeFlopDrill();
   ok(d.options.length === 3 && d.options.includes(d.answer), `drill has 3 opts including ${d.answer}: ${d.options}`);
   ok(!!formatFlop(d.flop), 'drill flop format');
+  const t0 = Date.now();
+  for (const g of FLOP_GROUPS) {
+    const rows = allReports(g.id);
+    ok(rows.length === REPORT_SPOTS.length, `${g.id} has ${rows.length} spots`);
+    for (const s of REPORT_SPOTS) {
+      const r = rows.find(x => x.spot === s.id);
+      ok(!!r, `${g.id} ${s.id}`);
+      ok(r!.cbet >= 5 && r!.cbet <= 95, `${g.id} ${s.id} cbet ${r!.cbet}`);
+    }
+  }
+  const ms = Date.now() - t0;
+  ok(ms < 50, `precomputed reports are instant (${ms} ms)`);
 }
 
 // --- history cap and filter ---

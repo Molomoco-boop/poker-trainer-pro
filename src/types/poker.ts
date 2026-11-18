@@ -40,6 +40,8 @@ export interface PlayerState {
   streetAction?: string;
   /** Opponent profile tag (bots only). */
   profile?: 'regular' | 'recreativo' | 'nit' | 'maniac';
+  /** Seat that won the current hand (shown briefly at the end). */
+  winner?: boolean;
 }
 
 export type StakeLevel = 'NL2' | 'NL5' | 'NL10' | 'NL25' | 'NL50' | 'NL100';

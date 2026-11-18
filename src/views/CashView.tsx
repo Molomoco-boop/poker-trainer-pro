@@ -2,16 +2,17 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useGame } from '../context/useGame';
 import { PokerTable, RangeRequest } from '../components/PokerTable';
 import { RangeViewerModal } from '../components/RangeViewerModal';
-import { BtnPrimary, Delta } from '../components/ui';
 import { useBackLayer } from '../navigation/BackProvider';
-import { newCashTable, startHand, applyHeroAction, heroDelta, posOf, CashRun, CashTable } from '../utils/cashTable';
-import { r1 } from '../utils/actionModel';
+import {
+  newCashTable, startHand, applyHeroChoice, advanceTable, heroDelta, posOf, CashRun, CashTable
+} from '../utils/cashTable';
 import { Grade } from '../types/poker';
 import { assignProfiles, TableMode } from '../utils/botProfiles';
 import { pushHand, newHandId, ReviewDecision } from '../utils/handHistory';
 
-/** Same timing as Spots: correct answers auto-advance after the countdown. */
-const AUTO_ADVANCE_MS = 3500;
+const AUTO_ADVANCE_MS = 1300;
+const BOT_MS = 320;
+const HAND_END_MS = 1200;
 
 /**
  * Live 6-max cash. Hero feedback is frozen on the decision that was just played;
@@ -26,6 +27,7 @@ export const CashView: React.FC<{ onExit: () => void; mode?: TableMode }> = ({ o
   runRef.current = run;
   const decisionsRef = useRef<ReviewDecision[]>([]);
   const savedKey = useRef<string | null>(null);
+  const [playingBots, setPlayingBots] = useState(false);
 
   const persistHand = (current: CashRun) => {
     if (!current.award) return;
@@ -77,7 +79,30 @@ export const CashView: React.FC<{ onExit: () => void; mode?: TableMode }> = ({ o
     setRangeRequest(null);
   };
 
-  /** Apply the queued hero action and reveal whatever comes next (next decision or showdown). */
+  const publish = (current: CashRun) => {
+    runRef.current = current;
+    setRun({ ...current });
+  };
+
+  /** After the hero acts, reveal each bot (or street) on a short beat. */
+  const playBots = useCallback(() => {
+    setPlayingBots(true);
+    const tick = () => {
+      const current = runRef.current;
+      const r = advanceTable(current);
+      publish(current);
+      if (r === 'acted') {
+        timer.current = setTimeout(tick, BOT_MS);
+        return;
+      }
+      setPlayingBots(false);
+      committing.current = false;
+      if (r === 'end') persistHand(current);
+    };
+    timer.current = setTimeout(tick, BOT_MS);
+  }, []);
+
+  /** Apply the queued hero action and start bot playback (or showdown). */
   const commitAction = useCallback(() => {
     if (committing.current) return;
     const optId = pendingAction.current;
@@ -89,50 +114,48 @@ export const CashView: React.FC<{ onExit: () => void; mode?: TableMode }> = ({ o
     clearTimer();
     pendingAction.current = null;
     pendingStepId.current = null;
-    const next = applyHeroAction(current, optId);
-    setSelectedOptionId(null);
-    setIsSubmitted(false);
-    setDelta(null);
-    setDoubted(false);
-    setFastError(false);
-    setRangeRequest(null);
-    runRef.current = next;
-    setRun({ ...next });
-    committing.current = false;
-    if (next.award) persistHand(next);
-  }, []);
+    applyHeroChoice(current, optId);
+    resetFeedback();
+    publish(current);
+    playBots();
+  }, [playBots]);
 
   const nextHand = useCallback(() => {
     if (committing.current) return;
     clearTimer();
     resetFeedback();
+    setPlayingBots(false);
     persistHand(runRef.current);
     const table = runRef.current.table;
     tableRef.current = table;
     decisionsRef.current = [];
     savedKey.current = null;
     const next = startHand(table, profilesRef.current);
-    runRef.current = next;
-    setRun({ ...next });
+    publish(next);
     if (next.award) persistHand(next);
   }, []);
 
   useEffect(() => () => clearTimer(), []);
   useEffect(() => { shownAt.current = Date.now(); }, [run.step?.id]);
-  useEffect(() => {
-    if (run.award && !isSubmitted) persistHand(run);
-  }, [run, isSubmitted]);
 
+  // Auto-deal the next hand after a brief inline result. No summary overlay.
+  useEffect(() => {
+    if (!run.award || isSubmitted || playingBots) return;
+    persistHand(run);
+    clearTimer();
+    timer.current = setTimeout(() => nextHand(), HAND_END_MS);
+    return () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } };
+  }, [run.award, isSubmitted, playingBots, nextHand]);
 
   const award = run.award;
   const showingFeedback = isSubmitted && !award;
-  // Back: close feedback (and play the chosen action), then close showdown, then exit (App layer).
+  const showingEnd = !!award && !isSubmitted && !playingBots;
   useBackLayer(showingFeedback, commitAction);
-  useBackLayer(!!award && !isSubmitted, nextHand);
+  useBackLayer(showingEnd, nextHand);
 
   const handleSelect = (optId: string) => {
     const current = runRef.current;
-    if (isSubmitted || current.award || !current.step || !current.awaitingHero || committing.current) return;
+    if (isSubmitted || current.award || playingBots || !current.step || !current.awaitingHero || committing.current) return;
     if (pendingAction.current) return;
     clearTimer();
     pendingAction.current = optId;
@@ -176,6 +199,7 @@ export const CashView: React.FC<{ onExit: () => void; mode?: TableMode }> = ({ o
   const handleBack = () => {
     if (rangeRequest) { setRangeRequest(null); return; }
     if (showingFeedback) { commitAction(); return; }
+    if (playingBots) return;
     if (award) { nextHand(); return; }
     onExit();
   };
@@ -186,6 +210,9 @@ export const CashView: React.FC<{ onExit: () => void; mode?: TableMode }> = ({ o
   const liveTable = award ? run.table : { ...tableRef.current, stacks: run.seats.map(s => s.stack), handNo: tableRef.current.handNo };
   const sessionDelta = heroDelta(liveTable);
   const handNo = (award ? run.table.handNo : tableRef.current.handNo + 1);
+  const handDeltaLabel = award && !isSubmitted
+    ? `Mano ${handNo} · ${award.delta >= 0 ? '+' : ''}${award.delta} BB`
+    : `Mano ${handNo} · ${sessionDelta >= 0 ? '+' : ''}${sessionDelta} BB`;
 
   return (
     <>
@@ -195,32 +222,23 @@ export const CashView: React.FC<{ onExit: () => void; mode?: TableMode }> = ({ o
         displayUnits={stats.preferences.displayUnits}
         deckColorMode={stats.preferences.deckColorMode}
         selectedOptionId={selectedOptionId}
-        isSubmitted={isSubmitted}
+        isSubmitted={isSubmitted && !playingBots}
         rating={Math.round(stats.rating.r)}
-        delta={isSubmitted ? delta : null}
+        delta={isSubmitted ? delta : (showingEnd ? award!.delta : null)}
         streak={stats.consecutiveCorrect}
-        title={`Mano ${handNo} · ${sessionDelta >= 0 ? '+' : ''}${sessionDelta} BB`}
+        title={handDeltaLabel}
         recentGrades={recentGrades}
         fastError={fastError}
         doubted={doubted}
         onDoubt={handleDoubt}
         onSelectOption={handleSelect}
-        onNext={isSubmitted ? commitAction : (award ? nextHand : () => {})}
+        onNext={isSubmitted ? commitAction : (showingEnd ? nextHand : () => {})}
         onHold={clearTimer}
         onBack={handleBack}
         onToggleUnits={toggleDisplayUnits}
         onOpenRangeViewer={req => setRangeRequest(req)}
-        footer={award && !isSubmitted ? (
-          <div className="cash-end w-full flex flex-col gap-2 pb-1">
-            <div className="text-[13px] text-dim uppercase tracking-[0.08em]">Mano {handNo}</div>
-            <div className="cash-end-text text-[15px] text-hi font-semibold leading-snug">{award.text}</div>
-            <div className="flex items-baseline gap-2">
-              <span className="num text-[22px] font-semibold text-hi">{r1(run.seats[0].stack)} BB</span>
-              <Delta value={award.delta} className="text-[16px]" />
-            </div>
-            <BtnPrimary onClick={nextHand} className="next-hand w-full">Siguiente mano</BtnPrimary>
-          </div>
-        ) : undefined}
+        pace="fast"
+        handEnd={showingEnd && award ? { text: award.text, delta: award.delta } : null}
       />
 
       {rangeRequest && (

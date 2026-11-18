@@ -51,6 +51,8 @@
   to { width: 0%; }
 }
 .animate-shrinkBar { animation: shrinkBar 3.5s linear forwards; }
+.animate-shrinkBarFast { animation: shrinkBar 1.3s linear forwards; }
+.animate-shrinkBarEnd { animation: shrinkBar 1.2s linear forwards; }
 
 @keyframes fadeIn {
   from { opacity: 0; }

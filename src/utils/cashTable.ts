@@ -173,7 +173,8 @@ function playerStates(run: CashRun, show: boolean): PlayerState[] {
       status: s.folded ? 'folded' : s.seat === 0 ? 'hero' : 'active',
       cards: s.seat === 0 || (show && !s.folded) ? s.cards : undefined,
       streetAction: s.streetLine || undefined,
-      profile: s.seat === 0 ? undefined : s.profile
+      profile: s.seat === 0 ? undefined : s.profile,
+      winner: !!(run.award && run.award.winners.includes(s.seat))
     };
   });
 }
@@ -636,52 +637,114 @@ function actBot(run: CashRun, seat: number): string {
   return applyAction(run, seat, id, defs);
 }
 
+function tickList(run: CashRun): string[] {
+  return run.ticker ? run.ticker.split(' · ').filter(Boolean) : [];
+}
+
+function writeTicker(run: CashRun, ticks: string[]): void {
+  run.ticker = ticks.join(' · ');
+  if (run.step) run.step.actionTicker = tickerForStreet(tickList(run), run.street);
+}
+
+function boardShown(run: CashRun): Card[] {
+  if (run.street === 'preflop') return [];
+  if (run.street === 'flop') return run.board.slice(0, 3);
+  if (run.street === 'turn') return run.board.slice(0, 4);
+  return run.board.slice(0, 5);
+}
+
+/** Keep the visible table in sync while bots act one by one. */
+function syncVisual(run: CashRun): void {
+  if (run.award || run.awaitingHero || !run.step) return;
+  run.step = {
+    ...run.step,
+    street: run.street,
+    communityCards: boardShown(run),
+    pot: potOf(run.seats),
+    players: playerStates(run, false),
+    options: [],
+    prompt: '',
+    actionTicker: tickerForStreet(tickList(run), run.street),
+    contextNotice: ''
+  };
+}
+
+type StepResult = 'hero' | 'end' | 'acted' | 'skip';
+
+function stepOnce(run: CashRun): StepResult {
+  const ticks = tickList(run);
+  if (live(run.seats).length <= 1) {
+    finish(run, foldWin(run));
+    writeTicker(run, ticks);
+    return 'end';
+  }
+  const withChips = live(run.seats).filter(s => s.stack > 0);
+  const maxBet = Math.max(...run.seats.map(s => s.streetBet));
+  const needCall = withChips.some(s => s.streetBet < maxBet - 0.01);
+  if (withChips.length <= 1 && !needCall) {
+    while (goNextStreet(run)) { /* run out */ }
+    run.street = 'river';
+    finish(run, showdown(run));
+    writeTicker(run, ticks);
+    return 'end';
+  }
+  if (run.pending.length === 0) {
+    if (!goNextStreet(run)) {
+      finish(run, showdown(run));
+      writeTicker(run, ticks);
+      return 'end';
+    }
+    ticks.push(run.street === 'flop' ? 'Flop' : run.street === 'turn' ? 'Turn' : 'River');
+    fillPending(run, null);
+    writeTicker(run, ticks);
+    syncVisual(run);
+    return 'acted';
+  }
+  const seat = run.pending[0];
+  const s = run.seats[seat];
+  if (s.folded || (s.stack <= 0 && facing(run.seats, seat) <= 0)) {
+    run.pending.shift();
+    return 'skip';
+  }
+  if (seat === 0) {
+    run.awaitingHero = true;
+    run.toAct = 0;
+    writeTicker(run, ticks);
+    run.step = makeStep(run, 0, run.ticker || `Acción en ti (${posOf(0, run.buttonSeat)})`);
+    return 'hero';
+  }
+  const before = run.lastAggressor;
+  const line = actBot(run, seat);
+  ticks.push(line);
+  run.pending.shift();
+  if (run.lastAggressor !== before && run.lastAggressor === seat) {
+    fillPending(run, seat);
+  }
+  writeTicker(run, ticks);
+  syncVisual(run);
+  return 'acted';
+}
+
 /** Run bots until hero must act or the hand ends. */
 function autoUntilHero(run: CashRun, ticks: string[]): void {
+  writeTicker(run, ticks);
   for (let guard = 0; guard < 64; guard++) {
-    if (live(run.seats).length <= 1) { finish(run, foldWin(run)); run.ticker = ticks.join(' · '); if (run.step) run.step.actionTicker = tickerForStreet((run.ticker || "").split(" · ").filter(Boolean), run.street); return; }
-    const withChips = live(run.seats).filter(s => s.stack > 0);
-    const maxBet = Math.max(...run.seats.map(s => s.streetBet));
-    const needCall = withChips.some(s => s.streetBet < maxBet - 0.01);
-    if (withChips.length <= 1 && !needCall) {
-      while (goNextStreet(run)) { /* run out */ }
-      run.street = 'river';
-      finish(run, showdown(run));
-      run.ticker = ticks.join(' · ');
-      if (run.step) run.step.actionTicker = tickerForStreet((run.ticker || "").split(" · ").filter(Boolean), run.street);
-      return;
-    }
-    if (run.pending.length === 0) {
-      if (!goNextStreet(run)) { finish(run, showdown(run)); run.ticker = ticks.join(' · '); if (run.step) run.step.actionTicker = tickerForStreet((run.ticker || "").split(" · ").filter(Boolean), run.street); return; }
-      ticks.push(run.street === 'flop' ? 'Flop' : run.street === 'turn' ? 'Turn' : 'River');
-      fillPending(run, null);
-      continue;
-    }
-    const seat = run.pending[0];
-    const s = run.seats[seat];
-    if (s.folded || (s.stack <= 0 && facing(run.seats, seat) <= 0)) {
-      run.pending.shift();
-      continue;
-    }
-    if (seat === 0) {
-      run.awaitingHero = true;
-      run.toAct = 0;
-      run.ticker = ticks.join(' · ');
-      run.step = makeStep(run, 0, run.ticker || `Acción en ti (${posOf(0, run.buttonSeat)})`);
-      return;
-    }
-    const before = run.lastAggressor;
-    const line = actBot(run, seat);
-    ticks.push(line);
-    run.pending.shift();
-    if (run.lastAggressor !== before && run.lastAggressor === seat) {
-      // bet/raise: everyone else with chips must act again
-      fillPending(run, seat);
-    }
+    const r = stepOnce(run);
+    if (r === 'hero' || r === 'end') return;
   }
   finish(run, live(run.seats).length <= 1 ? foldWin(run) : showdown(run));
-  run.ticker = ticks.join(' · ');
-  if (run.step) run.step.actionTicker = tickerForStreet((run.ticker || "").split(" · ").filter(Boolean), run.street);
+  writeTicker(run, tickList(run));
+}
+
+/** One visible beat (bot action or new street). Skips silent pending pops. */
+export function advanceTable(run: CashRun): 'hero' | 'end' | 'acted' {
+  if (run.award) return 'end';
+  if (run.awaitingHero) return 'hero';
+  for (let guard = 0; guard < 16; guard++) {
+    const r = stepOnce(run);
+    if (r !== 'skip') return r;
+  }
+  return run.award ? 'end' : run.awaitingHero ? 'hero' : 'acted';
 }
 
 export function startHand(table: CashTable, profiles?: BotProfile[]): CashRun {
@@ -713,17 +776,25 @@ export function startHand(table: CashTable, profiles?: BotProfile[]): CashRun {
   return run;
 }
 
-export function applyHeroAction(run: CashRun, optionId: string): CashRun {
+/** Play the hero's chosen action without advancing bots. */
+export function applyHeroChoice(run: CashRun, optionId: string): CashRun {
   if (!run.awaitingHero || run.seats[0].folded) return run;
   const { defs } = optionsFor(run, 0);
   const id = defs.some(d => d.id === optionId) ? optionId : defs[0].id;
   const before = run.lastAggressor;
   const line = applyAction(run, 0, id, defs);
-  const ticks = (run.ticker ? run.ticker.split(' · ').filter(Boolean) : []).concat(line);
+  const ticks = tickList(run).concat(line);
   run.awaitingHero = false;
   run.pending.shift();
   if (run.lastAggressor !== before && run.lastAggressor === 0) fillPending(run, 0);
-  autoUntilHero(run, ticks);
+  writeTicker(run, ticks);
+  syncVisual(run);
+  return run;
+}
+
+export function applyHeroAction(run: CashRun, optionId: string): CashRun {
+  applyHeroChoice(run, optionId);
+  autoUntilHero(run, tickList(run));
   return run;
 }
 

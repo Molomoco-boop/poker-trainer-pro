@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { BackProvider, useBackLayer } from './navigation/BackProvider';
 import { GameProvider } from './context/GameContext';
 import { BottomNav, Tab } from './components/BottomNav';
@@ -11,9 +11,10 @@ import { SprintView } from './views/SprintView';
 import { RangeBuilderView } from './views/RangeBuilderView';
 import { CashView } from './views/CashView';
 import { ReviewView } from './views/ReviewView';
-import { FlopReportView } from './views/FlopReportView';
 import { SessionSpec } from './types/poker';
 import { loadTableMode, saveTableMode, TableMode } from './utils/botProfiles';
+
+const FlopReportView = lazy(() => import('./views/FlopReportView').then(m => ({ default: m.FlopReportView })));
 
 type Screen = { kind: 'tabs' } | { kind: 'practice'; session: SessionSpec } | { kind: 'cash' } | { kind: 'sprint' } | { kind: 'builder' } | { kind: 'review' } | { kind: 'flops' };
 
@@ -38,7 +39,9 @@ function AppContent() {
         ) : screen.kind === 'review' ? (
           <ReviewView onExit={back} />
         ) : screen.kind === 'flops' ? (
-          <FlopReportView onExit={back} />
+          <Suspense fallback={<div className="p-4 text-sm text-dim">Cargando…</div>}>
+            <FlopReportView onExit={back} />
+          </Suspense>
         ) : screen.kind === 'sprint' ? (
           <SprintView onExit={back} />
         ) : screen.kind === 'builder' ? (

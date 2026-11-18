@@ -46,6 +46,10 @@ interface PokerTableProps {
   onOpenRangeViewer: (req: RangeRequest) => void;
   /** Replaces the empty options spacer (e.g. cash showdown summary). */
   footer?: React.ReactNode;
+  /** Cash hands: compact, fast auto-advance and a "Parar" hold button. */
+  pace?: 'normal' | 'fast';
+  /** Brief inline end-of-hand result (no overlay). */
+  handEnd?: { text: string; delta: number } | null;
 }
 
 type SeatCfg = {
@@ -142,7 +146,8 @@ const FreqGrid: React.FC<{ options: HandStep['options']; selectedId: string | nu
 export const PokerTable: React.FC<PokerTableProps> = ({
   step, stake, displayUnits, deckColorMode, endNote, selectedOptionId, isSubmitted,
   rating, delta, streak, title, recentGrades, fastError, doubted, onDoubt,
-  onSelectOption, onNext, onHold, onBack, onToggleUnits, onOpenRangeViewer, footer
+  onSelectOption, onNext, onHold, onBack, onToggleUnits, onOpenRangeViewer, footer,
+  pace = 'normal', handEnd
 }) => {
   const hero = step.players.find(p => p.isHero) || step.players[0];
   const isAction = step.questionType === 'action';
@@ -169,8 +174,11 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     return { main: label.replace(/[\d.]+ BB/, `${convertBBToEUR(amountBB, stake).toFixed(2)} €`), sub: `${fmtBB(amountBB)} BB` };
   };
 
+  const fast = pace === 'fast';
+  const barClass = fast ? 'animate-shrinkBarFast' : 'animate-shrinkBar';
+
   return (
-    <div className="poker-table w-full h-[100dvh] max-h-[100dvh] flex flex-col bg-bg text-txt select-none overflow-hidden relative" data-step-id={step.id} data-street={step.street}>
+    <div className="poker-table w-full h-[100dvh] max-h-[100dvh] flex flex-col bg-bg text-txt select-none overflow-hidden relative" data-step-id={step.id} data-street={step.street} data-pace={pace} data-hand-end={handEnd ? '1' : undefined}>
       {/* Header: back · rating ± · streak · units */}
       <div className="w-full px-2 safe-top pb-1 shrink-0 flex items-center gap-2 border-b border-line">
         <button onClick={onBack} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Salir">
@@ -222,10 +230,11 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               <div key={p.id} className="absolute z-20" style={cfg.style} data-seat={idx} data-pos={p.position}>
                 <div className="relative flex flex-col items-center">
                   <div className={`seat-node w-[70px] h-[50px] rounded-[4px] flex flex-col items-center justify-center ${
-                    p.isHero ? 'bg-panel border-2 border-acc' : isFolded ? 'bg-bg border border-line opacity-40' : 'bg-panel border border-line'
+                    p.winner ? 'bg-panel border-2 border-good' : p.isHero ? 'bg-panel border-2 border-acc' : isFolded ? 'bg-bg border border-line opacity-40' : 'bg-panel border border-line'
                   }`}>
                     <span className="text-[13px] font-bold text-hi leading-none">{p.position}</span>
                     <span className="num text-[12px] text-txt leading-none mt-1 whitespace-nowrap">{isFolded ? 'Fold' : money(p.stack)}</span>
+                    {p.winner && <span className="winner-chip text-[9px] leading-none font-semibold text-goodtx uppercase tracking-wide mt-0.5" data-winner={p.position}>Gana</span>}
                     {!p.isHero && p.profile && (
                       <span className="profile-tag text-[8px] leading-none text-dim uppercase tracking-wide mt-0.5" data-profile={p.profile}>{PROFILE_SHORT[p.profile]}</span>
                     )}
@@ -257,8 +266,16 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
       {/* Decision / feedback */}
       <div className="w-full shrink-0 z-30 bg-panel border-t border-line px-2 pt-2 safe-bottom flex flex-col gap-1.5">
-        {footer ? footer : !isSubmitted && step.options.length === 0 ? (
-          <div className="h-8" />
+        {handEnd ? (
+          <div className="cash-inline-end w-full flex flex-col gap-1 pb-1" data-hand-end="1">
+            <div className="flex items-center gap-2 min-h-[40px]">
+              <span className="cash-end-text text-[13px] text-hi font-semibold leading-snug truncate flex-1">{handEnd.text}</span>
+              <Delta value={handEnd.delta} className="text-[16px] shrink-0" />
+            </div>
+            <div className="countdown w-full h-0.5 bg-line overflow-hidden"><div className="h-full bg-hi animate-shrinkBarEnd" /></div>
+          </div>
+        ) : footer ? footer : !isSubmitted && step.options.length === 0 ? (
+          <div className="h-8 bot-play" />
         ) : !isSubmitted ? (
           <div className="w-full flex flex-col gap-2">
             <div className="text-center text-[13px] text-txt">{step.prompt}</div>
@@ -286,7 +303,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             </div>
           </div>
         ) : isCorrectAnswer && !expanded ? (
-          <div onClick={onNext} role="button" aria-label="Siguiente" data-feedback="ok" className="correct-card w-full flex flex-col gap-1 animate-fadeIn text-left cursor-pointer">
+          <div data-feedback="ok" className="correct-card w-full flex flex-col gap-1 animate-fadeIn text-left">
             {isAction && <FreqGrid options={step.options} selectedId={selectedOptionId} labelFor={labelFor} />}
             <div className="w-full flex flex-col gap-1.5 border-l-4 border-good bg-bg/40 rounded-[3px] px-2.5 py-2 min-h-[56px]">
               <div className="flex items-center gap-2">
@@ -302,16 +319,16 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                   </button>
                 )}
               </div>
-              {planRow ? <DetailRows rows={[planRow]} /> : step.why && <span className="why-line text-[12px] leading-snug text-hi">{step.why}</span>}
+              {!fast && (planRow ? <DetailRows rows={[planRow]} /> : step.why && <span className="why-line text-[12px] leading-snug text-hi">{step.why}</span>)}
               {endNote && <span className="text-[12px] text-acc">{endNote}</span>}
               <button
                 onClick={e => { e.stopPropagation(); onHold?.(); setExpanded(true); }}
-                className="see-detail h-10 rounded-[4px] border border-line text-txt text-[13px] font-semibold flex items-center justify-center gap-1.5"
+                className="see-detail pause-btn h-10 rounded-[4px] border border-line text-txt text-[13px] font-semibold flex items-center justify-center gap-1.5"
               >
-                Ver detalle <ChevronDown className="w-4 h-4" />
+                {fast ? 'Parar' : <>Ver detalle <ChevronDown className="w-4 h-4" /></>}
               </button>
             </div>
-            {!doubted && <div className="countdown w-full h-0.5 bg-line overflow-hidden"><div className="h-full bg-good animate-shrinkBar" /></div>}
+            {!doubted && <div className="countdown w-full h-0.5 bg-line overflow-hidden"><div className={`h-full bg-good ${barClass}`} /></div>}
           </div>
         ) : (
           <div data-feedback={isCorrectAnswer ? "ok" : "ko"} className={`feedback-card w-full flex flex-col gap-1.5 animate-fadeIn`}>
@@ -323,7 +340,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               <span className={`ml-auto text-[12px] font-semibold truncate ${isCorrectAnswer ? 'text-txt' : 'text-goodtx'}`}>{isCorrectAnswer ? selectedOpt?.label : isAction ? okLabels : best.label}</span>
             </div>
             {fastError && <span className="text-[11px] text-warn">Rápido y mal: repásalo</span>}
-            {step.detail?.length ? <DetailRows rows={step.detail} /> : step.why && <div className="why-line text-[12px] leading-snug text-hi">{step.why}</div>}
+            {fast
+              ? (planRow ? <DetailRows rows={[planRow]} /> : step.why && <div className="why-line text-[12px] leading-snug text-hi">{step.why}</div>)
+              : (step.detail?.length ? <DetailRows rows={step.detail} /> : step.why && <div className="why-line text-[12px] leading-snug text-hi">{step.why}</div>)}
             {endNote && isCorrectAnswer && <span className="text-[12px] text-acc">{endNote}</span>}
             <div className="flex items-center gap-2 pt-0.5">
               {situation && hero.cards && (

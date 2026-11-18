@@ -2,8 +2,8 @@ import React from 'react';
 import { Grade, GRADE_ES } from '../types/poker';
 import { GRADE_STYLE } from './gradeStyle';
 
-export const Panel: React.FC<{ className?: string; children: React.ReactNode }> = ({ className = '', children }) => (
-  <div className={`bg-panel border border-line rounded-[4px] ${className}`}>{children}</div>
+export const Panel: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className = '', children, ...rest }) => (
+  <div className={`bg-panel border border-line rounded-[4px] ${className}`} {...rest}>{children}</div>
 );
 
 export const Title: React.FC<{ children: React.ReactNode; right?: React.ReactNode }> = ({ children, right }) => (

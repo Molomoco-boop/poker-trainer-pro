@@ -7,6 +7,7 @@ import { classifyHand } from './handStrength';
 import { isConnectedBoard, isWetBoard, calculateSPR } from './pokerMath';
 import { preflopFreqs, leadFreqs, facingFreqs, betFrac, r1, PreflopCtx } from './actionModel';
 import { ALL_HANDS, handCombos } from '../data/preflopRanges';
+import { FLOP_REPORT_TABLE } from '../data/flopReportTable';
 
 export type FlopGroupId = 'ace' | 'kq' | 'midconn' | 'low' | 'paired' | 'mono' | 'twotone' | 'rainbow';
 
@@ -206,16 +207,15 @@ function avgFace(hands: WeightedHand[], flop: Card[], pot: number, toCall: numbe
   return { fold: fold / w, call: call / w, raise: raise / w };
 }
 
-const POOL = sampleFlops(14);
-
 const REPORT_CACHE = new Map<string, SpotReport>();
 
-export function reportFor(group: FlopGroupId, spot: ReportSpotId): SpotReport {
+/** Heavy engine pass. Used only by scripts/precompute-flop-reports.ts. */
+export function computeReportFor(group: FlopGroupId, spot: ReportSpotId, pool = sampleFlops(14)): SpotReport {
   const ck = group + ':' + spot;
   const hit = REPORT_CACHE.get(ck);
   if (hit) return hit;
   const setup = spotSetup(spot);
-  const flops = POOL[group];
+  const flops = pool[group];
   let small = 0, big = 0, dF = 0, dC = 0, dR = 0, n = 0;
   for (const flop of flops) {
     const lead = avgLead(setup.agg, flop, setup.pot, setup.spr, setup.ip);
@@ -251,12 +251,23 @@ export function reportFor(group: FlopGroupId, spot: ReportSpotId): SpotReport {
   return rep;
 }
 
+export function computeAllReports(group: FlopGroupId, pool = sampleFlops(14)): SpotReport[] {
+  return REPORT_SPOTS.map(s => computeReportFor(group, s.id, pool));
+}
+
+/** Instant: reads the precomputed table shipped with the app. */
+export function reportFor(group: FlopGroupId, spot: ReportSpotId): SpotReport {
+  const row = FLOP_REPORT_TABLE[group].reports.find(r => r.spot === spot);
+  if (row) return row as SpotReport;
+  return computeReportFor(group, spot);
+}
+
 export function allReports(group: FlopGroupId): SpotReport[] {
-  return REPORT_SPOTS.map(s => reportFor(group, s.id));
+  return FLOP_REPORT_TABLE[group].reports as SpotReport[];
 }
 
 export function exampleFlop(group: FlopGroupId): Card[] {
-  return POOL[group][0] || POOL.ace[0];
+  return FLOP_REPORT_TABLE[group].flop as Card[];
 }
 
 export function formatFlop(flop: Card[]): string {
