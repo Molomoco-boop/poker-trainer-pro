@@ -33,14 +33,14 @@ export const FlopReportView: React.FC<{ onExit: () => void }> = ({ onExit }) => 
   return (
     <div className="flop-report flex flex-col h-[100dvh] bg-bg text-txt">
       <div className="px-2 safe-top pb-1 flex items-center gap-2 border-b border-line shrink-0">
-        <button onClick={onExit} className="w-10 h-10 flex items-center justify-center" aria-label="Salir">
+        <button onClick={onExit} className="w-10 h-10 flex items-center justify-center" aria-label="Back">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div className="flex-1 min-w-0 text-[15px] font-semibold text-hi">Cómo se juega cada flop</div>
+        <div className="flex-1 min-w-0 text-[15px] font-semibold text-hi">How to play each flop</div>
         <button
           type="button"
           className={`flop-help-btn w-10 h-10 rounded-[4px] border text-[15px] font-semibold ${help ? 'bg-acc text-white border-acc' : 'border-line text-txt'}`}
-          aria-label="Qué es esta pantalla"
+          aria-label="What this screen is"
           aria-expanded={help}
           onClick={() => setHelp(h => !h)}
         >
@@ -50,9 +50,9 @@ export const FlopReportView: React.FC<{ onExit: () => void }> = ({ onExit }) => 
 
       {help && (
         <div className="flop-help mx-3 mt-2 px-3 py-2 rounded-[4px] border border-line bg-panel text-[12.5px] leading-snug text-hi space-y-1">
-          <p>Cada carta es una situación típica en el flop (las tres cartas de la mesa).</p>
-          <p>Las barras dicen, de cada 100 veces, cuántas apuesta, pasa, paga o se retira ese jugador.</p>
-          <p>Sirve para ver cómo cambia el plan según el tipo de flop.</p>
+          <p>Each card is a typical flop situation (the three community cards).</p>
+          <p>The bars show, out of 100 times, how often that player bets, checks, calls or folds.</p>
+          <p>Use it to see how the plan changes with the type of flop.</p>
         </div>
       )}
 
@@ -61,13 +61,13 @@ export const FlopReportView: React.FC<{ onExit: () => void }> = ({ onExit }) => 
           className={`flop-tab-informe h-10 px-3 rounded-[4px] text-[13px] font-semibold border ${tab === 'informe' ? 'bg-acc text-white border-acc' : 'border-line text-txt'}`}
           onClick={() => setTab('informe')}
         >
-          Guía
+          Guide
         </button>
         <button
           className={`flop-tab-drill h-10 px-3 rounded-[4px] text-[13px] font-semibold border ${tab === 'practica' ? 'bg-acc text-white border-acc' : 'border-line text-txt'}`}
           onClick={startDrill}
         >
-          ¿Cuántas veces apuesta?
+          How often does it bet?
         </button>
       </div>
 
@@ -89,10 +89,10 @@ export const FlopReportView: React.FC<{ onExit: () => void }> = ({ onExit }) => 
             <div className="flex gap-0.5">
               {flop.map((c, i) => <CardView key={i} card={c} size="xs" deckMode={stats.preferences.deckColorMode} />)}
             </div>
-            <span>Ej. {formatFlop(flop)}{meta.sub ? ` · ${meta.sub}` : ''}</span>
+            <span>Ex. {formatFlop(flop)}{meta.sub ? ` · ${meta.sub}` : ''}</span>
           </div>
           <div className="flop-learn text-[13px] text-hi leading-snug px-0.5">
-            <span className="text-dim">Qué aprender · </span>{meta.learn}
+            <span className="text-dim">What to learn · </span>{meta.learn}
           </div>
           {reports.map(r => (
             <SpotCard key={r.spot} r={r} groupId={group} />
@@ -101,7 +101,7 @@ export const FlopReportView: React.FC<{ onExit: () => void }> = ({ onExit }) => 
       ) : (
         <div className="flop-drill flex-1 overflow-y-auto px-3 pb-4 space-y-3">
           {!drill ? (
-            <BtnPrimary onClick={startDrill} className="w-full">Empezar</BtnPrimary>
+            <BtnPrimary onClick={startDrill} className="w-full">Start</BtnPrimary>
           ) : (
             <>
               <Panel className="p-3 space-y-1.5">
@@ -110,7 +110,7 @@ export const FlopReportView: React.FC<{ onExit: () => void }> = ({ onExit }) => 
                 </div>
                 <div className="text-[15px] font-semibold text-hi leading-snug">{drill.question}</div>
                 <div className="text-[12px] text-dim leading-snug">
-                  35 significa que apuesta 35 de cada 100 veces y pasa las demás.
+                  35 means they bet 35 out of 100 times and check the rest.
                 </div>
               </Panel>
               <div className="grid grid-cols-3 gap-1.5">
@@ -132,7 +132,7 @@ export const FlopReportView: React.FC<{ onExit: () => void }> = ({ onExit }) => 
                       }`}
                     >
                       {n}
-                      <span className="block text-[10px] font-normal text-dim">de cada 100</span>
+                      <span className="block text-[10px] font-normal text-dim">out of 100</span>
                     </button>
                   );
                 })}
@@ -140,9 +140,9 @@ export const FlopReportView: React.FC<{ onExit: () => void }> = ({ onExit }) => 
               {picked != null && (
                 <div className="space-y-2">
                   <div className={`text-[14px] font-semibold ${picked === drill.answer ? 'text-goodtx' : 'text-badtx'}`}>
-                    {picked === drill.answer ? 'Bien' : `Era ${drill.answer} de cada 100`}
+                    {picked === drill.answer ? 'Nice' : `It was ${drill.answer} out of 100`}
                   </div>
-                  <BtnPrimary onClick={nextDrill} className="flop-drill-next w-full">Siguiente</BtnPrimary>
+                  <BtnPrimary onClick={nextDrill} className="flop-drill-next w-full">Next</BtnPrimary>
                 </div>
               )}
             </>
@@ -161,29 +161,29 @@ const SpotCard: React.FC<{ r: SpotReport; groupId: FlopGroupId }> = ({ r, groupI
     <Panel className="flop-spot p-3 space-y-2" data-spot={r.spot}>
       <div>
         <div className="text-[14px] font-semibold text-hi leading-snug">{spot.label}</div>
-        <div className="text-[11px] text-dim leading-snug">{group.sit} · bote {r.pot} BB · {spot.raisedBy}</div>
+        <div className="text-[11px] text-dim leading-snug">{group.sit} · pot {r.pot} BB · {spot.raisedBy}</div>
       </div>
       <div>
         <div className="text-[12.5px] text-hi leading-snug mb-0.5">
-          {spot.agg} apuesta <b className="num">{r.cbet}</b> de cada 100 veces
+          {spot.agg} bets <b className="num">{r.cbet}</b> out of 100 times
         </div>
         <Bar parts={[{ n: r.small, c: 'bg-acc' }, { n: r.big, c: 'bg-good' }, { n: pass, c: 'bg-line' }]} />
         <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-dim mt-0.5">
-          <span>Pequeña {r.small}</span>
-          <span>Grande {r.big}</span>
-          <span>Pasa {pass}</span>
+          <span>Small {r.small}</span>
+          <span>Big {r.big}</span>
+          <span>Checks {pass}</span>
         </div>
         <div className="text-[12px] text-hi leading-snug mt-1">{takeaway(groupId, r)}</div>
       </div>
       <div>
         <div className="text-[12.5px] text-hi leading-snug mb-0.5">
-          Si {spot.agg} apuesta, {spot.def}: se retira {r.defFold} · paga {r.defCall} · sube {r.defRaise}
+          If {spot.agg} bets, {spot.def}: folds {r.defFold} · calls {r.defCall} · raises {r.defRaise}
         </div>
         <Bar parts={[{ n: r.defFold, c: 'bg-bad' }, { n: r.defCall, c: 'bg-warn' }, { n: r.defRaise, c: 'bg-good' }]} />
         <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] text-dim mt-0.5">
-          <span>Se retira {r.defFold}</span>
-          <span>Paga {r.defCall}</span>
-          <span>Sube {r.defRaise}</span>
+          <span>Folds {r.defFold}</span>
+          <span>Calls {r.defCall}</span>
+          <span>Raises {r.defRaise}</span>
         </div>
       </div>
     </Panel>
@@ -192,13 +192,13 @@ const SpotCard: React.FC<{ r: SpotReport; groupId: FlopGroupId }> = ({ r, groupI
 
 function takeaway(group: FlopGroupId, r: SpotReport): string {
   if (r.cbet <= 40) {
-    if (group === 'ace') return 'Pasa mucho: el as ayuda a los dos.';
-    return 'Pasa más de la mitad de las veces.';
+    if (group === 'ace') return 'Checks a lot: the ace helps both ranges.';
+    return 'Checks more than half the time.';
   }
-  if (group === 'paired') return 'Apuesta más: es difícil encajar dos pares.';
-  if (group === 'rainbow') return 'Sin color posible: apuesta un poco más.';
-  if (group === 'mono') return 'Hay color en mesa: no apuestes siempre.';
-  return r.pref === 'bet_big' ? `Cuando apuesta, suele ser grande (${r.prefSize} BB).` : `Cuando apuesta, suele ser pequeña (${r.prefSize} BB).`;
+  if (group === 'paired') return 'Bets more: two pair is hard to hit.';
+  if (group === 'rainbow') return 'No flush possible: bet a bit more.';
+  if (group === 'mono') return 'There is a flush on the board: do not always bet.';
+  return r.pref === 'bet_big' ? `When they bet, it is usually big (${r.prefSize} BB).` : `When they bet, it is usually small (${r.prefSize} BB).`;
 }
 
 const Bar: React.FC<{ parts: { n: number; c: string }[] }> = ({ parts }) => (

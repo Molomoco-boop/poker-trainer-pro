@@ -259,23 +259,23 @@ function optionsFor(run: CashRun, seat: number): { defs: { id: string; label: st
     const callAmt = r1(Math.min(s.stack, toCall));
     if (ctx.raises === 0) {
       return { toCall, defs: [
-        { id: 'fold', label: 'TIRAR', freq: f.fold },
-        { id: 'limp', label: ctx.pos === 'SB' ? `COMPLETAR ${fmt(limpAmt)} BB` : `COMPLETAR ${fmt(limpAmt)} BB`, amountBB: limpAmt, freq: f.limp },
-        { id: 'raise', label: `SUBIR ${fmt(raiseTo)} BB`, amountBB: raiseAmt, freq: f.raise }
+        { id: 'fold', label: 'FOLD', freq: f.fold },
+        { id: 'limp', label: ctx.pos === 'SB' ? `LIMP ${fmt(limpAmt)} BB` : `LIMP ${fmt(limpAmt)} BB`, amountBB: limpAmt, freq: f.limp },
+        { id: 'raise', label: `RAISE ${fmt(raiseTo)} BB`, amountBB: raiseAmt, freq: f.raise }
       ] };
     }
     const raiseId = ctx.raises === 1 ? '3bet' : '4bet';
-    const raiseLab = 'RESUBIR';
+    const raiseLab = '3-BET';
     const defs = [
-      { id: 'fold', label: 'TIRAR', freq: f.fold },
-      { id: 'call', label: callAmt >= s.stack ? `PAGAR ${fmt(callAmt)} BB` : `PAGAR ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call },
+      { id: 'fold', label: 'FOLD', freq: f.fold },
+      { id: 'call', label: callAmt >= s.stack ? `CALL ${fmt(callAmt)} BB` : `CALL ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call },
       { id: raiseId, label: raiseAmt >= s.stack ? `ALL-IN ${fmt(s.stack + s.streetBet)} BB` : `${raiseLab} ${fmt(raiseTo)} BB`, amountBB: raiseAmt, freq: f.raise }
     ];
     if (s.stack <= toCall + 0.05) {
       // no raise left
       return { toCall, defs: [
-        { id: 'fold', label: 'TIRAR', freq: f.fold + f.raise },
-        { id: 'call', label: `PAGAR ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call }
+        { id: 'fold', label: 'FOLD', freq: f.fold + f.raise },
+        { id: 'call', label: `CALL ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call }
       ] };
     }
     return { toCall, defs };
@@ -286,9 +286,9 @@ function optionsFor(run: CashRun, seat: number): { defs: { id: string; label: st
     const sm = r1(Math.min(s.stack, Math.max(0.5, potOf(run.seats) * betFrac(run.street, false))));
     const bg = r1(Math.min(s.stack, Math.max(sm + 0.5, potOf(run.seats) * betFrac(run.street, true))));
     return { toCall, defs: [
-      { id: 'check', label: 'PASAR', freq: f.check },
-      { id: 'bet_small', label: `APOSTAR ${fmt(sm)} BB`, amountBB: sm, freq: f.bet_small },
-      { id: 'bet_big', label: `APOSTAR ${fmt(bg)} BB`, amountBB: bg, freq: f.bet_big }
+      { id: 'check', label: 'CHECK', freq: f.check },
+      { id: 'bet_small', label: `BET ${fmt(sm)} BB`, amountBB: sm, freq: f.bet_small },
+      { id: 'bet_big', label: `BET ${fmt(bg)} BB`, amountBB: bg, freq: f.bet_big }
     ] };
   }
   const f = facingFreqs(ctx);
@@ -297,14 +297,14 @@ function optionsFor(run: CashRun, seat: number): { defs: { id: string; label: st
   const raiseAmt = r1(Math.min(s.stack, raiseTo - s.streetBet));
   if (s.stack <= toCall + 0.05) {
     return { toCall, defs: [
-      { id: 'fold', label: 'TIRAR', freq: f.fold + f.raise },
-      { id: 'call', label: `PAGAR ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call }
+      { id: 'fold', label: 'FOLD', freq: f.fold + f.raise },
+      { id: 'call', label: `CALL ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call }
     ] };
   }
   return { toCall, defs: [
-    { id: 'fold', label: 'TIRAR', freq: f.fold },
-    { id: 'call', label: `PAGAR ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call },
-    { id: 'raise', label: raiseAmt >= s.stack ? `ALL-IN ${fmt(s.stack + s.streetBet)} BB` : `SUBIR ${fmt(raiseTo)} BB`, amountBB: raiseAmt, freq: f.raise }
+    { id: 'fold', label: 'FOLD', freq: f.fold },
+    { id: 'call', label: `CALL ${fmt(callAmt)} BB`, amountBB: callAmt, freq: f.call },
+    { id: 'raise', label: raiseAmt >= s.stack ? `ALL-IN ${fmt(s.stack + s.streetBet)} BB` : `RAISE ${fmt(raiseTo)} BB`, amountBB: raiseAmt, freq: f.raise }
   ] };
 }
 
@@ -318,17 +318,17 @@ function whyFor(run: CashRun, seat: number, defs: { id: string; freq: number; am
     const pay = defs.find(d => d.id === 'call' || d.id === 'limp');
     const need = pay && toCall > 0 ? `${Math.round(calculatePotOddsPct(toCall, pot))} %` : '';
     const why = toCall > 0 && need
-      ? `Bote ${fmt(pot)} BB, pagas ${fmt(toCall)} → necesitas ${need}. ${hand} · ${mw}.`
+      ? `Pot ${fmt(pot)} BB, you call ${fmt(toCall)} → need ${need}. ${hand} · ${mw}.`
       : `${posOf(seat, run.buttonSeat)} · ${hand} · ${mw}.`;
     const plan = defs.slice().sort((a, b) => b.freq - a.freq)[0];
     return {
       why,
       detail: [
         toCall > 0 && need
-          ? { k: 'odds', label: 'Para pagar', value: `pagas ${fmt(toCall)} · necesitas ${need}` }
-          : { k: 'range', label: 'Mesa', value: mw },
-        { k: 'hand', label: 'Tu mano', value: hand },
-        { k: 'plan', label: 'Plan', value: plan.id === 'fold' ? 'Tirar: no llega' : plan.id === 'call' || plan.id === 'limp' ? 'Pagar: el precio está bien' : 'Subir: valor o presión' }
+          ? { k: 'odds', label: 'Pot odds', value: `you call ${fmt(toCall)} · need ${need}` }
+          : { k: 'range', label: 'Board', value: mw },
+        { k: 'hand', label: 'Your hand', value: hand },
+        { k: 'plan', label: 'Plan', value: plan.id === 'fold' ? 'Fold: does not get there' : plan.id === 'call' || plan.id === 'limp' ? 'Call: the price is right' : 'Raise: value or pressure' }
       ]
     };
   }
@@ -338,16 +338,16 @@ function whyFor(run: CashRun, seat: number, defs: { id: string; freq: number; am
   const call = defs.find(d => d.id === 'call');
   const need = call && toCall > 0 ? Math.round(calculatePotOddsPct(toCall, pot)) : 0;
   const why = toCall > 0
-    ? `Bote ${fmt(pot)} BB, pagas ${fmt(toCall)} → necesitas ${need} %. ${CLASS_ES[hc.cls]} · ${mw}.`
+    ? `Pot ${fmt(pot)} BB, you call ${fmt(toCall)} → need ${need} %. ${CLASS_ES[hc.cls]} · ${mw}.`
     : `${texture} · ${CLASS_ES[hc.cls]} · ${mw}.`;
   return {
     why,
     detail: [
       toCall > 0
-        ? { k: 'odds', label: 'Para pagar', value: `pagas ${fmt(toCall)} · necesitas ${need} %` }
-        : { k: 'board', label: 'Mesa', value: `${texture} · ${mw}` },
-      { k: 'hand', label: 'Tu mano', value: CLASS_ES[hc.cls] },
-      { k: 'plan', label: 'Plan', value: hc.cls === 'monster' || hc.cls === 'strong' ? 'Valor' : hc.cls === 'draw' || hc.cls === 'weakdraw' ? 'Proyecto' : toCall > 0 ? 'Sin fuerza: foldea o farolea poco' : 'Sin fuerza: pasa o farolea poco' }
+        ? { k: 'odds', label: 'Pot odds', value: `you call ${fmt(toCall)} · need ${need} %` }
+        : { k: 'board', label: 'Board', value: `${texture} · ${mw}` },
+      { k: 'hand', label: 'Your hand', value: CLASS_ES[hc.cls] },
+      { k: 'plan', label: 'Plan', value: hc.cls === 'monster' || hc.cls === 'strong' ? 'Value' : hc.cls === 'draw' || hc.cls === 'weakdraw' ? 'Draw' : toCall > 0 ? 'Weak: fold or bluff rarely' : 'Weak: check or bluff rarely' }
     ]
   };
 }
@@ -374,7 +374,7 @@ function makeStep(run: CashRun, seat: number, ticker: string): HandStep {
     relativePosition: postRelative(run, seat),
     actionTicker: streetTicker,
     contextNotice: ctxNotice,
-    prompt: 'Tu jugada',
+    prompt: 'Your action',
     questionType: 'action',
     options,
     hint: {
@@ -399,7 +399,7 @@ function joinPos(pos: Position[]): string {
 
 function tickerForStreet(ticks: string[], street: Street): string {
   const mark = street === 'flop' ? 'Flop' : street === 'turn' ? 'Turn' : street === 'river' ? 'River' : null;
-  if (!mark) return ticks.join(' · ') || 'Ciegas';
+  if (!mark) return ticks.join(' · ') || 'Blinds';
   const i = ticks.lastIndexOf(mark);
   return (i >= 0 ? ticks.slice(i) : [mark, ...ticks]).join(' · ');
 }
@@ -408,29 +408,29 @@ function heroContextNotice(run: CashRun, pos: Position, toCall: number): string 
   const streetName = run.street === 'preflop' ? 'Preflop' : run.street === 'flop' ? 'Flop' : run.street === 'turn' ? 'Turn' : 'River';
   const prior = run.streetActs;
   if (!prior.length) {
-    return run.street === 'preflop' ? `Acción en ti (${pos})` : `${streetName} · hablas primero`;
+    return run.street === 'preflop' ? `Action on you (${pos})` : `${streetName} · you act first`;
   }
   const lastAgg = [...prior].reverse().find(a => a.kind === 'bet' || a.kind === 'raise' || a.kind === 'limp');
   if (toCall > 0 && lastAgg) {
     if (lastAgg.kind === 'limp') {
       const limpers = prior.filter(a => a.kind === 'limp').map(a => a.pos);
       const names = joinPos(limpers);
-      return `${names} ${limpers.length > 1 ? 'limpean' : 'limpea'} · te toca`;
+      return `${names} limp · your turn`;
     }
-    const verb = lastAgg.kind === 'bet' ? 'apuesta' : 'sube a';
+    const verb = lastAgg.kind === 'bet' ? 'bets' : 'raises to';
     const amt = lastAgg.amount != null ? ` ${fmt(lastAgg.amount)}` : '';
-    return `${lastAgg.pos} ${verb}${amt} · te toca`;
+    return `${lastAgg.pos} ${verb}${amt} · your turn`;
   }
   const passers = prior.filter(a => a.kind === 'check').map(a => a.pos);
   const onlyPassive = prior.every(a => a.kind === 'check' || a.kind === 'fold');
   if (passers.length && onlyPassive) {
-    return `${joinPos(passers)} ${passers.length > 1 ? 'pasan' : 'pasa'} · hablas tú`;
+    return `${joinPos(passers)} ${passers.length > 1 ? 'check' : 'checks'} · you act`;
   }
   const folders = prior.filter(a => a.kind === 'fold').map(a => a.pos);
   if (folders.length && prior.every(a => a.kind === 'fold')) {
-    return `${joinPos(folders)} ${folders.length > 1 ? 'foldean' : 'foldea'} · hablas tú`;
+    return `${joinPos(folders)} ${folders.length > 1 ? 'fold' : 'folds'} · you act`;
   }
-  return run.street === 'preflop' ? `Acción en ti (${pos})` : `${streetName} · hablas tú`;
+  return run.street === 'preflop' ? `Action on you (${pos})` : `${streetName} · you act`;
 }
 
 
@@ -474,26 +474,26 @@ function applyAction(run: CashRun, seat: number, id: string, defs: { id: string;
   };
   if (id === 'fold') {
     s.folded = true;
-    noteAction(run, seat, 'fold', 'Tira');
-    return emit(`${pos} tira`);
+    noteAction(run, seat, 'fold', 'Fold');
+    return emit(`${pos} folds`);
   }
   if (id === 'check') {
-    noteAction(run, seat, 'check', 'Pasa');
-    return emit(`${pos} pasa`);
+    noteAction(run, seat, 'check', 'Check');
+    return emit(`${pos} checks`);
   }
   const amt = def.amountBB || 0;
   post(s, amt);
   if (id === 'call' || id === 'limp') {
-    const label = id === 'limp' ? `Completa ${fmt(amt)}` : `Paga ${fmt(amt)}`;
+    const label = id === 'limp' ? `Limp ${fmt(amt)}` : `Call ${fmt(amt)}`;
     noteAction(run, seat, id, label, amt);
-    return emit(`${pos} ${id === 'limp' ? 'completa' : 'paga'} ${fmt(amt)}`);
+    return emit(`${pos} ${id === 'limp' ? 'limps' : 'calls'} ${fmt(amt)}`);
   }
   run.lastAggressor = seat;
   const kind = (id === 'bet_small' || id === 'bet_big') ? 'bet' : 'raise';
-  const word = kind === 'bet' ? 'apuesta' : (id === '3bet' || id === '4bet') ? 'resube' : 'sube';
-  const label = kind === 'bet' ? `Apuesta ${fmt(s.streetBet)}`
-    : (id === '3bet' || id === '4bet') ? `Resube ${fmt(s.streetBet)}`
-    : `Sube ${fmt(s.streetBet)}`;
+  const word = kind === 'bet' ? 'bets' : id === '3bet' ? '3-bets' : id === '4bet' ? '4-bets' : 'raises';
+  const label = kind === 'bet' ? `Bet ${fmt(s.streetBet)}`
+    : (id === '3bet' || id === '4bet') ? `${id === '4bet' ? '4-bet' : '3-bet'} ${fmt(s.streetBet)}`
+    : `Raise ${fmt(s.streetBet)}`;
   noteAction(run, seat, kind, label, s.streetBet);
   return emit(`${pos} ${word} ${fmt(s.streetBet)}`);
 }
@@ -557,8 +557,8 @@ function showdown(run: CashRun): CashAward {
   });
   const heroWon = r1(won[0] - run.seats[0].invested);
   const text = winners.length
-    ? (winners.length > 1 ? `Empate · ${names.join(' / ')} · ${fmt(pot)} BB` : `${names[0]} · ${fmt(pot)} BB`)
-    : `Bote ${fmt(pot)} BB`;
+    ? (winners.length > 1 ? `Tie · ${names.join(' / ')} · ${fmt(pot)} BB` : `${names[0]} · ${fmt(pot)} BB`)
+    : `Pot ${fmt(pot)} BB`;
   return { text, winners, pot, delta: heroWon };
 }
 
@@ -567,7 +567,7 @@ function foldWin(run: CashRun): CashAward {
   const pot = potOf(run.seats);
   w.stack = r1(w.stack + pot);
   const delta = w.seat === 0 ? r1(pot - run.seats[0].invested) : r1(-run.seats[0].invested);
-  const text = `${posOf(w.seat, run.buttonSeat)} gana ${fmt(pot)} BB`;
+  const text = `${posOf(w.seat, run.buttonSeat)} wins ${fmt(pot)} BB`;
   return { text, winners: [w.seat], pot, delta };
 }
 
@@ -710,7 +710,7 @@ function stepOnce(run: CashRun): StepResult {
     run.awaitingHero = true;
     run.toAct = 0;
     writeTicker(run, ticks);
-    run.step = makeStep(run, 0, run.ticker || `Acción en ti (${posOf(0, run.buttonSeat)})`);
+    run.step = makeStep(run, 0, run.ticker || `Action on you (${posOf(0, run.buttonSeat)})`);
     return 'hero';
   }
   const before = run.lastAggressor;
@@ -772,7 +772,7 @@ export function startHand(table: CashTable, profiles?: BotProfile[]): CashRun {
     log: []
   };
   fillPending(run, null);
-  autoUntilHero(run, ['Ciegas']);
+  autoUntilHero(run, ['Blinds']);
   return run;
 }
 

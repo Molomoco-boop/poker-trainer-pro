@@ -39,29 +39,29 @@ export const ReviewView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
   return (
     <div className="review-view flex flex-col h-[100dvh] bg-bg text-txt">
       <div className="px-2 safe-top pb-1 flex items-center gap-2 border-b border-line shrink-0">
-        <button onClick={onExit} className="w-10 h-10 flex items-center justify-center" aria-label="Salir">
+        <button onClick={onExit} className="w-10 h-10 flex items-center justify-center" aria-label="Back">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div className="flex-1 min-w-0 text-[15px] font-semibold text-hi">Revisión de partidas</div>
+        <div className="flex-1 min-w-0 text-[15px] font-semibold text-hi">Hand review</div>
       </div>
       <div className="px-3 py-2 flex gap-1.5 shrink-0">
         <button
           className={`review-filter-all h-10 px-3 rounded-[4px] text-[13px] font-semibold border ${!filterErrors ? 'bg-acc text-white border-acc' : 'border-line text-txt'}`}
           onClick={() => setFilterErrors(false)}
         >
-          Todas
+          All
         </button>
         <button
           className={`review-filter-errors h-10 px-3 rounded-[4px] text-[13px] font-semibold border ${filterErrors ? 'bg-acc text-white border-acc' : 'border-line text-txt'}`}
           onClick={() => setFilterErrors(true)}
         >
-          Errores / dudosas
+          Errors / doubts
         </button>
       </div>
       <div className="review-list flex-1 overflow-y-auto px-3 pb-4">
         {list.length === 0 ? (
           <Panel className="p-3 text-[13px] text-dim">
-            {hands.length === 0 ? 'Todavía no hay partidas. Juega una mano en Jugar partidas.' : 'Ninguna mano con error o duda.'}
+            {hands.length === 0 ? 'No hands yet. Play a hand in Play cash.' : 'No hands with an error or a doubt.'}
           </Panel>
         ) : (
           <Panel className="overflow-hidden">
@@ -127,7 +127,7 @@ function Replay({
           rating={rating}
           delta={null}
           streak={0}
-          title={`Mano ${hand.handNo} · ${idx + 1}/${total}`}
+          title={`Hand ${hand.handNo} · ${idx + 1}/${total}`}
           recentGrades={decs.map(x => x.grade)}
           doubted={d.doubted}
           onSelectOption={() => {}}
@@ -139,11 +139,11 @@ function Replay({
         />
         <div className="review-nav pointer-events-none absolute top-[52px] left-0 right-0 z-[80] flex justify-center">
           <div className="pointer-events-auto flex items-center gap-2 bg-bg/90 border border-line rounded-[4px] px-2 py-1">
-            <button className="review-prev h-10 w-10 flex items-center justify-center" disabled={idx <= 0} onClick={() => setIdx(Math.max(0, idx - 1))} aria-label="Anterior">
+            <button className="review-prev h-10 w-10 flex items-center justify-center" disabled={idx <= 0} onClick={() => setIdx(Math.max(0, idx - 1))} aria-label="Previous">
               <ArrowLeft className="w-4 h-4" />
             </button>
             <span className="text-[12px] text-dim num">{idx + 1}/{total}</span>
-            <button className="review-next h-10 w-10 flex items-center justify-center" onClick={() => setIdx(idx + 1)} aria-label="Siguiente">
+            <button className="review-next h-10 w-10 flex items-center justify-center" onClick={() => setIdx(idx + 1)} aria-label="Next">
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -155,7 +155,7 @@ function Replay({
   return (
     <div className="review-end flex flex-col h-[100dvh] bg-bg text-txt">
       <div className="px-2 safe-top pb-1 flex items-center gap-2 border-b border-line shrink-0">
-        <button onClick={onClose} className="w-10 h-10 flex items-center justify-center" aria-label="Salir">
+        <button onClick={onClose} className="w-10 h-10 flex items-center justify-center" aria-label="Back">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1 min-w-0 text-[15px] font-semibold text-hi">Mano {hand.handNo} · {hand.heroPos}</div>
@@ -187,7 +187,7 @@ function Replay({
       <div className="px-3 pb-[max(12px,env(safe-area-inset-bottom))] flex gap-2">
         {decs.length > 0 && (
           <button className="review-prev flex-1 h-11 rounded-[4px] border border-line text-hi font-semibold" onClick={() => setIdx(decs.length - 1)}>
-            Decisión anterior
+            Previous decision
           </button>
         )}
         <button className="review-close flex-1 h-11 rounded-[4px] bg-acc text-white font-semibold" onClick={onClose}>Lista</button>
@@ -200,7 +200,7 @@ function uniqueProfiles(profiles: BotProfile[]): string | null {
   const bots = (profiles || []).slice(1);
   if (!bots.length) return null;
   const u = [...new Set(bots)];
-  return 'Rivales: ' + u.map(p => PROFILE_ES[p]).join(', ');
+  return 'Villains: ' + u.map(p => PROFILE_ES[p]).join(', ');
 }
 
 function decisionToStep(d: ReviewDecision, hand: ReviewHand) {
@@ -215,7 +215,7 @@ function decisionToStep(d: ReviewDecision, hand: ReviewHand) {
     relativePosition: 'IP' as const,
     actionTicker: d.ticker,
     contextNotice: d.notice,
-    prompt: 'Tu jugada',
+    prompt: 'Your action',
     questionType: 'action' as const,
     options: d.options,
     hint: { relativePosition: 'IP' as const, potOddsPct: 0, boardTexture: '', spr: 0 },

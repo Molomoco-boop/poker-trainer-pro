@@ -23,15 +23,15 @@ export const ProgressView: React.FC<{ onTrainLeak: (pos: Position, street: Stree
       <Panel className="p-3">
         <div className="flex items-baseline gap-2">
           <span className="num text-[40px] leading-none font-semibold text-hi">{Math.round(stats.rating.r)}{provisional ? '?' : ''}</span>
-          <span className="text-[12px] text-dim">Rating · tu nivel</span>
+          <span className="text-[12px] text-dim">Rating · your level</span>
         </div>
         <div className="mt-2"><Sparkline values={stats.ratingHistory} /></div>
         <div className="grid grid-cols-4 gap-1 mt-2 text-center">
           {[
-            ['Decisiones', String(stats.totalDecisions)],
-            ['Mejor que adivinar', real === null ? '—' : `${real} %`],
-            ['Mejor racha', String(stats.bestStreak)],
-            ['Días', String(stats.dayStreak)]
+            ['Decisions', String(stats.totalDecisions)],
+            ['Above chance', real === null ? '—' : `${real} %`],
+            ['Best streak', String(stats.bestStreak)],
+            ['Days', String(stats.dayStreak)]
           ].map(([k, v]) => (
             <div key={k}>
               <div className="num text-[17px] font-semibold text-hi">{v}</div>
@@ -42,8 +42,8 @@ export const ProgressView: React.FC<{ onTrainLeak: (pos: Position, street: Stree
       </Panel>
 
       <div>
-        <Title right={<span className="text-[10px] text-dim">% sobre el azar</span>}>Dónde fallas</Title>
-        <p className="text-[11px] text-dim px-0.5 mb-1 leading-snug">Verde: aciertas más que el azar. Rojo: menos. El número es ese margen.</p>
+        <Title right={<span className="text-[10px] text-dim">% vs chance</span>}>Leaks</Title>
+        <p className="text-[11px] text-dim px-0.5 mb-1 leading-snug">Green: you beat chance. Red: you don't. The number is that margin.</p>
         <Panel className="p-1.5">
           <div className="leak-map grid gap-[3px]" style={{ gridTemplateColumns: '40px repeat(4, minmax(0, 1fr))' }}>
             <div />
@@ -73,22 +73,22 @@ export const ProgressView: React.FC<{ onTrainLeak: (pos: Position, street: Stree
             <div className="flex items-center gap-2 pt-2 px-0.5">
               <div className="flex-1 min-w-0 text-[13px] text-txt num">
                 <span className="text-hi font-semibold">{sel.pos} · {STREET_SHORT[sel.street]}</span>{' '}
-                {selStats ? `${selReal ?? 0} % · ${selStats.n} dec.` : 'sin datos'}
+                {selStats ? `${selReal ?? 0} % · ${selStats.n} dec.` : 'no data'}
               </div>
-              <BtnPrimary onClick={() => onTrainLeak(sel.pos, sel.street)} className="train-leak px-4 shrink-0">Entrenar esto</BtnPrimary>
+              <BtnPrimary onClick={() => onTrainLeak(sel.pos, sel.street)} className="train-leak px-4 shrink-0">Train this</BtnPrimary>
             </div>
           )}
         </Panel>
       </div>
 
       <Panel className="overflow-hidden">
-        <button onClick={onOpenReview} className="progress-review w-full text-left px-3 min-h-[52px] border-b border-line text-[14px] font-semibold text-hi active:bg-panel2">Revisión de partidas</button>
-        <button onClick={onOpenFlops} className="progress-flops w-full text-left px-3 min-h-[52px] text-[14px] font-semibold text-hi active:bg-panel2">Cómo se juega cada flop</button>
+        <button onClick={onOpenReview} className="progress-review w-full text-left px-3 min-h-[52px] border-b border-line text-[14px] font-semibold text-hi active:bg-panel2">Hand review</button>
+        <button onClick={onOpenFlops} className="progress-flops w-full text-left px-3 min-h-[52px] text-[14px] font-semibold text-hi active:bg-panel2">Flop reports</button>
       </Panel>
 
       <div className="flex items-center justify-between px-0.5 text-[13px] text-txt num">
-        <span>Repasos pendientes <b className="text-hi">{stats.mistakeQueue.length}</b></span>
-        <span>¿Subo primero? <b className="text-hi">{stats.sprintBest}</b></span>
+        <span>Reviews due <b className="text-hi">{stats.mistakeQueue.length}</b></span>
+        <span>Open? <b className="text-hi">{stats.sprintBest}</b></span>
       </div>
     </div>
   );

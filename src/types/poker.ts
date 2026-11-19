@@ -58,10 +58,10 @@ export const STAKE_CONFIG: Record<StakeLevel, { label: string; bbInEuros: number
 export type PedagogicalLevel = 1 | 2 | 3 | 4;
 
 export const PEDAGOGICAL_LEVEL_NAMES: Record<PedagogicalLevel, { name: string; desc: string }> = {
-  1: { name: 'Básico', desc: 'Subir primero y defender la ciega grande' },
-  2: { name: 'Estándar', desc: '+ Ciega pequeña cuando te suben, apostar en el flop' },
-  3: { name: 'Intermedio', desc: '+ Cuando alguien resube (3-bet)' },
-  4: { name: 'Avanzado', desc: 'Todo, solo manos frontera' },
+  1: { name: 'Basic', desc: 'Open raise and BB defense' },
+  2: { name: 'Standard', desc: '+ SB vs open, C-bet' },
+  3: { name: 'Intermediate', desc: '+ 3-bet pots' },
+  4: { name: 'Advanced', desc: 'Everything, borderline hands only' },
 };
 
 export type SpotType =
@@ -75,14 +75,14 @@ export type SpotType =
   | 'POT_ODDS_DRILL';
 
 export const SPOT_TYPE_NAMES: Record<SpotType, string> = {
-  RFI_OPEN: 'Subir primero',
-  BB_DEFENSE: 'BB cuando te suben',
-  SB_VS_OPEN: 'SB cuando te suben',
-  '3BET_POT': 'Te resuben (3-bet)',
-  CBET_FLOP: 'Apuestas en el flop',
-  FACING_CBET: 'Te apuestan en el flop',
-  TURN_RIVER_DECISION: 'Turn / river',
-  POT_ODDS_DRILL: 'Lo que necesitas para pagar'
+  RFI_OPEN: 'Open raise',
+  BB_DEFENSE: 'BB defense',
+  SB_VS_OPEN: 'SB vs open',
+  '3BET_POT': '3-bet pot',
+  CBET_FLOP: 'C-bet',
+  FACING_CBET: 'Vs C-bet',
+  TURN_RIVER_DECISION: 'Turn/River',
+  POT_ODDS_DRILL: 'Pot odds'
 };
 
 export type DecisionVerdict = 'optimal' | 'mixed' | 'error';
@@ -91,11 +91,11 @@ export type DecisionVerdict = 'optimal' | 'mixed' | 'error';
 export type Grade = 'best' | 'valid' | 'imprecise' | 'error' | 'blunder';
 
 export const GRADE_ES: Record<Grade, string> = {
-  best: 'Mejor',
-  valid: 'Válida',
-  imprecise: 'Imprecisa',
+  best: 'Best',
+  valid: 'Valid',
+  imprecise: 'Imprecise',
   error: 'Error',
-  blunder: 'Grave'
+  blunder: 'Blunder'
 };
 
 /** Learning concepts: curriculum order (ranges → postflop), then math. */
@@ -107,42 +107,42 @@ export const CURRICULUM: ConceptId[] = ['rfi_early', 'rfi_late', 'bb_def', 'sb_3
 export const MATH_CONCEPTS: ConceptId[] = ['m_mdf', 'm_bluff', 'm_combos', 'm_equity', 'm_odds', 'm_outs', 'm_ev'];
 
 export const CONCEPT_ES: Record<ConceptId, string> = {
-  rfi_early: 'Subir primero (UTG/HJ)',
-  rfi_late: 'Subir primero (CO/BTN/SB)',
-  bb_def: 'BB cuando te suben',
-  sb_3b: 'SB cuando te suben',
-  vs3b: 'Te resuben (3-bet)',
-  cbet: 'Apuestas en el flop',
-  flop_def: 'Flop: te apuestan',
+  rfi_early: 'Open UTG/HJ',
+  rfi_late: 'Open CO/BTN/SB',
+  bb_def: 'BB defense',
+  sb_3b: 'SB vs open',
+  vs3b: 'Vs 3-bet',
+  cbet: 'C-bet flop',
+  flop_def: 'Flop without initiative',
   turn: 'Turn',
   river: 'River',
-  m_mdf: 'Mínimo a defender',
-  m_bluff: 'Faroles',
-  m_combos: 'Combinaciones',
-  m_equity: '% de ganar vs su rango',
-  m_odds: 'Lo que necesitas para pagar',
+  m_mdf: 'MDF',
+  m_bluff: 'Bluffs',
+  m_combos: 'Combos',
+  m_equity: 'Equity vs range',
+  m_odds: 'Pot odds',
   m_outs: 'Outs',
-  m_ev: 'Valor medio'
+  m_ev: 'EV'
 };
 
-/** Plain-Spanish description of each topic (back of the topic card). */
+/** Short description of each topic (back of the topic card). */
 export const CONCEPT_DESC: Record<ConceptId, string> = {
-  rfi_early: 'Abrir en primeras posiciones si nadie ha entrado',
-  rfi_late: 'Abrir desde corte, botón o ciega pequeña',
-  bb_def: 'Ciega grande: pagar o resubir cuando te abren',
-  sb_3b: 'Ciega pequeña ante una subida: resubir o tirar',
-  vs3b: 'Abriste y te resuben: pagar, 4-bet o tirar',
-  cbet: 'Subiste antes del flop: ¿apuestas en el flop?',
-  flop_def: 'Pagaste antes del flop y te apuestan',
-  turn: 'Cuarta carta: seguir apostando, pagar o frenar',
-  river: 'Última carta: valor, farol o pagar un farol',
-  m_mdf: 'Mínimo a defender para que no ganen faroleando',
-  m_bluff: 'Cuántos faroles caben en tu apuesta de river',
-  m_combos: 'Contar combinaciones de manos, quitando las tuyas',
-  m_equity: 'Tu % de ganar contra todo el rango del rival',
-  m_odds: 'Qué % necesitas ganar para pagar una apuesta',
-  m_outs: 'Cartas que te dan la mejor mano, y su %',
-  m_ev: 'Lo que gana o pierde una jugada de media'
+  rfi_early: 'RFI from early position when it is folded to you',
+  rfi_late: 'RFI from cutoff, button or small blind',
+  bb_def: 'BB: call or 3-bet when facing an open',
+  sb_3b: 'SB vs an open: 3-bet or fold',
+  vs3b: 'You opened and got 3-bet: call, 4-bet or fold',
+  cbet: 'You raised preflop: do you C-bet the flop?',
+  flop_def: 'You called preflop and face a C-bet',
+  turn: 'Fourth card: continue, call or give up',
+  river: 'Last card: value, bluff or bluff-catch',
+  m_mdf: 'Minimum defense frequency so bluffs are not free',
+  m_bluff: 'How many bluffs belong in your river betting range',
+  m_combos: 'Count hand combinations, removing yours and the board',
+  m_equity: 'Your % equity against the villain’s range',
+  m_odds: 'What % equity you need to call a bet',
+  m_outs: 'Cards that give you the best hand, and their %',
+  m_ev: 'Expected value of a play, on average'
 };
 
 export interface DetailRow {
@@ -187,7 +187,7 @@ export interface HandStep {
   relativePosition: 'IP' | 'OOP';
   actionTicker: string;
   contextNotice: string; // Short pill inside table
-  prompt: string; // e.g. "¿Cuál es tu jugada?"
+  prompt: string; // e.g. "Your action"
   questionType: 'action' | 'pot_odds' | 'outs' | 'ev' | 'mdf' | 'bluff' | 'combos' | 'equity';
   options: DecisionOption[];
   hint: {

@@ -23,7 +23,7 @@ export const sameKey = (a: ReviewKey, b: ReviewKey) =>
 const STREET_LABEL: Record<string, string> = { flop: 'Flop', turn: 'Turn', river: 'River' };
 
 export function keyLabel(k: ReviewKey): string {
-  if (k.kind !== 'pre' && k.kind !== 'post') return 'Cálculo';
+  if (k.kind !== 'pre' && k.kind !== 'post') return 'Math';
   const vs = k.villainPos ? ` vs ${k.villainPos}` : '';
   if (k.kind === 'pre') return `${k.heroPos}${vs} · ${k.hand}`;
   return `${k.heroPos}${vs} · ${STREET_LABEL[k.street || 'flop']}`;
@@ -44,7 +44,7 @@ const DEFAULT_CATEGORY_STATS: Record<SpotType, { total: number; correct: number 
 };
 
 export const DEFAULT_STATS: UserStats = {
-  username: 'Jugador',
+  username: 'Player',
   email: '',
   stake: 'NL10',
   rating: { ...START },

@@ -58,7 +58,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         repetitionCount: 0,
         label: keyLabel(step.review),
         userAnswerId: '',
-        userAnswerLabel: 'Dudé',
+        userAnswerLabel: 'Doubt',
         correctAnswerLabel: correctOpt?.label || ''
       };
       return { ...prev, mistakeQueue: [rec, ...prev.mistakeQueue].slice(0, 50) };

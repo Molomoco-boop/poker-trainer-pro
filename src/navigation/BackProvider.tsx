@@ -77,7 +77,7 @@ export const BackProvider: React.FC<{ children: React.ReactNode }> = ({ children
           style={{ bottom: '76px' }}
           role="status"
         >
-          Pulsa otra vez para salir
+          Press again to exit
         </div>
       )}
     </Ctx.Provider>

@@ -30,10 +30,10 @@ const STREET_ES: Record<string, string> = { preflop: 'Preflop', flop: 'Flop', tu
 
 function sessionTitle(s: SessionSpec): string {
   switch (s.kind) {
-    case 'rated': return 'Decisiones';
-    case 'cash': return 'Mesa';
-    case 'daily': return 'Sesión diaria';
-    case 'placement': return 'Test de nivel';
+    case 'rated': return 'Spots';
+    case 'cash': return 'Table';
+    case 'daily': return 'Daily session';
+    case 'placement': return 'Placement test';
     case 'concept': return CONCEPT_ES[s.concept];
     case 'leak': return `${s.pos} · ${STREET_ES[s.street]}`;
   }
@@ -217,22 +217,22 @@ export const PracticeView: React.FC<PracticeViewProps> = ({ session, onExit }) =
       {done && !hideEnd && (
         <div className="session-end fixed inset-0 z-[70] bg-bg flex items-center justify-center p-4">
           <Panel className="w-full max-w-xs p-4 flex flex-col gap-3">
-            <span className="text-[13px] text-dim uppercase tracking-[0.08em]">{session.kind === 'placement' ? 'Test terminado' : 'Sesión diaria hecha'}</span>
+            <span className="text-[13px] text-dim uppercase tracking-[0.08em]">{session.kind === 'placement' ? 'Test complete' : 'Daily session done'}</span>
             <div className="flex items-baseline gap-2">
               <span className="num text-[40px] leading-none font-semibold text-hi">{Math.round(stats.rating.r)}</span>
               <Delta value={Math.round(stats.rating.r) - startRating.current} className="text-[18px]" />
             </div>
-            <div className="text-[14px] text-txt num">{results.filter(r => r.ok).length}/{results.length} correctas</div>
+            <div className="text-[14px] text-txt num">{results.filter(r => r.ok).length}/{results.length} correct</div>
             {session.kind === 'placement' ? (
-              <div className="text-[14px] text-hi">Empiezas en: <b>{CONCEPT_ES[CURRICULUM[placementCurriculum(results)]]}</b></div>
+              <div className="text-[14px] text-hi">You start at: <b>{CONCEPT_ES[CURRICULUM[placementCurriculum(results)]]}</b></div>
             ) : (
               <div className="text-[13px] text-txt space-y-0.5">
-                <div>Tema: <span className="text-hi">{CONCEPT_ES[curConcept]}</span> <span className="num">{Math.round(curR?.r ?? 1500)} · {Math.min(curR?.n ?? 0, UNLOCK_N)}/{UNLOCK_N}</span></div>
-                <div className="num">Repasos pendientes: {dueTomorrow}</div>
+                <div>Topic: <span className="text-hi">{CONCEPT_ES[curConcept]}</span> <span className="num">{Math.round(curR?.r ?? 1500)} · {Math.min(curR?.n ?? 0, UNLOCK_N)}/{UNLOCK_N}</span></div>
+                <div className="num">Reviews due: {dueTomorrow}</div>
               </div>
             )}
             <div className="flex gap-2">
-              <BtnPrimary onClick={onExit} className="flex-1">Inicio</BtnPrimary>
+              <BtnPrimary onClick={onExit} className="flex-1">Home</BtnPrimary>
             </div>
           </Panel>
         </div>

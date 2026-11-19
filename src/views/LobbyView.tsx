@@ -48,30 +48,30 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated
             <img src="/icon-32.png" alt="" width="16" height="16" className="rounded-[3px]" />
             {stats.username}
           </div>
-          <div className="text-[11px] text-dim leading-none mb-0.5">Rating · tu nivel</div>
+          <div className="text-[11px] text-dim leading-none mb-0.5">Rating · your level</div>
           <div className="flex items-baseline gap-2">
             <span className="lobby-rating num text-[36px] leading-none font-semibold text-hi">{Math.round(stats.rating.r)}{stats.rating.rd > 110 ? '?' : ''}</span>
-            {last !== 0 && <span className={`num text-[14px] font-semibold ${last > 0 ? 'text-goodtx' : 'text-badtx'}`}>{last > 0 ? '+' : '−'}{Math.abs(last)} <span className="text-[11px] font-normal text-dim">últimas</span></span>}
+            {last !== 0 && <span className={`num text-[14px] font-semibold ${last > 0 ? 'text-goodtx' : 'text-badtx'}`}>{last > 0 ? '+' : '−'}{Math.abs(last)} <span className="text-[11px] font-normal text-dim">recent</span></span>}
           </div>
         </div>
         <div className="text-right num text-[12px] text-dim leading-tight">
-          <div>Racha <span className="text-hi">{stats.consecutiveCorrect}</span></div>
-          <div>Días <span className="text-hi">{stats.dayStreak}</span></div>
+          <div>Streak <span className="text-hi">{stats.consecutiveCorrect}</span></div>
+          <div>Days <span className="text-hi">{stats.dayStreak}</span></div>
         </div>
       </div>
 
       <Panel className="overflow-hidden">
         {!stats.placementDone && (
-          <Row cls="placement-row" accent title="Prueba de nivel" sub="12 decisiones · fija tu rating de partida" onClick={onStartPlacement} />
+          <Row cls="placement-row" accent title="Placement test" sub="12 spots · sets your rating and starting point" onClick={onStartPlacement} />
         )}
         <Row
           cls="daily-row"
-          title="Sesión diaria"
-          sub={daily >= 10 ? 'Hecha hoy' : `${CONCEPT_ES[concept]} · 4 del tema, 3 de repaso, 3 mezcladas`}
+          title="Daily session"
+          sub={daily >= 10 ? 'Done today' : `${CONCEPT_ES[concept]} · 4 topic + 3 review + 3 mixed`}
           right={<span className="num text-[13px] text-txt">{Math.min(daily, 10)}/10</span>}
           onClick={onStartDaily}
         />
-        <Row cls="cash-row" title="Jugar partidas" sub={`Mesa 6-max · ${MODE_ES[tableMode]} · ${MODE_SUB[tableMode]}`} right={due ? <span className="num text-[12px] text-warn">{due} rep.</span> : undefined} onClick={onStartCash} />
+        <Row cls="cash-row" title="Play cash" sub={`6-max table · ${MODE_ES[tableMode]} · ${MODE_SUB[tableMode]}`} right={due ? <span className="num text-[12px] text-warn">{due} rep.</span> : undefined} onClick={onStartCash} />
         <div className="profile-picker flex flex-wrap gap-1 px-3 py-2 border-b border-line">
           {ALL_MODES.map(m => (
             <button
@@ -85,17 +85,17 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated
             </button>
           ))}
         </div>
-        <Row cls="review-row" title="Revisión de partidas" sub="Vuelve a ver tus manos, calle a calle" onClick={onOpenReview} />
-        <Row cls="flops-row" title="Cómo se juega cada flop" sub="Según el tipo de cartas en mesa" onClick={onOpenFlops} />
-        <Row cls="rated-row" title="Decisiones sueltas" sub="Una jugada cada vez, a tu nivel" onClick={onStartRated} />
-        <Row cls="sprint-row" title="¿Subo primero? 60 s" sub="Subir o tirar, tres fallos y fuera" right={<span className="num text-[13px] text-txt">{stats.sprintBest}</span>} onClick={onStartSprint} />
-        <Row cls="builder-row" title="Construir un rango" sub="Marca de memoria con qué manos subirías" onClick={onStartRangeBuilder} />
+        <Row cls="review-row" title="Hand review" sub="Your hands, street by street" onClick={onOpenReview} />
+        <Row cls="flops-row" title="Flop reports" sub="Texture, c-bet and defense" onClick={onOpenFlops} />
+        <Row cls="rated-row" title="Spots" sub="Single decisions at your level" onClick={onStartRated} />
+        <Row cls="sprint-row" title="Open? 60 s" sub="Open or fold, three misses and out" right={<span className="num text-[13px] text-txt">{stats.sprintBest}</span>} onClick={onStartSprint} />
+        <Row cls="builder-row" title="Build a range" sub="Paint the range from memory" onClick={onStartRangeBuilder} />
       </Panel>
 
       <div>
-        <Title>Herramientas</Title>
+        <Title>Tools</Title>
         <div className="grid grid-cols-3 gap-1.5">
-          {([['ranges', 'Rangos'], ['hands', 'Manos'], ['odds', 'Calculadora']] as const).map(([id, label]) => (
+          {([['ranges', 'Ranges'], ['hands', 'Hands'], ['odds', 'Calculator']] as const).map(([id, label]) => (
             <button key={id} onClick={() => setModal(id)} className="tool-card h-11 rounded-[4px] bg-panel border border-line text-[13px] font-semibold text-hi active:bg-panel2">
               {label}
             </button>

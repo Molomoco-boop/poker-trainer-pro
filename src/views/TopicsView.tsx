@@ -24,7 +24,7 @@ export const TopicsView: React.FC<{ onStart: (c: ConceptId) => void }> = ({ onSt
             <span className="text-[13px] text-hi leading-tight truncate">{i !== undefined && <span className="text-dim num mr-1">{i + 1}</span>}{CONCEPT_ES[c]}</span>
             <span className="flex items-baseline justify-between">
               <span className="num text-[15px] font-semibold text-txt">{r ? Math.round(r.r) : '—'}</span>
-              <span className="num text-[10px] text-dim">{passed ? '✓' : current ? 'ahora' : r ? `${Math.min(r.n, UNLOCK_N)}/${UNLOCK_N}` : ''}</span>
+              <span className="num text-[10px] text-dim">{passed ? '✓' : current ? 'now' : r ? `${Math.min(r.n, UNLOCK_N)}/${UNLOCK_N}` : ''}</span>
             </span>
           </span>
           <span className={`topic-back ${face} justify-center [transform:rotateY(180deg)]`}>
@@ -40,14 +40,14 @@ export const TopicsView: React.FC<{ onStart: (c: ConceptId) => void }> = ({ onSt
         onClick={() => setFlipped(f => !f)}
         className="flip-topics w-full h-10 rounded-[4px] border border-line bg-panel text-[13px] font-semibold text-txt"
       >
-        {flipped ? 'Ver tu nivel en cada tema' : '¿Qué es cada tema?'}
+        {flipped ? 'See your level in each topic' : 'What is each topic?'}
       </button>
       <div>
-        <Title>Rangos → después del flop</Title>
+        <Title>Ranges → postflop</Title>
         <div className="grid grid-cols-2 gap-1.5">{CURRICULUM.map((c, i) => tile(c, i))}</div>
       </div>
       <div>
-        <Title>Cálculo</Title>
+        <Title>Math</Title>
         <div className="grid grid-cols-2 gap-1.5">{MATH.map(c => tile(c))}</div>
       </div>
     </div>

@@ -81,7 +81,7 @@ export function confidenceOf(ms: number | undefined, street: string): 'fast' | '
 export const REVIEW_GAP = 4;
 
 // ---------------------------------------------------------------------------
-// Sprint "¿Abre?"
+// Sprint "Open?"
 // ---------------------------------------------------------------------------
 
 export const SPRINT_SECONDS = 60;
@@ -133,12 +133,12 @@ export function sprintCorrect(h: SprintHand, opens: boolean): boolean {
 export interface RangeTask { id: string; label: string; matrix: () => RangeMatrix; use: 'raise' | 'defend' }
 
 export const RANGE_TASKS: RangeTask[] = [
-  { id: 'rfi_UTG', label: 'UTG sube', matrix: () => getPreflopMatrix('RFI', 'UTG'), use: 'raise' },
-  { id: 'rfi_HJ', label: 'HJ sube', matrix: () => getPreflopMatrix('RFI', 'HJ'), use: 'raise' },
-  { id: 'rfi_CO', label: 'CO sube', matrix: () => getPreflopMatrix('RFI', 'CO'), use: 'raise' },
-  { id: 'rfi_BTN', label: 'BTN sube', matrix: () => getPreflopMatrix('RFI', 'BTN'), use: 'raise' },
-  { id: 'rfi_SB', label: 'SB sube', matrix: () => getPreflopMatrix('RFI', 'SB'), use: 'raise' },
-  { id: 'bb_BTN', label: 'BB si BTN sube', matrix: () => getPreflopMatrix('VS_OPEN', 'BB', 'BTN'), use: 'defend' }
+  { id: 'rfi_UTG', label: 'Open UTG', matrix: () => getPreflopMatrix('RFI', 'UTG'), use: 'raise' },
+  { id: 'rfi_HJ', label: 'Open HJ', matrix: () => getPreflopMatrix('RFI', 'HJ'), use: 'raise' },
+  { id: 'rfi_CO', label: 'Open CO', matrix: () => getPreflopMatrix('RFI', 'CO'), use: 'raise' },
+  { id: 'rfi_BTN', label: 'Open BTN', matrix: () => getPreflopMatrix('RFI', 'BTN'), use: 'raise' },
+  { id: 'rfi_SB', label: 'Open SB', matrix: () => getPreflopMatrix('RFI', 'SB'), use: 'raise' },
+  { id: 'bb_BTN', label: 'BB vs BTN', matrix: () => getPreflopMatrix('VS_OPEN', 'BB', 'BTN'), use: 'defend' }
 ];
 
 export function targetWeight(task: RangeTask, m: RangeMatrix, h: string): number {

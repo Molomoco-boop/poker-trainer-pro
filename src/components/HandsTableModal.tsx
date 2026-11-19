@@ -38,16 +38,16 @@ export const HandsTableModal: React.FC<HandsTableModalProps> = ({ onClose }) => 
         <div className="w-full max-w-md mx-auto bg-panel border border-line rounded-[4px] p-2.5 flex flex-col gap-2 shrink-0">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-[800] text-hi">Las 169 manos</h2>
-              <p className="text-[11px] text-dim leading-snug">Color: desde qué asiento se sube primero. UTG habla primero, BTN es el botón.</p>
+              <h2 className="text-sm font-[800] text-hi">Hands · 169</h2>
+              <p className="text-[11px] text-dim leading-snug">Color: from which seat it opens. UTG acts first, BTN is the button.</p>
             </div>
-            <button onClick={onClose} className="w-10 h-10 rounded-full bg-panel2 flex items-center justify-center text-txt" aria-label="Cerrar">
+            <button onClick={onClose} className="w-10 h-10 rounded-full bg-panel2 flex items-center justify-center text-txt" aria-label="Close">
               <X className="w-5 h-5" />
             </button>
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             <button onClick={() => setView('rank')} className={chip(view === 'rank')}>Ranking</button>
-            <button onClick={() => setView('matrix')} className={chip(view === 'matrix')}>Matriz</button>
+            <button onClick={() => setView('matrix')} className={chip(view === 'matrix')}>Matrix</button>
           </div>
         </div>
 
@@ -80,7 +80,7 @@ export const HandsTableModal: React.FC<HandsTableModalProps> = ({ onClose }) => 
 
           {sel && (
             <div className="hand-detail w-full max-w-md mx-auto bg-panel border border-line rounded-[4px] px-3 py-2 text-center text-[12px] font-semibold text-hi tabular-nums">
-              #{sel.rank} · {sel.hand} · {Math.round(sel.equity)} % vs aleatoria · {sel.openFrom ? `Abre desde ${sel.openFrom}` : 'No se abre'} · {sel.combos} combos
+              #{sel.rank} · {sel.hand} · {Math.round(sel.equity)} % vs random · {sel.openFrom ? `Opens from ${sel.openFrom}` : 'Never opens'} · {sel.combos} combos
             </div>
           )}
         </div>

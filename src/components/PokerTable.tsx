@@ -39,14 +39,14 @@ interface PokerTableProps {
   onDoubt?: () => void;
   onSelectOption: (id: string) => void;
   onNext: () => void;
-  /** Cancels the auto-advance ("Ver detalle"). */
+  /** Cancels the auto-advance ("See detail"). */
   onHold?: () => void;
   onBack: () => void;
   onToggleUnits: () => void;
   onOpenRangeViewer: (req: RangeRequest) => void;
   /** Replaces the empty options spacer (e.g. cash showdown summary). */
   footer?: React.ReactNode;
-  /** Cash hands: compact, fast auto-advance and a "Parar" hold button. */
+  /** Cash hands: compact, fast auto-advance and a "Pause" hold button. */
   pace?: 'normal' | 'fast';
   /** Brief inline end-of-hand result (no overlay). */
   handEnd?: { text: string; delta: number } | null;
@@ -129,7 +129,7 @@ const FreqGrid: React.FC<{ options: HandStep['options']; selectedId: string | nu
             <span className="text-[11px] text-txt leading-tight text-center truncate w-full">{main}</span>
             {exploit ? (
               <>
-                <span className="gto-freq num text-[10px] text-dim leading-none mt-0.5">Teoría {opt.frequencyGTO} %</span>
+                <span className="gto-freq num text-[10px] text-dim leading-none mt-0.5">GTO {opt.frequencyGTO} %</span>
                 <span className={`exploit-freq num text-[13px] font-semibold leading-none mt-0.5 ${tone}`}>{vs} {opt.frequencyExploit} %</span>
               </>
             ) : (
@@ -181,7 +181,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     <div className="poker-table w-full h-[100dvh] max-h-[100dvh] flex flex-col bg-bg text-txt select-none overflow-hidden relative" data-step-id={step.id} data-street={step.street} data-pace={pace} data-hand-end={handEnd ? '1' : undefined} data-title={title || ''}>
       {/* Header: back · rating ± · streak · units */}
       <div className="w-full px-2 safe-top pb-1 shrink-0 flex items-center gap-2 border-b border-line">
-        <button onClick={onBack} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Salir">
+        <button onClick={onBack} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Back">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1 min-w-0 flex items-baseline gap-2">
@@ -192,7 +192,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           <Delta value={delta} className="text-[15px]" />
           {title && <span className="text-[12px] text-dim truncate">{title}</span>}
         </div>
-        <span className="streak num text-[13px] text-txt whitespace-nowrap" aria-label="Racha">Racha <b className="text-hi">{streak}</b></span>
+        <span className="streak num text-[13px] text-txt whitespace-nowrap" aria-label="Streak">Streak <b className="text-hi">{streak}</b></span>
         <button onClick={onToggleUnits} className="h-10 min-w-[40px] px-2 text-[12px] font-semibold text-txt border border-line rounded-[4px]" aria-label="Cambiar BB / €">
           {displayUnits === 'bb' ? 'BB' : '€'}
         </button>
@@ -236,7 +236,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                     p.winner ? 'bg-panel border-2 border-good' : p.isHero ? 'bg-panel border-2 border-acc' : isFolded ? 'bg-bg border border-line opacity-40' : 'bg-panel border border-line'
                   }`}>
                     <span className="text-[13px] font-bold text-hi leading-none">{p.position}</span>
-                    <span className="num text-[12px] text-txt leading-none mt-1 whitespace-nowrap">{isFolded ? 'Tira' : money(p.stack)}</span>
+                    <span className="num text-[12px] text-txt leading-none mt-1 whitespace-nowrap">{isFolded ? 'Fold' : money(p.stack)}</span>
                     {p.winner && <span className="winner-chip text-[9px] leading-none font-semibold text-goodtx uppercase tracking-wide mt-0.5" data-winner={p.position}>Gana</span>}
                     {!p.isHero && p.profile && (
                       <span className="profile-tag text-[8px] leading-none text-dim uppercase tracking-wide mt-0.5" data-profile={p.profile}>{PROFILE_SHORT[p.profile]}</span>
@@ -298,7 +298,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                     <span>{main}</span>
                     {sub && <span className="num text-[10px] text-dim">{sub}</span>}
                     {isAction && opt.id === 'call' && needPct(opt.amountBB) > 0 && (
-                      <span className="need-pct num text-[10px] font-normal text-acc">Pagar: {needPct(opt.amountBB)} %</span>
+                      <span className="need-pct num text-[10px] font-normal text-acc">Call: {needPct(opt.amountBB)} %</span>
                     )}
                   </button>
                 );
@@ -318,7 +318,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                     onClick={e => { e.stopPropagation(); onDoubt(); }}
                     className={`doubt-chip h-10 px-3 rounded-[4px] text-[12px] font-semibold border ${doubted ? 'bg-warn border-warn text-black' : 'border-line text-txt'}`}
                   >
-                    Dudé
+                    Doubt
                   </button>
                 )}
               </div>
@@ -328,7 +328,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 onClick={e => { e.stopPropagation(); onHold?.(); setExpanded(true); }}
                 className="see-detail pause-btn h-10 rounded-[4px] border border-line text-txt text-[13px] font-semibold flex items-center justify-center gap-1.5"
               >
-                {fast ? 'Parar' : <>Ver detalle <ChevronDown className="w-4 h-4" /></>}
+                {fast ? 'Pause' : <>See detail <ChevronDown className="w-4 h-4" /></>}
               </button>
             </div>
             {!doubted && <div className="countdown w-full h-0.5 bg-line overflow-hidden"><div className={`h-full bg-good ${barClass}`} /></div>}
@@ -342,7 +342,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               <Delta value={delta} className="text-[15px]" />
               <span className={`ml-auto text-[12px] font-semibold truncate ${isCorrectAnswer ? 'text-txt' : 'text-goodtx'}`}>{isCorrectAnswer ? selectedOpt?.label : isAction ? okLabels : best.label}</span>
             </div>
-            {fastError && <span className="text-[11px] text-warn">Rápido y mal: repásalo</span>}
+            {fastError && <span className="text-[11px] text-warn">Fast and wrong: review it</span>}
             {fast
               ? (planRow ? <DetailRows rows={[planRow]} /> : step.why && <div className="why-line text-[12px] leading-snug text-hi">{step.why}</div>)
               : (step.detail?.length ? <DetailRows rows={step.detail} /> : step.why && <div className="why-line text-[12px] leading-snug text-hi">{step.why}</div>)}
@@ -357,7 +357,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 </button>
               )}
               <button onClick={onNext} className="siguiente-btn flex-1 h-11 rounded-[4px] bg-acc text-white font-semibold text-[14px] flex items-center justify-center gap-1.5">
-                Siguiente <ArrowRight className="w-4 h-4" />
+                Next <ArrowRight className="w-4 h-4" />
               </button>
             </div>
             </div>

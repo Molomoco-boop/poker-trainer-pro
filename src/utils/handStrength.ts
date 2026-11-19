@@ -6,13 +6,13 @@ import { boardCategory, detectCleanOuts, DrawDetectionResult, boardHasFourToHand
 export type StrengthClass = 'monster' | 'strong' | 'medium' | 'weak' | 'draw' | 'weakdraw' | 'air';
 
 export const CLASS_ES: Record<StrengthClass, string> = {
-  monster: 'Mano muy fuerte',
-  strong: 'Mano fuerte',
-  medium: 'Mano media',
-  weak: 'Mano débil',
-  draw: 'Proyecto',
-  weakdraw: 'Proyecto débil',
-  air: 'Sin mano ni proyecto'
+  monster: 'Monster',
+  strong: 'Strong',
+  medium: 'Medium',
+  weak: 'Weak',
+  draw: 'Draw',
+  weakdraw: 'Weak draw',
+  air: 'Air'
 };
 
 export interface HandClass {

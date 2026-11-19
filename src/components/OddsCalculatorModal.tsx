@@ -17,20 +17,20 @@ const SUIT_BTNS: { s: Suit; sym: string; cls: string }[] = [
   { s: 'd', sym: '♦', cls: 'text-acc' },
   { s: 'c', sym: '♣', cls: 'text-goodtx' }
 ];
-const DRAW_ES: Record<string, string> = { 'Proyecto de color': 'color', 'Escalera abierta': 'escalera abierta', Gutshot: 'escalera interior', Overcards: 'cartas más altas' };
+const DRAW_ES: Record<string, string> = { 'Flush draw': 'flush draw', 'Open-ended': 'open-ended', Gutshot: 'gutshot', Overcards: 'overcards' };
 
 const Num: React.FC<{ label: string; value: number; set: (v: number) => void; step?: number }> = ({ label, value, set, step = 1 }) => (
   <div className="flex-1 min-w-0 flex flex-col gap-0.5">
     <span className="text-[11px] text-dim truncate">{label}</span>
     <div className="flex items-center border border-line rounded-[4px] bg-bg h-10">
-      <button onClick={() => set(Math.max(0, value - step))} className="w-10 h-10 flex items-center justify-center text-txt" aria-label={`Menos ${label}`}><Minus className="w-4 h-4" /></button>
+      <button onClick={() => set(Math.max(0, value - step))} className="w-10 h-10 flex items-center justify-center text-txt" aria-label={`Minus ${label}`}><Minus className="w-4 h-4" /></button>
       <input
         type="number" inputMode="decimal" min={0} value={value}
         onChange={e => set(Math.max(0, +e.target.value || 0))}
         className="calc-input flex-1 min-w-0 h-10 bg-transparent text-center text-hi font-semibold num text-[15px] outline-none"
         aria-label={label}
       />
-      <button onClick={() => set(value + step)} className="w-10 h-10 flex items-center justify-center text-txt" aria-label={`Más ${label}`}><Plus className="w-4 h-4" /></button>
+      <button onClick={() => set(value + step)} className="w-10 h-10 flex items-center justify-center text-txt" aria-label={`Plus ${label}`}><Plus className="w-4 h-4" /></button>
     </div>
   </div>
 );
@@ -101,11 +101,11 @@ export const OddsCalculatorModal: React.FC<OddsCalculatorModalProps> = ({ onClos
     <ModalPortal>
       <div className="calc-modal fixed inset-0 z-[60] bg-bg flex flex-col select-none animate-fadeIn safe-top safe-bottom overflow-hidden">
         <div className="w-full max-w-md mx-auto px-2 h-12 flex items-center gap-2 shrink-0 border-b border-line">
-          <h2 className="flex-1 text-[15px] font-semibold text-hi">¿Pago el proyecto?</h2>
-          <button onClick={() => { setSlots([null, null, null, null, null, null]); setActive(0); setRank(null); }} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Borrar cartas">
+          <h2 className="flex-1 text-[15px] font-semibold text-hi">Pot odds</h2>
+          <button onClick={() => { setSlots([null, null, null, null, null, null]); setActive(0); setRank(null); }} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Clear cards">
             <RotateCcw className="w-4 h-4" />
           </button>
-          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Cerrar">
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Close">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -114,11 +114,11 @@ export const OddsCalculatorModal: React.FC<OddsCalculatorModalProps> = ({ onClos
           {/* 1 + 2: cards */}
           <div className="flex items-end justify-between gap-2">
             <div className="flex flex-col gap-1">
-              <StepTitle n={1} done={hero.length === 2}>Tus cartas</StepTitle>
+              <StepTitle n={1} done={hero.length === 2}>Your cards</StepTitle>
               <div className="flex gap-1">{[0, 1].map(slot)}</div>
             </div>
             <div className="flex flex-col gap-1 items-end">
-              <StepTitle n={2} done={board.length >= 3}>Mesa</StepTitle>
+              <StepTitle n={2} done={board.length >= 3}>Board</StepTitle>
               <div className="flex gap-1">{[2, 3, 4, 5].map(slot)}</div>
             </div>
           </div>
@@ -132,7 +132,7 @@ export const OddsCalculatorModal: React.FC<OddsCalculatorModalProps> = ({ onClos
                   {r === 'T' ? '10' : r}
                 </button>
               ))}
-              <button onClick={() => { const n = [...slots]; n[active] = null; setSlots(n); }} className="h-10 rounded-[4px] border border-line bg-panel text-dim text-[11px]" aria-label="Quitar carta">Quitar</button>
+              <button onClick={() => { const n = [...slots]; n[active] = null; setSlots(n); }} className="h-10 rounded-[4px] border border-line bg-panel text-dim text-[11px]" aria-label="Remove card">Remove</button>
             </div>
             <div className="grid grid-cols-4 gap-1">
               {SUIT_BTNS.map(({ s, sym, cls }) => (
@@ -142,15 +142,15 @@ export const OddsCalculatorModal: React.FC<OddsCalculatorModalProps> = ({ onClos
                 </button>
               ))}
             </div>
-            <span className="text-[11px] text-dim text-center">{rank ? 'Ahora el palo' : 'Toca un hueco, luego número y palo'}</span>
+            <span className="text-[11px] text-dim text-center">{rank ? 'Now the suit' : 'Tap a slot, then rank and suit'}</span>
           </div>
 
           {/* 3: pot and bet */}
           <div className="flex flex-col gap-1">
-            <StepTitle n={3} done={bet > 0}>Bote y apuesta (BB)</StepTitle>
+            <StepTitle n={3} done={bet > 0}>Pot and bet (BB)</StepTitle>
             <div className="flex gap-2">
-              <Num label="Bote antes de apostar" value={pot} set={setPot} />
-              <Num label="Apuesta que pagas" value={bet} set={setBet} />
+              <Num label="Pot before the bet" value={pot} set={setPot} />
+              <Num label="Bet you face" value={bet} set={setBet} />
             </div>
           </div>
 
@@ -159,27 +159,27 @@ export const OddsCalculatorModal: React.FC<OddsCalculatorModalProps> = ({ onClos
             <div className="bg-panel border border-line rounded-[4px] px-2 py-1.5 flex flex-col">
               <span className="text-[11px] text-dim">Outs</span>
               <span className="calc-outs num text-[26px] leading-tight font-semibold text-hi">{d ? d.totalCleanOutsCount : '—'}</span>
-              <span className="text-[11px] text-txt truncate">{d ? drawName || 'sin proyecto' : 'faltan cartas'}</span>
+              <span className="text-[11px] text-txt truncate">{d ? drawName || 'no draw' : 'missing cards'}</span>
             </div>
             <div className="bg-panel border border-line rounded-[4px] px-2 py-1.5 flex flex-col">
-              <span className="text-[11px] text-dim">Probabilidad</span>
+              <span className="text-[11px] text-dim">Probability</span>
               <span className="calc-prob num text-[26px] leading-tight font-semibold text-hi">{d ? `${Math.round(nextCard)} %` : '—'}</span>
-              <span className="text-[11px] text-txt truncate">{d ? (onFlop ? `turn · ${Math.round(d.equityRiverPct)} % river` : 'en el river') : ''}</span>
+              <span className="text-[11px] text-txt truncate">{d ? (onFlop ? `turn · ${Math.round(d.equityRiverPct)} % river` : 'on the river') : ''}</span>
             </div>
             <div className="bg-panel border border-line rounded-[4px] px-2 py-1.5 flex flex-col">
-              <span className="text-[11px] text-dim">Necesitas</span>
+              <span className="text-[11px] text-dim">You need</span>
               <span className="calc-need num text-[26px] leading-tight font-semibold text-hi">{bet > 0 ? `${need} %` : '—'}</span>
-              <span className="text-[11px] text-txt truncate">{bet > 0 ? `pagas ${bet} de ${pot + bet * 2}` : ''}</span>
+              <span className="text-[11px] text-txt truncate">{bet > 0 ? `you call ${bet} of ${pot + bet * 2}` : ''}</span>
             </div>
           </div>
           {verdict && (
             <div className={`calc-verdict h-11 rounded-[4px] flex items-center justify-center gap-2 text-[15px] font-semibold ${verdict === 'ok' ? 'bg-good text-white' : 'bg-bad text-white'}`}>
-              {verdict === 'ok' ? 'Pagar es rentable' : 'No rentable: mejor tirar'}
+              {verdict === 'ok' ? 'Calling is +EV' : 'Not profitable: fold'}
               <span className="num text-[12px] font-normal opacity-90">{Math.round(nextCard)} % {verdict === 'ok' ? '≥' : '<'} {need} %</span>
             </div>
           )}
           <p className="text-[11px] text-dim leading-snug">
-            Outs: cartas que te dan la mejor mano. Se compara con la próxima carta: si apuestan otra vez, vuelves a pagar.
+            Outs: cards that give you the best hand. Compared to the next card: if they bet again, you face pot odds once more.
           </p>
         </div>
       </div>

@@ -113,7 +113,7 @@ function playOut(table: CashTable, maxDecisions = 24): CashRun {
       run = applyHeroAction(run, pick.id);
     }
     if (run.award) {
-      if (run.award.text.includes('BB') && /Pareja|Trío|Carta|Color|Full|Escalera|Póker|Empate/.test(run.award.text)) show++;
+      if (run.award.text.includes('BB') && /Pair|Three of a kind|High card|Flush|Full house|Straight|Quads|Tie|Two pair|Royal/.test(run.award.text)) show++;
       else foldwin++;
       table = run.table;
     }
@@ -160,19 +160,17 @@ function playOut(table: CashTable, maxDecisions = 24): CashRun {
       const ticker = step.actionTicker || '';
       for (const p of bots) {
         const act = (p.streetAction || '').toLowerCase();
-        const word = /^(pasa)\b/.test(act) ? 'pasa'
-          : /^(tira)\b/.test(act) ? 'tira'
-          : /^(paga)\b/.test(act) ? 'paga'
-          : /^completa/.test(act) ? 'completa'
-          : /^(apuesta)\b/.test(act) ? 'apuesta'
-          : /^(resube)\b/.test(act) ? 'resube'
-          : /^(sube)\b/.test(act) ? 'sube'
-          : act.startsWith('check') ? 'check'
+        const word = act.startsWith('check') ? 'check'
           : act.startsWith('fold') ? 'fold'
           : act.startsWith('call') ? 'call'
           : act.startsWith('limp') ? 'limp'
           : act.startsWith('bet') ? 'bet'
-          : act.startsWith('raise') ? 'raise' : '';
+          : act.startsWith('4-bet') ? '4-bet'
+          : act.startsWith('3-bet') ? '3-bet'
+          : act.startsWith('raise') ? 'raise'
+          : /^(pasa)\b/.test(act) ? 'pasa'
+          : /^(tira)\b/.test(act) ? 'tira'
+          : /^(paga)\b/.test(act) ? 'paga' : '';
         if (word) {
           ok(ticker.toLowerCase().includes(`${p.position.toLowerCase()} ${word}`),
             `ticker mentions ${p.position} ${word}: "${ticker}" (chip ${p.streetAction})`);
@@ -181,8 +179,8 @@ function playOut(table: CashTable, maxDecisions = 24): CashRun {
       }
       if (checks.length) {
         foundCheck++;
-        ok(!/hablas primero/i.test(step.contextNotice), `after checks, notice is not "hablas primero" ("${step.contextNotice}")`);
-        ok(/pasa/i.test(step.contextNotice), `after checks, notice mentions pasan ("${step.contextNotice}")`);
+        ok(!/you act first/i.test(step.contextNotice), `after checks, notice is not "you act first" ("${step.contextNotice}")`);
+        ok(/check/i.test(step.contextNotice), `after checks, notice mentions check ("${step.contextNotice}")`);
         const mark = run.street === 'flop' ? 'Flop' : run.street === 'turn' ? 'Turn' : run.street === 'river' ? 'River' : null;
         if (mark) ok(ticker.startsWith(mark), `ticker starts with ${mark}: "${ticker}"`);
         foundNotice++;

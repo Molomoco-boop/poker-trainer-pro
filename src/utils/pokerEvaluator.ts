@@ -9,16 +9,16 @@ export const RANK_VALUES: Record<Rank, number> = {
 };
 
 export const HAND_NAMES_ES = [
-  'Carta alta',
-  'Pareja',
-  'Doble pareja',
-  'Trío',
-  'Escalera',
-  'Color',
-  'Full',
-  'Póker',
-  'Escalera de color',
-  'Escalera real'
+  'High card',
+  'Pair',
+  'Two pair',
+  'Three of a kind',
+  'Straight',
+  'Flush',
+  'Full house',
+  'Quads',
+  'Straight flush',
+  'Royal flush'
 ];
 
 export interface HandEvaluation {
@@ -36,7 +36,7 @@ export function cardToString(c: Card): string {
 // Evaluate best 5-card combination from 5, 6, or 7 cards
 export function evaluateHand(cards: Card[]): HandEvaluation {
   if (cards.length < 5) {
-    return { score: 0, name: 'Incompleta', tiebreakers: [], descr: 'Menos de 5 cartas' };
+    return { score: 0, name: 'Incomplete', tiebreakers: [], descr: 'Fewer than 5 cards' };
   }
 
   // Generate all 5-card subsets if > 5 cards
@@ -99,9 +99,9 @@ function eval5Cards(cards: Card[]): HandEvaluation {
   // 9: Royal Flush / 8: Straight Flush
   if (isFlush && isStraight) {
     if (straightHigh === 14 && values.includes(10)) {
-      return { score: 9, name: HAND_NAMES_ES[9], tiebreakers: [14], descr: 'Escalera real' };
+      return { score: 9, name: HAND_NAMES_ES[9], tiebreakers: [14], descr: 'Royal flush' };
     }
-    return { score: 8, name: HAND_NAMES_ES[8], tiebreakers: [straightHigh], descr: `Escalera de color al ${rankLabelSingle(straightHigh)}` };
+    return { score: 8, name: HAND_NAMES_ES[8], tiebreakers: [straightHigh], descr: `Straight flush to the ${rankLabelSingle(straightHigh)}` };
   }
 
   // 7: Four of a Kind (Póker)
@@ -110,7 +110,7 @@ function eval5Cards(cards: Card[]): HandEvaluation {
       score: 7,
       name: HAND_NAMES_ES[7],
       tiebreakers: [countEntries[0].val, countEntries[1].val],
-      descr: `Póker de ${rankLabel(countEntries[0].val)}`
+      descr: `Quads, ${rankLabel(countEntries[0].val)}`
     };
   }
 
@@ -120,7 +120,7 @@ function eval5Cards(cards: Card[]): HandEvaluation {
       score: 6,
       name: HAND_NAMES_ES[6],
       tiebreakers: [countEntries[0].val, countEntries[1].val],
-      descr: `Full de ${rankLabel(countEntries[0].val)} con ${rankLabel(countEntries[1].val)}`
+      descr: `Full house, ${rankLabel(countEntries[0].val)} full of ${rankLabel(countEntries[1].val)}`
     };
   }
 
@@ -130,7 +130,7 @@ function eval5Cards(cards: Card[]): HandEvaluation {
       score: 5,
       name: HAND_NAMES_ES[5],
       tiebreakers: values,
-      descr: `Color al ${rankLabelSingle(values[0])}`
+      descr: `Flush, ${rankLabelSingle(values[0])} high`
     };
   }
 
@@ -140,7 +140,7 @@ function eval5Cards(cards: Card[]): HandEvaluation {
       score: 4,
       name: HAND_NAMES_ES[4],
       tiebreakers: [straightHigh],
-      descr: `Escalera al ${rankLabelSingle(straightHigh)}`
+      descr: `Straight to the ${rankLabelSingle(straightHigh)}`
     };
   }
 
@@ -150,7 +150,7 @@ function eval5Cards(cards: Card[]): HandEvaluation {
       score: 3,
       name: HAND_NAMES_ES[3],
       tiebreakers: [countEntries[0].val, countEntries[1].val, countEntries[2].val],
-      descr: `Trío de ${rankLabel(countEntries[0].val)}`
+      descr: `Three of a kind, ${rankLabel(countEntries[0].val)}`
     };
   }
 
@@ -160,7 +160,7 @@ function eval5Cards(cards: Card[]): HandEvaluation {
       score: 2,
       name: HAND_NAMES_ES[2],
       tiebreakers: [countEntries[0].val, countEntries[1].val, countEntries[2].val],
-      descr: `Doble pareja ${rankLabel(countEntries[0].val)} y ${rankLabel(countEntries[1].val)}`
+      descr: `Two pair, ${rankLabel(countEntries[0].val)} and ${rankLabel(countEntries[1].val)}`
     };
   }
 
@@ -170,7 +170,7 @@ function eval5Cards(cards: Card[]): HandEvaluation {
       score: 1,
       name: HAND_NAMES_ES[1],
       tiebreakers: [countEntries[0].val, countEntries[1].val, countEntries[2].val, countEntries[3].val],
-      descr: `Pareja de ${rankLabel(countEntries[0].val)}`
+      descr: `Pair of ${rankLabel(countEntries[0].val)}`
     };
   }
 
@@ -179,7 +179,7 @@ function eval5Cards(cards: Card[]): HandEvaluation {
     score: 0,
     name: HAND_NAMES_ES[0],
     tiebreakers: values,
-    descr: `Carta alta ${rankLabelSingle(values[0])}`
+    descr: `${rankLabelSingle(values[0])} high`
   };
 }
 
@@ -194,15 +194,15 @@ export function compareEvaluations(a: HandEvaluation, b: HandEvaluation): number
 }
 
 function rankLabelSingle(val: number): string {
-  const map: Record<number, string> = { 14: 'As', 13: 'Rey', 12: 'Dama', 11: 'Jota', 10: '10' };
+  const map: Record<number, string> = { 14: 'Ace', 13: 'King', 12: 'Queen', 11: 'Jack', 10: '10' };
   return map[val] || `${val}`;
 }
 
 function rankLabel(val: number): string {
   const map: Record<number, string> = {
-    14: 'Ases', 13: 'Reyes', 12: 'Damas', 11: 'Jotas', 10: 'Dieces',
-    9: 'Nueves', 8: 'Ochos', 7: 'Sietes', 6: 'Seises', 5: 'Cincos',
-    4: 'Cuatros', 3: 'Treses', 2: 'Doses'
+    14: 'Aces', 13: 'Kings', 12: 'Queens', 11: 'Jacks', 10: 'Tens',
+    9: 'Nines', 8: 'Eights', 7: 'Sevens', 6: 'Sixes', 5: 'Fives',
+    4: 'Fours', 3: 'Threes', 2: 'Twos'
   };
   return map[val] || `${val}`;
 }

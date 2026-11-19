@@ -4,10 +4,10 @@ import { Home, LayoutGrid, LineChart, User } from 'lucide-react';
 export type Tab = 'inicio' | 'temas' | 'progreso' | 'perfil';
 
 const TABS: { id: Tab; label: string; Icon: typeof Home }[] = [
-  { id: 'inicio', label: 'Inicio', Icon: Home },
-  { id: 'temas', label: 'Temas', Icon: LayoutGrid },
-  { id: 'progreso', label: 'Progreso', Icon: LineChart },
-  { id: 'perfil', label: 'Perfil', Icon: User }
+  { id: 'inicio', label: 'Home', Icon: Home },
+  { id: 'temas', label: 'Topics', Icon: LayoutGrid },
+  { id: 'progreso', label: 'Progress', Icon: LineChart },
+  { id: 'perfil', label: 'Profile', Icon: User }
 ];
 
 export const BottomNav: React.FC<{ currentTab: Tab; onSelectTab: (t: Tab) => void }> = ({ currentTab, onSelectTab }) => (

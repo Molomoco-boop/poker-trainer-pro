@@ -107,8 +107,8 @@ export function detectCleanOuts(heroCards: [Card, Card], board: Card[]): DrawDet
   }
 
   const labels: string[] = [];
-  if (flushOuts >= 7) labels.push('Proyecto de color');
-  if (straightOuts >= 6) labels.push('Escalera abierta');
+  if (flushOuts >= 7) labels.push('Flush draw');
+  if (straightOuts >= 6) labels.push('Open-ended');
   else if (straightOuts > 0) labels.push('Gutshot');
   if (pairOuts > 0 && !labels.length) labels.push('Overcards');
 
@@ -170,23 +170,23 @@ export function raiserBoardAdvantage(board: Card[]): -1 | 0 | 1 {
   return 0;
 }
 
-/** Short Spanish texture: "Alto · seco · arcoíris", "Bajo · conectado · proyecto de color", "Pareado · color posible". */
+/** Short texture: "High · dry · rainbow", "Low · connected · flush draw", "Paired · flush possible". */
 export function analyzeBoardTexture(board: Card[]): string {
   if (board.length < 3) return 'Preflop';
   const maxSuit = suitInfo(board);
   const paired = boardCategory(board) >= 1;
   const top = Math.max(...board.map(c => RANK_VALUES[c.rank]));
   const parts: string[] = [];
-  if (paired) parts.push('Pareado');
-  else parts.push(top >= 12 ? 'Alto' : top <= 9 ? 'Bajo' : 'Medio');
+  if (paired) parts.push('Paired');
+  else parts.push(top >= 12 ? 'High' : top <= 9 ? 'Low' : 'Mid');
   const connected = isConnectedBoard(board);
   if (maxSuit >= 3) {
-    if (connected) parts.push('conectado');
-    parts.push('color posible');
+    if (connected) parts.push('connected');
+    parts.push('flush possible');
   } else {
-    parts.push(connected ? 'conectado' : 'seco');
-    if (board.length < 5) parts.push(maxSuit === 2 ? 'proyecto de color' : 'arcoíris');
-    else parts.push('sin color');
+    parts.push(connected ? 'connected' : 'dry');
+    if (board.length < 5) parts.push(maxSuit === 2 ? 'flush draw' : 'rainbow');
+    else parts.push('no flush');
   }
   return parts.join(' · ');
 }

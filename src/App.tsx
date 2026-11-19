@@ -39,7 +39,7 @@ function AppContent() {
         ) : screen.kind === 'review' ? (
           <ReviewView onExit={back} />
         ) : screen.kind === 'flops' ? (
-          <Suspense fallback={<div className="p-4 text-sm text-dim">Cargando…</div>}>
+          <Suspense fallback={<div className="p-4 text-sm text-dim">Loading…</div>}>
             <FlopReportView onExit={back} />
           </Suspense>
         ) : screen.kind === 'sprint' ? (

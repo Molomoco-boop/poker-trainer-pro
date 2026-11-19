@@ -84,7 +84,7 @@ ok(at4567.cls === 'air' && at4567.draws.totalCleanOutsCount === 0, `AT on 4567: 
 const qt = detectCleanOuts(C('Qd Th') as [Card, Card], C('8c Ts Jd'));
 ok(qt.drawLabels.includes('Gutshot') && qt.straightOuts === 4, `QT on 8TJ: gutshot to the 9 (${qt.drawLabels.join('/')}, ${qt.straightOuts})`);
 const kq = detectCleanOuts(C('Kd Qh') as [Card, Card], C('Jc Ts 4d'));
-ok(kq.drawLabels.includes('Escalera abierta') && kq.straightOuts === 8, `KQ on JT4: open-ended (${kq.straightOuts})`);
+ok(kq.drawLabels.includes('Open-ended') && kq.straightOuts === 8, `KQ on JT4: open-ended (${kq.straightOuts})`);
 ok(detectCleanOuts(C('8h 7h') as [Card, Card], C('Kh 9d 2h')).totalCleanOutsCount === 9, '87h on Kh9d2h: 9 flush outs (9h counts on an unpaired board)');
 {
   const a6 = detectCleanOuts(C('Ah 6h') as [Card, Card], C('2h Qd 3h Qs'));
@@ -96,18 +96,18 @@ ok(classifyHand(C('Ac Kc') as [Card, Card], C('5c 9c Jd')).cls === 'draw', 'nut 
 
 // ---------- board texture ----------
 const mono = analyzeBoardTexture(C('Kh 7h 2h'));
-ok(/color posible/.test(mono) && !/seco/.test(mono), `monotone flop not "seco" (${mono})`);
-ok(analyzeBoardTexture(C('Kh 7d 2c')) === 'Alto · seco · arcoíris', `rainbow (${analyzeBoardTexture(C('Kh 7d 2c'))})`);
-ok(/proyecto de color/.test(analyzeBoardTexture(C('Kh 7h 2c'))), 'two-tone flop = proyecto de color');
-ok(/conectado/.test(analyzeBoardTexture(C('6h 7d 8c'))), '678 connected');
-ok(/Pareado/.test(analyzeBoardTexture(C('8h 8d 3c'))), 'paired');
+ok(/flush possible/.test(mono) && !/dry/.test(mono), `monotone flop not "dry" (${mono})`);
+ok(analyzeBoardTexture(C('Kh 7d 2c')) === 'High · dry · rainbow', `rainbow (${analyzeBoardTexture(C('Kh 7d 2c'))})`);
+ok(/flush draw/.test(analyzeBoardTexture(C('Kh 7h 2c'))), 'two-tone flop = flush draw');
+ok(/connected/.test(analyzeBoardTexture(C('6h 7d 8c'))), '678 connected');
+ok(/Paired/.test(analyzeBoardTexture(C('8h 8d 3c'))), 'paired');
 {
   const deck = '23456789TJQKA'.split('').flatMap(r => 'shdc'.split('').map(su => r + su));
   for (let i = 0; i < 2000; i++) {
     const b = [...deck].sort(() => Math.random() - 0.5).slice(0, 3 + (i % 3)).join(' ');
     const t = analyzeBoardTexture(C(b));
-    ok(!(/seco/.test(t) && /color posible/.test(t)), `texture never "seco" with "color posible" (${b}: ${t})`);
-    if (C(b).every(c => c.suit === C(b)[0].suit)) ok(!/seco/.test(t), `monotone not seco (${b})`);
+    ok(!(/dry/.test(t) && /flush possible/.test(t)), `texture never "dry" with "flush possible" (${b}: ${t})`);
+    if (C(b).every(c => c.suit === C(b)[0].suit)) ok(!/\bdry\b/.test(t), `monotone not dry (${b})`);
   }
 }
 
@@ -133,9 +133,9 @@ ok(HAND_RANKING[168].openFrom === null, 'last hand is never opened');
 const mixed = buildOptions([{ id: 'fold', label: 'FOLD', freq: 40 }, { id: 'call', label: 'CALL', freq: 60 }, { id: 'raise', label: 'RAISE', freq: 0 }]);
 ok(mixed[0].isCorrect && mixed[0].grade === 'valid' && mixed[1].isCorrect && mixed[1].grade === 'best', 'freq ≥25 % = Válida, top = Mejor');
 ok(!mixed[2].isCorrect && mixed[2].verdict === 'error' && mixed[2].grade === 'error', 'freq 0 = Error');
-ok(buildOptions([{ id: 'fold', label: 'F', freq: 0 }, { id: 'raise', label: 'R', freq: 100 }], ['fold'])[0].grade === 'blunder', 'severe freq 0 = Grave');
+ok(buildOptions([{ id: 'fold', label: 'F', freq: 0 }, { id: 'raise', label: 'R', freq: 100 }], ['fold'])[0].grade === 'blunder', 'severe freq 0 = Blunder');
 ok(!('evDiff' in mixed[0]) && !('evDiffNum' in mixed[0]), 'no invented EV on options');
-ok(mixedLine(mixed) === 'Pagar 60 % · Tirar 40 %: ambas valen', `mixed line (${mixedLine(mixed)})`);
+ok(mixedLine(mixed) === 'Call 60 % · Fold 40 %: both are correct', `mixed line (${mixedLine(mixed)})`);
 const rare = buildOptions([{ id: 'check', label: 'CHECK', freq: 85 }, { id: 'bet_small', label: 'BET', freq: 15 }]);
 ok(!rare[1].isCorrect && rare[1].verdict === 'mixed' && rare[1].grade === 'imprecise', 'freq 15 % = Imprecisa');
 ok(mixedLine(rare) === null, 'single answer: no mixed line');
@@ -199,13 +199,13 @@ let fourWayFlops = 0;
 
 function checkWhy(step: HandStep, tag: string) {
   ok(!!step.why && step.why.length <= 140, `${tag}: why line present and short (${step.why?.length}) "${step.why}"`);
-  const m = /necesitas (\d+) %/.exec(step.why || '');
+  const m = /need (\d+) %/.exec(step.why || '');
   const call = step.options.find(o => o.id === 'call');
   if (call && call.amountBB && call.frequencyGTO > 0 && step.questionType === 'action') {
     ok(!!m, `${tag}: why mentions what you need ("${step.why}")`);
     if (m) {
       const need = Math.round((call.amountBB / (step.pot + call.amountBB)) * 100);
-      ok(Math.abs(Number(m[1]) - need) <= 1, `${tag}: necesitas ${m[1]} == ${need}`);
+      ok(Math.abs(Number(m[1]) - need) <= 1, `${tag}: need ${m[1]} == ${need}`);
     }
   }
 }
@@ -245,7 +245,7 @@ for (let i = 0; i < N; i++) {
     if (st === pf) preChoice = id;
     return id;
   });
-  if (note && /foldea/.test(note)) foldNotes++;
+  if (note && /folds/.test(note)) foldNotes++;
   for (let k = 0; k < steps.length - 1; k++) {
     ok(steps[k + 1].pot >= steps[k].pot - 0.05 || steps[k].street === 'preflop', `${tag}: pot never shrinks`);
   }
@@ -294,9 +294,9 @@ for (let i = 0; i < N; i++) {
       const active = st.players.filter(p => !p.isHero && p.status === 'active');
       ok(active.length >= 1 && active.length <= 4, `${stag}: 2-5 way (${active.map(p => p.position).join('/')})`);
       const facingBet = st.players.some(p => !p.isHero && p.currentBet > st.players[0].currentBet);
-      if (facingBet && st.relativePosition === 'OOP' && st.review.decision === 'facing') ok(/pasas/i.test(st.contextNotice), `${stag}: OOP hero acts first ("${st.contextNotice}")`);
+      if (facingBet && st.relativePosition === 'OOP' && st.review.decision === 'facing') ok(/you check/i.test(st.contextNotice), `${stag}: OOP hero checked first ("${st.contextNotice}")`);
       if (!facingBet && st.relativePosition === 'IP') ok(/pasa\b/.test(st.contextNotice), `${stag}: IP hero gets checked to ("${st.contextNotice}")`);
-      if (!facingBet && /hablas primero/.test(st.contextNotice)) probeSpots++;
+      if (!facingBet && /you act first/.test(st.contextNotice)) probeSpots++;
       const opt = st.options.filter(o => o.isCorrect).map(o => o.id).join('+');
       optimalByStreet[st.street] = optimalByStreet[st.street] || {};
       optimalByStreet[st.street][opt] = (optimalByStreet[st.street][opt] || 0) + 1;
@@ -467,7 +467,7 @@ for (const pos of CLOCKWISE_POSITIONS) for (const st of ['preflop', 'flop', 'tur
   for (let i = 1; i < whys.length; i++) if (whys[i] === whys[i - 1]) repeats++;
   ok(repeats <= 3, `consecutive explanations rarely repeat (${repeats})`);
   ok(new Set(whys).size > 40, `explanations vary (${new Set(whys).size} distinct / 150)`);
-  ok(whys.some(w => /Valor/.test(w)) && whys.some(w => /Farol|Semifarol/.test(w)) && whys.some(w => /Control del bote|Bluff-catcher/.test(w)), 'reasons cover valor, farol, control');
+  ok(whys.some(w => /Value/.test(w)) && whys.some(w => /Bluff|Semi-bluff/.test(w)) && whys.some(w => /Pot control|Bluff-catcher/.test(w)), 'reasons cover value, bluff, pot control');
   ok(!whys.some(w => /Iniciativa de/.test(w)), 'old template phrase gone');
 }
 
@@ -486,7 +486,7 @@ for (let i = 0; i < 200; i++) {
   ok(Math.abs(parseFloat(b.options.find(o => o.isCorrect)!.label) - hb / (bp + 2 * hb) * 100) <= 0.5, `bluff answer ${b.why}`);
   const c = generateCombosDrill();
   checkSeats(c, 'combos');
-  const label = c.prompt.match(/de (\w+) quedan/)![1];
+  const label = c.prompt.match(/combos of (\w+)/)![1];
   const dead = [...c.players[0].cards!, ...c.communityCards];
   // brute force
   const deck = '23456789TJQKA'.split('').flatMap(r => 'shdc'.split('').map(su => ({ rank: r, suit: su })));

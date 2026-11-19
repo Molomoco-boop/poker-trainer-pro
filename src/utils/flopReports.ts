@@ -12,22 +12,22 @@ import { FLOP_REPORT_TABLE } from '../data/flopReportTable';
 export type FlopGroupId = 'ace' | 'kq' | 'midconn' | 'low' | 'paired' | 'mono' | 'twotone' | 'rainbow';
 
 export const FLOP_GROUPS: { id: FlopGroupId; label: string; sub: string; sit: string; learn: string }[] = [
-  { id: 'ace', label: 'A alta', sub: 'Sin pareja', sit: 'Flop A-alto', learn: 'Pasa mucho: el as ayuda a los dos' },
-  { id: 'kq', label: 'K/Q alta', sub: 'Sin as ni pareja', sit: 'Flop K o Q altos', learn: 'Apuesta más: K y Q golpea a quien subió' },
-  { id: 'midconn', label: 'Medio conectado', sub: 'Conectado, del 8 al 10', sit: 'Flop medio conectado', learn: 'Hay muchos proyectos: no apuestes siempre' },
-  { id: 'low', label: 'Bajo', sub: 'Nueve o menos', sit: 'Flop bajo', learn: 'Quien subió suele ir por delante' },
-  { id: 'paired', label: 'Pareado', sub: 'Hay una pareja en mesa', sit: 'Flop pareado', learn: 'Apuesta más: es difícil encajar dos pares' },
-  { id: 'mono', label: 'Un palo', sub: 'Tres del mismo palo', sit: 'Flop de un palo', learn: 'Cuidado con el color: no siempre apuestes' },
-  { id: 'twotone', label: 'Dos palos', sub: 'Dos cartas del mismo palo', sit: 'Flop de dos palos', learn: 'Hay color posible: mezcla apuesta y pasa' },
-  { id: 'rainbow', label: 'Tres palos', sub: 'Un palo distinto cada carta', sit: 'Flop de tres palos', learn: 'Sin color: puedes apostar más a menudo' }
+  { id: 'ace', label: 'Ace-high', sub: 'Unpaired', sit: 'Ace-high flop', learn: 'Checks a lot: the ace helps both ranges' },
+  { id: 'kq', label: 'K/Q-high', sub: 'No ace, unpaired', sit: 'King- or queen-high flop', learn: 'Bets more: K and Q hit the raiser' },
+  { id: 'midconn', label: 'Mid connected', sub: 'Connected, 8 through 10', sit: 'Mid connected flop', learn: 'Many draws: do not always bet' },
+  { id: 'low', label: 'Low', sub: 'Nine or lower', sit: 'Low flop', learn: 'The raiser is usually ahead' },
+  { id: 'paired', label: 'Paired', sub: 'A pair on the board', sit: 'Paired flop', learn: 'Bets more: two pair is hard to hit' },
+  { id: 'mono', label: 'One suit', sub: 'Three of the same suit', sit: 'One-suit flop', learn: 'Watch the flush: do not always bet' },
+  { id: 'twotone', label: 'Two suits', sub: 'Two cards of the same suit', sit: 'Two-suit flop', learn: 'A flush is possible: mix bet and check' },
+  { id: 'rainbow', label: 'Three suits', sub: 'A different suit on each card', sit: 'Three-suit flop', learn: 'No flush: you can bet more often' }
 ];
 
 export type ReportSpotId = 'srp_btn_bb' | 'srp_co_bb' | 'threebet';
 
 export const REPORT_SPOTS: { id: ReportSpotId; label: string; sub: string; ip: Position; oop: Position; agg: Position; def: Position; raisedBy: string }[] = [
-  { id: 'srp_btn_bb', label: 'BTN sube, BB paga', sub: 'Solo ha habido una subida', ip: 'BTN', oop: 'BB', agg: 'BTN', def: 'BB', raisedBy: 'BTN fue el que subió' },
-  { id: 'srp_co_bb', label: 'CO sube, BB paga', sub: 'Solo ha habido una subida', ip: 'CO', oop: 'BB', agg: 'CO', def: 'BB', raisedBy: 'CO fue el que subió' },
-  { id: 'threebet', label: 'BB resube (3-bet), BTN paga', sub: 'BB ha resubido y BTN ha pagado', ip: 'BB', oop: 'BTN', agg: 'BB', def: 'BTN', raisedBy: 'BB fue el que resubió' }
+  { id: 'srp_btn_bb', label: 'BTN raises, BB calls', sub: 'Only one raise so far', ip: 'BTN', oop: 'BB', agg: 'BTN', def: 'BB', raisedBy: 'BTN was the raiser' },
+  { id: 'srp_co_bb', label: 'CO raises, BB calls', sub: 'Only one raise so far', ip: 'CO', oop: 'BB', agg: 'CO', def: 'BB', raisedBy: 'CO was the raiser' },
+  { id: 'threebet', label: 'BB 3-bets, BTN calls', sub: 'BB has 3-bet and BTN has called', ip: 'BB', oop: 'BTN', agg: 'BB', def: 'BTN', raisedBy: 'BB was the 3-bettor' }
 ];
 
 const RANK_VAL: Record<Rank, number> = {
@@ -304,7 +304,7 @@ export function makeFlopDrill(): FlopDrill {
     group,
     spot: spot.id,
     flop: exampleFlop(group),
-    question: `${FLOP_GROUPS[gi].sit} · ${spot.label}. ${spot.raisedBy}. ¿De cada 100 veces, en cuántas apuesta ${spot.agg} en este flop?`,
+    question: `${FLOP_GROUPS[gi].sit} · ${spot.label}. ${spot.raisedBy}. Out of 100 times, how many does ${spot.agg} bet on this flop?`,
     answer,
     options
   };

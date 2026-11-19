@@ -1,5 +1,5 @@
 /**
- * Opponent profiles for "Jugar partidas" and the inverse (exploitative) hero freqs.
+ * Opponent profiles for cash play and the inverse (exploitative) hero freqs.
  * Regular ≈ GTO. The others leak in a known direction; hero grades vs the leak.
  */
 import { Street } from '../types/poker';
@@ -10,30 +10,30 @@ export type BotProfile = 'regular' | 'recreativo' | 'nit' | 'maniac';
 export type TableMode = BotProfile | 'mixto';
 
 export const PROFILE_ES: Record<BotProfile, string> = {
-  regular: 'Equilibrado',
-  recreativo: 'Recreativo',
-  nit: 'Cerrado',
-  maniac: 'Agresivo'
+  regular: 'Regular',
+  recreativo: 'Recreational',
+  nit: 'Nit',
+  maniac: 'Maniac'
 };
 export const PROFILE_SHORT: Record<BotProfile, string> = {
-  regular: 'Eq',
+  regular: 'Reg',
   recreativo: 'Rec',
-  nit: 'Cer',
-  maniac: 'Agr'
+  nit: 'Nit',
+  maniac: 'Man'
 };
 export const MODE_ES: Record<TableMode, string> = {
-  regular: 'Equilibrado',
-  recreativo: 'Recreativo',
-  nit: 'Cerrado',
-  maniac: 'Agresivo',
-  mixto: 'Mezcla'
+  regular: 'Regular',
+  recreativo: 'Recreational',
+  nit: 'Nit',
+  maniac: 'Maniac',
+  mixto: 'Mixed'
 };
 export const MODE_SUB: Record<TableMode, string> = {
-  regular: 'Juega como el libro',
-  recreativo: 'Paga de más, farolea poco',
-  nit: 'Juega pocas manos y foldea de más',
-  maniac: 'Apuesta y farolea de más',
-  mixto: 'Un estilo distinto en cada asiento'
+  regular: 'Close to GTO',
+  recreativo: 'Over-calls, passive',
+  nit: 'Very tight, folds a lot',
+  maniac: 'Over-bluffs',
+  mixto: 'A different profile on each seat'
 };
 export const ALL_PROFILES: BotProfile[] = ['regular', 'recreativo', 'nit', 'maniac'];
 export const ALL_MODES: TableMode[] = ['regular', 'recreativo', 'nit', 'maniac', 'mixto'];

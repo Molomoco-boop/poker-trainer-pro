@@ -221,8 +221,8 @@ export const CashView: React.FC<{ onExit: () => void; mode?: TableMode }> = ({ o
   const sessionDelta = heroDelta(liveTable);
   const handNo = (award ? run.table.handNo : tableRef.current.handNo + 1);
   const handDeltaLabel = award && !isSubmitted
-    ? `Mano ${handNo} · ${award.delta >= 0 ? '+' : ''}${award.delta} BB`
-    : `Mano ${handNo} · ${sessionDelta >= 0 ? '+' : ''}${sessionDelta} BB`;
+    ? `Hand ${handNo} · ${award.delta >= 0 ? '+' : ''}${award.delta} BB`
+    : `Hand ${handNo} · ${sessionDelta >= 0 ? '+' : ''}${sessionDelta} BB`;
 
   return (
     <>
