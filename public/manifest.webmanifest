@@ -1,6 +1,6 @@
 {
-  "name": "Poker Trainer",
-  "short_name": "Poker",
+  "name": "Free Poker Trainer",
+  "short_name": "Poker Trainer",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#262421",

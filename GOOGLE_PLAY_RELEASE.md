@@ -1,6 +1,6 @@
-# Google Play Store Release Guide — Poker Trainer Pro
+# Google Play Store Release Guide — Free Poker Trainer
 
-Esta guía contiene todo lo necesario para subir **Poker Trainer Pro** (`com.pokertrainer.pro`) a **Google Play Console**.
+Esta guía contiene todo lo necesario para subir **Free Poker Trainer** (`com.pokertrainer.pro`) a **Google Play Console**.
 
 ---
 

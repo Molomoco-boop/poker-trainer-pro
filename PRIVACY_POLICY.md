@@ -1,8 +1,8 @@
-# Privacy Policy — Poker Trainer Pro
+# Privacy Policy — Free Poker Trainer
 
 **Last updated:** 2026-11-26
 
-**Poker Trainer Pro** ("the App") is an offline-first poker strategy and math training application.
+**Free Poker Trainer** ("the App") is an offline-first poker strategy and math training application.
 
 ## 1. No Account & No Data Collection
 - You do **not** need to create an account or sign in to use the App.

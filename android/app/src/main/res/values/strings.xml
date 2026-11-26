@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Poker Trainer Pro</string>
-    <string name="title_activity_main">Poker Trainer Pro</string>
+    <string name="app_name">Free Poker Trainer</string>
+    <string name="title_activity_main">Free Poker Trainer</string>
     <string name="package_name">com.pokertrainer.pro</string>
     <string name="custom_url_scheme">com.pokertrainer.pro</string>
 </resources>
