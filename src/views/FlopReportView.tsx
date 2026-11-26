@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Panel, BtnPrimary } from '../components/ui';
 import { CardView } from '../components/CardView';
 import { useGame } from '../context/useGame';
+import { useI18n } from '../i18n';
 import {
   FLOP_GROUPS, REPORT_SPOTS, FlopGroupId, allReports, exampleFlop, formatFlop,
   makeFlopDrill, FlopDrill, SpotReport
@@ -10,6 +11,7 @@ import {
 
 export const FlopReportView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
   const { stats } = useGame();
+  const { t } = useI18n();
   const [tab, setTab] = useState<'informe' | 'practica'>('informe');
   const [group, setGroup] = useState<FlopGroupId>('ace');
   const [drill, setDrill] = useState<FlopDrill | null>(null);
@@ -36,7 +38,7 @@ export const FlopReportView: React.FC<{ onExit: () => void }> = ({ onExit }) => 
         <button onClick={onExit} className="w-10 h-10 flex items-center justify-center" aria-label="Back">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div className="flex-1 min-w-0 text-[15px] font-semibold text-hi">How to play each flop</div>
+        <div className="flex-1 min-w-0 text-[15px] font-semibold text-hi">{t.howToPlayFlop}</div>
         <button
           type="button"
           className={`flop-help-btn w-10 h-10 rounded-[4px] border text-[15px] font-semibold ${help ? 'bg-acc text-white border-acc' : 'border-line text-txt'}`}
@@ -61,13 +63,13 @@ export const FlopReportView: React.FC<{ onExit: () => void }> = ({ onExit }) => 
           className={`flop-tab-informe h-10 px-3 rounded-[4px] text-[13px] font-semibold border ${tab === 'informe' ? 'bg-acc text-white border-acc' : 'border-line text-txt'}`}
           onClick={() => setTab('informe')}
         >
-          Guide
+          {t.guide}
         </button>
         <button
           className={`flop-tab-drill h-10 px-3 rounded-[4px] text-[13px] font-semibold border ${tab === 'practica' ? 'bg-acc text-white border-acc' : 'border-line text-txt'}`}
           onClick={startDrill}
         >
-          How often does it bet?
+          {t.howOftenBet}
         </button>
       </div>
 

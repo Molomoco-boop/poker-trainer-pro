@@ -5,10 +5,12 @@ import { RANGE_TASKS, rangeScore, targetWeight, RangeResult } from '../utils/ses
 import { getHandLabel, getRangeStats } from '../data/preflopRanges';
 import { BtnPrimary, BtnFlat } from '../components/ui';
 import { useBackLayer } from '../navigation/BackProvider';
+import { useI18n } from '../i18n';
 
 /** Paint a 13×13 range from memory and get a weighted score. */
 export const RangeBuilderView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
   const { stats, recordRange } = useGame();
+  const { t } = useI18n();
   const [taskIdx, setTaskIdx] = useState(0);
   const [painted, setPainted] = useState<Set<string>>(new Set());
   const [result, setResult] = useState<RangeResult | null>(null);
@@ -67,9 +69,9 @@ export const RangeBuilderView: React.FC<{ onExit: () => void }> = ({ onExit }) =
   return (
     <div className="range-builder w-full h-[100dvh] flex flex-col bg-bg overflow-hidden">
       <div className="safe-top px-2 pb-1 flex items-center gap-2 border-b border-line shrink-0">
-        <button onClick={onExit} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Back"><ArrowLeft className="w-5 h-5" /></button>
-        <span className="text-[15px] text-hi font-semibold">Build a range</span>
-        <span className="ml-auto num text-[13px] text-dim">Best {stats.rangeBest[task.id] ?? 0} %</span>
+        <button onClick={onExit} className="w-10 h-10 flex items-center justify-center text-txt" aria-label={t.exit}><ArrowLeft className="w-5 h-5" /></button>
+        <span className="text-[15px] text-hi font-semibold">{t.buildRange}</span>
+        <span className="ml-auto num text-[13px] text-dim">{t.best} {stats.rangeBest[task.id] ?? 0} %</span>
       </div>
 
       <div className="grid grid-cols-3 gap-1 px-2 pt-2 shrink-0">
@@ -81,7 +83,7 @@ export const RangeBuilderView: React.FC<{ onExit: () => void }> = ({ onExit }) =
       </div>
 
       <div className="px-2 py-1.5 text-[13px] text-txt shrink-0 num">
-        {task.use === 'raise' ? 'Paint the hands you open' : 'Paint the ones you defend (call or 3-bet)'} · <span className="text-hi">{pct} %</span> · {painted.size} pintadas
+        {task.use === 'raise' ? t.paintOpen : t.paintDefend} · <span className="text-hi">{pct} %</span> · {painted.size} {t.paintedCount}
       </div>
 
       <div className="flex-1 min-h-0 flex items-start justify-center px-2">
@@ -108,18 +110,18 @@ export const RangeBuilderView: React.FC<{ onExit: () => void }> = ({ onExit }) =
         {result ? (
           <div className="range-result text-[13px] text-txt leading-snug">
             <span className="num text-[22px] font-semibold text-hi mr-2">{result.score} %</span>
-            {result.missing.length > 0 && <span>Missing <span className="text-warn">{list(result.missing)}</span>. </span>}
-            {result.extra.length > 0 && <span>Extra <span className="text-badtx">{list(result.extra)}</span>.</span>}
-            {!result.missing.length && !result.extra.length && <span>Exact.</span>}
+            {result.missing.length > 0 && <span>{t.missing} <span className="text-warn">{list(result.missing)}</span>. </span>}
+            {result.extra.length > 0 && <span>{t.extra} <span className="text-badtx">{list(result.extra)}</span>.</span>}
+            {!result.missing.length && !result.extra.length && <span>{t.exact}</span>}
           </div>
         ) : (
-          <div className="text-[12px] text-dim">Tap or drag. Mixed hands score by their frequency.</div>
+          <div className="text-[12px] text-dim">{t.tapOrDrag}</div>
         )}
         <div className="flex gap-2">
-          <BtnFlat onClick={() => reset()} className="flex-1">{result ? 'Again' : 'Clear'}</BtnFlat>
+          <BtnFlat onClick={() => reset()} className="flex-1">{result ? t.again : t.clear}</BtnFlat>
           {result
-            ? <BtnPrimary onClick={() => reset((taskIdx + 1) % RANGE_TASKS.length)} className="flex-1">Next</BtnPrimary>
-            : <BtnPrimary onClick={check} disabled={!painted.size} className="flex-1">Check</BtnPrimary>}
+            ? <BtnPrimary onClick={() => reset((taskIdx + 1) % RANGE_TASKS.length)} className="flex-1">{t.next}</BtnPrimary>
+            : <BtnPrimary onClick={check} disabled={!painted.size} className="flex-1">{t.check}</BtnPrimary>}
         </div>
       </div>
     </div>

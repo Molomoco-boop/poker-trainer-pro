@@ -8,9 +8,11 @@ import { loadHands, isErrorOrDoubt, worstGrade, ReviewHand, ReviewDecision } fro
 import { cardsToHandLabel } from '../utils/handStrength';
 import { StakeLevel } from '../types/poker';
 import { PROFILE_ES, BotProfile } from '../utils/botProfiles';
+import { useI18n } from '../i18n';
 
 export const ReviewView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
   const { stats, toggleDisplayUnits } = useGame();
+  const { t } = useI18n();
   const [filterErrors, setFilterErrors] = useState(false);
   const [open, setOpen] = useState<ReviewHand | null>(null);
   const [idx, setIdx] = useState(0);
@@ -42,26 +44,26 @@ export const ReviewView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
         <button onClick={onExit} className="w-10 h-10 flex items-center justify-center" aria-label="Back">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div className="flex-1 min-w-0 text-[15px] font-semibold text-hi">Hand review</div>
+        <div className="flex-1 min-w-0 text-[15px] font-semibold text-hi">{t.handReview}</div>
       </div>
       <div className="px-3 py-2 flex gap-1.5 shrink-0">
         <button
           className={`review-filter-all h-10 px-3 rounded-[4px] text-[13px] font-semibold border ${!filterErrors ? 'bg-acc text-white border-acc' : 'border-line text-txt'}`}
           onClick={() => setFilterErrors(false)}
         >
-          All
+          {t.all}
         </button>
         <button
           className={`review-filter-errors h-10 px-3 rounded-[4px] text-[13px] font-semibold border ${filterErrors ? 'bg-acc text-white border-acc' : 'border-line text-txt'}`}
           onClick={() => setFilterErrors(true)}
         >
-          Errors / doubts
+          {t.errorsDoubts}
         </button>
       </div>
       <div className="review-list flex-1 overflow-y-auto px-3 pb-4">
         {list.length === 0 ? (
           <Panel className="p-3 text-[13px] text-dim">
-            {hands.length === 0 ? 'No hands yet. Play a hand in Play cash.' : 'No hands with an error or a doubt.'}
+            {hands.length === 0 ? t.noHandsYet : t.noErrorsYet}
           </Panel>
         ) : (
           <Panel className="overflow-hidden">

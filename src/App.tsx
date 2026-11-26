@@ -30,8 +30,8 @@ function AppContent() {
   useBackLayer(screen.kind === 'tabs' && tab !== 'inicio', () => setTab('inicio'));
 
   return (
-    <div className="min-h-[100dvh] bg-bg text-txt flex justify-center">
-      <div className="w-full max-w-md min-h-[100dvh] flex flex-col relative">
+    <div className="min-h-[100dvh] bg-bg text-txt flex justify-center safe-x">
+      <div className="w-full max-w-md md:max-w-lg min-h-[100dvh] flex flex-col relative">
         {screen.kind === 'practice' ? (
           <PracticeView key={runId} session={screen.session} onExit={back} />
         ) : screen.kind === 'cash' ? (

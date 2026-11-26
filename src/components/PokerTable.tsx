@@ -9,6 +9,7 @@ import { GradeBadge, Delta } from './ui';
 import { GRADE_STYLE } from './gradeStyle';
 import { useBackLayer } from '../navigation/BackProvider';
 import { PROFILE_SHORT } from '../utils/botProfiles';
+import { useI18n } from '../i18n';
 
 export interface RangeRequest {
   hand?: string;
@@ -149,6 +150,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   onSelectOption, onNext, onHold, onBack, onToggleUnits, onOpenRangeViewer, footer,
   pace = 'normal', handEnd
 }) => {
+  const { t } = useI18n();
   const hero = step.players.find(p => p.isHero) || step.players[0];
   const isAction = step.questionType === 'action';
   const fmtBB = (v: number) => `${Math.round(v * 10) / 10}`;
@@ -192,7 +194,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           <Delta value={delta} className="text-[15px]" />
           {title && <span className="text-[12px] text-dim truncate">{title}</span>}
         </div>
-        <span className="streak num text-[13px] text-txt whitespace-nowrap" aria-label="Streak">Streak <b className="text-hi">{streak}</b></span>
+        <span className="streak num text-[13px] text-txt whitespace-nowrap" aria-label={t.streak}>{t.streak} <b className="text-hi">{streak}</b></span>
         <button onClick={onToggleUnits} className="h-10 min-w-[40px] px-2 text-[12px] font-semibold text-txt border border-line rounded-[4px]" aria-label="Cambiar BB / €">
           {displayUnits === 'bb' ? 'BB' : '€'}
         </button>
@@ -314,12 +316,12 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 <span className="text-[12px] text-txt truncate">{selectedOpt?.label}</span>
                 <Delta value={delta} className="ml-auto text-[15px]" />
                 {onDoubt && (
-                  <button
-                    onClick={e => { e.stopPropagation(); onDoubt(); }}
-                    className={`doubt-chip h-10 px-3 rounded-[4px] text-[12px] font-semibold border ${doubted ? 'bg-warn border-warn text-black' : 'border-line text-txt'}`}
-                  >
-                    Doubt
-                  </button>
+                    <button
+                      onClick={e => { e.stopPropagation(); onDoubt(); }}
+                      className={`doubt-chip h-10 px-3 rounded-[4px] text-[12px] font-semibold border ${doubted ? 'bg-warn border-warn text-black' : 'border-line text-txt'}`}
+                    >
+                      {doubted ? t.doubted : t.doubt}
+                    </button>
                 )}
               </div>
               {!fast && (planRow ? <DetailRows rows={[planRow]} /> : step.why && <span className="why-line text-[12px] leading-snug text-hi">{step.why}</span>)}
@@ -328,7 +330,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 onClick={e => { e.stopPropagation(); onHold?.(); setExpanded(true); }}
                 className="see-detail pause-btn h-10 rounded-[4px] border border-line text-txt text-[13px] font-semibold flex items-center justify-center gap-1.5"
               >
-                {fast ? 'Pause' : <>See detail <ChevronDown className="w-4 h-4" /></>}
+                {fast ? t.pause : <>{t.seeDetail} <ChevronDown className="w-4 h-4" /></>}
               </button>
             </div>
             {!doubted && <div className="countdown w-full h-0.5 bg-line overflow-hidden"><div className={`h-full bg-good ${barClass}`} /></div>}
@@ -353,11 +355,11 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                   onClick={() => onOpenRangeViewer({ hand: cardsToHandLabel(hero.cards!), situation, position: step.heroPosition, opener })}
                   className="h-11 px-3 rounded-[4px] bg-panel2 border border-line text-txt text-[13px] font-semibold shrink-0"
                 >
-                  Rango
+                  {t.rangeBtn}
                 </button>
               )}
               <button onClick={onNext} className="siguiente-btn flex-1 h-11 rounded-[4px] bg-acc text-white font-semibold text-[14px] flex items-center justify-center gap-1.5">
-                Next <ArrowRight className="w-4 h-4" />
+                {t.nextBtn} <ArrowRight className="w-4 h-4" />
               </button>
             </div>
             </div>

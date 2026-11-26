@@ -274,6 +274,9 @@ export interface SessionHandResult {
   correctAnswer: string;
 }
 
+export type SupportedLang = 'en' | 'es' | 'pt' | 'fr' | 'de' | 'it' | 'ru' | 'zh' | 'ja' | 'ko';
+export type LanguagePref = 'auto' | SupportedLang;
+
 export interface UserStats {
   username: string;
   email: string;
@@ -317,6 +320,7 @@ export interface UserStats {
     displayUnits: 'bb' | 'units'; // 'bb' | 'units' (€)
     deckColorMode: '4color' | '2color';
     trainingPositions: Position[];
+    language?: LanguagePref;
   };
   categoryStats: Record<SpotType, { total: number; correct: number }>;
   mistakeQueue: MistakeRecord[];

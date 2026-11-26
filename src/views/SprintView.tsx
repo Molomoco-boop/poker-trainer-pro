@@ -7,10 +7,12 @@ import { CardView } from '../components/CardView';
 import { Panel, BtnPrimary, BtnFlat } from '../components/ui';
 import { playSuccessSound, playErrorSound } from '../utils/audio';
 import { useBackLayer } from '../navigation/BackProvider';
+import { useI18n } from '../i18n';
 
 /** "Open?" 60 s: open or fold from a seat, three mistakes end it (Puzzle Rush style). */
 export const SprintView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
   const { stats, recordSprint } = useGame();
+  const { t } = useI18n();
   const [running, setRunning] = useState(false);
   const [hand, setHand] = useState<SprintHand>(() => sprintHand());
   const [cards, setCards] = useState(() => handLabelToCards(hand.hand));
@@ -70,9 +72,9 @@ export const SprintView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
   return (
     <div className="sprint-view w-full h-[100dvh] flex flex-col bg-bg overflow-hidden">
       <div className="safe-top px-2 pb-1 flex items-center gap-2 border-b border-line shrink-0">
-        <button onClick={onExit} className="w-10 h-10 flex items-center justify-center text-txt" aria-label="Back"><ArrowLeft className="w-5 h-5" /></button>
+        <button onClick={onExit} className="w-10 h-10 flex items-center justify-center text-txt" aria-label={t.exit}><ArrowLeft className="w-5 h-5" /></button>
         <span className="text-[15px] text-hi font-semibold">Open?</span>
-        <span className="ml-auto num text-[13px] text-dim">Best {stats.sprintBest}</span>
+        <span className="ml-auto num text-[13px] text-dim">{t.best} {stats.sprintBest}</span>
       </div>
 
       <div className="flex items-center justify-between px-4 py-3 shrink-0">
@@ -87,26 +89,26 @@ export const SprintView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
 
       <div className={`flex-1 min-h-0 flex flex-col items-center justify-center gap-4 transition-colors ${flash === 'ok' ? 'bg-good/15' : flash === 'ko' ? 'bg-bad/15' : ''}`}>
         <span className="sprint-pos text-[40px] font-bold text-hi leading-none">{hand.pos}</span>
-        <span className="text-[13px] text-dim">Folded to you</span>
+        <span className="text-[13px] text-dim">{t.foldedToYou}</span>
         <div className="flex gap-2">
           <CardView card={cards[0]} size="hero" deckMode={stats.preferences.deckColorMode} />
           <CardView card={cards[1]} size="hero" deckMode={stats.preferences.deckColorMode} />
         </div>
-        {!running && <span className="text-[13px] text-txt">The clock starts with your first answer</span>}
+        {!running && <span className="text-[13px] text-txt text-center px-4">{t.clockStarts}</span>}
       </div>
 
       <div className="grid grid-cols-2 gap-2 px-2 pt-2 safe-bottom border-t border-line bg-panel shrink-0">
-        <button onClick={() => answer(false)} className="sprint-fold h-16 rounded-[4px] bg-panel2 border border-line text-txt text-[18px] font-semibold">Fold</button>
-        <button onClick={() => answer(true)} className="sprint-open h-16 rounded-[4px] bg-good text-white text-[18px] font-semibold">Raise</button>
+        <button onClick={() => answer(false)} className="sprint-fold h-16 rounded-[4px] bg-panel2 border border-line text-txt text-[18px] font-semibold">{t.fold}</button>
+        <button onClick={() => answer(true)} className="sprint-open h-16 rounded-[4px] bg-good text-white text-[18px] font-semibold">{t.raise}</button>
       </div>
 
       {over && !hideEnd && (
         <div className="sprint-end fixed inset-0 z-[70] bg-black/75 flex items-center justify-center p-4">
           <Panel className="w-full max-w-xs p-4 flex flex-col gap-3">
-            <span className="text-[13px] text-dim uppercase tracking-[0.08em]">{lives === 0 ? 'Three misses' : 'Time'}</span>
+            <span className="text-[13px] text-dim uppercase tracking-[0.08em]">{lives === 0 ? t.threeMisses : t.timeUp}</span>
             <div className="flex items-baseline gap-3">
               <span className="num text-[44px] leading-none font-semibold text-hi">{score}</span>
-              <span className="num text-[13px] text-txt">Best {Math.max(stats.sprintBest, score)}</span>
+              <span className="num text-[13px] text-txt">{t.best} {Math.max(stats.sprintBest, score)}</span>
             </div>
             {misses.length > 0 && (
               <div className="text-[13px] text-txt space-y-0.5">
@@ -116,8 +118,8 @@ export const SprintView: React.FC<{ onExit: () => void }> = ({ onExit }) => {
               </div>
             )}
             <div className="flex gap-2">
-              <BtnFlat onClick={onExit} className="flex-1">Exit</BtnFlat>
-              <BtnPrimary onClick={restart} className="flex-1">Again</BtnPrimary>
+              <BtnFlat onClick={onExit} className="flex-1">{t.exit}</BtnFlat>
+              <BtnPrimary onClick={restart} className="flex-1">{t.again}</BtnPrimary>
             </div>
           </Panel>
         </div>

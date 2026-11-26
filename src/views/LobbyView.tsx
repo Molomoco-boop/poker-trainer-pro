@@ -3,10 +3,12 @@ import { RangeViewerModal } from '../components/RangeViewerModal';
 import { OddsCalculatorModal } from '../components/OddsCalculatorModal';
 import { HandsTableModal } from '../components/HandsTableModal';
 import { useGame } from '../context/useGame';
-import { CONCEPT_ES, CURRICULUM } from '../types/poker';
+import { CURRICULUM } from '../types/poker';
 import { Panel, Title } from '../components/ui';
-import { ALL_MODES, MODE_ES, MODE_SUB } from '../utils/botProfiles';
+import { ALL_MODES, TableMode } from '../utils/botProfiles';
 import { ChevronRight } from 'lucide-react';
+import { useI18n } from '../i18n';
+import { conceptTitle } from '../i18n/concepts';
 
 interface LobbyViewProps {
   onStartDaily: () => void;
@@ -34,11 +36,27 @@ const Row: React.FC<{ title: string; sub: string; right?: React.ReactNode; onCli
 
 export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated, onStartCash, onStartPlacement, onStartSprint, onStartRangeBuilder, onOpenReview, onOpenFlops, tableMode, onTableMode }) => {
   const { stats } = useGame();
+  const { t, lang } = useI18n();
   const [modal, setModal] = useState<'ranges' | 'odds' | 'hands' | null>(null);
   const daily = stats.dailyDrillCount || 0;
   const concept = CURRICULUM[Math.min(stats.curriculumIndex, CURRICULUM.length - 1)];
   const due = stats.mistakeQueue.filter(m => m.dueAt <= stats.totalHandsPlayed).length;
   const last = stats.ratingHistory.length > 1 ? stats.ratingHistory[stats.ratingHistory.length - 1] - stats.ratingHistory[Math.max(0, stats.ratingHistory.length - 11)] : 0;
+
+  const modeTitle: Record<TableMode, string> = {
+    regular: t.modeRegular,
+    mixto: t.modeMixed,
+    recreativo: t.modeRecreativo,
+    nit: t.modeNit,
+    maniac: t.modeManiac
+  };
+  const modeSub: Record<TableMode, string> = {
+    regular: t.modeRegularSub,
+    mixto: t.modeMixedSub,
+    recreativo: t.modeRecreativoSub,
+    nit: t.modeNitSub,
+    maniac: t.modeManiacSub
+  };
 
   return (
     <div className="lobby space-y-3 animate-fadeIn">
@@ -48,30 +66,30 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated
             <img src="/icon-32.png" alt="" width="16" height="16" className="rounded-[3px]" />
             {stats.username}
           </div>
-          <div className="text-[11px] text-dim leading-none mb-0.5">Rating · your level</div>
+          <div className="text-[11px] text-dim leading-none mb-0.5">{t.ratingYourLevel}</div>
           <div className="flex items-baseline gap-2">
             <span className="lobby-rating num text-[36px] leading-none font-semibold text-hi">{Math.round(stats.rating.r)}{stats.rating.rd > 110 ? '?' : ''}</span>
-            {last !== 0 && <span className={`num text-[14px] font-semibold ${last > 0 ? 'text-goodtx' : 'text-badtx'}`}>{last > 0 ? '+' : '−'}{Math.abs(last)} <span className="text-[11px] font-normal text-dim">recent</span></span>}
+            {last !== 0 && <span className={`num text-[14px] font-semibold ${last > 0 ? 'text-goodtx' : 'text-badtx'}`}>{last > 0 ? '+' : '−'}{Math.abs(last)} <span className="text-[11px] font-normal text-dim">{t.recent}</span></span>}
           </div>
         </div>
         <div className="text-right num text-[12px] text-dim leading-tight">
-          <div>Streak <span className="text-hi">{stats.consecutiveCorrect}</span></div>
-          <div>Days <span className="text-hi">{stats.dayStreak}</span></div>
+          <div>{t.streak} <span className="text-hi">{stats.consecutiveCorrect}</span></div>
+          <div>{t.days} <span className="text-hi">{stats.dayStreak}</span></div>
         </div>
       </div>
 
       <Panel className="overflow-hidden">
         {!stats.placementDone && (
-          <Row cls="placement-row" accent title="Placement test" sub="12 spots · sets your rating and starting point" onClick={onStartPlacement} />
+          <Row cls="placement-row" accent title={t.placementTest} sub={t.placementSub} onClick={onStartPlacement} />
         )}
         <Row
           cls="daily-row"
-          title="Daily session"
-          sub={daily >= 10 ? 'Done today' : `${CONCEPT_ES[concept]} · 4 topic + 3 review + 3 mixed`}
+          title={t.dailySession}
+          sub={daily >= 10 ? t.doneToday : `${conceptTitle(concept, lang)} · ${t.dailyMixSub}`}
           right={<span className="num text-[13px] text-txt">{Math.min(daily, 10)}/10</span>}
           onClick={onStartDaily}
         />
-        <Row cls="cash-row" title="Play cash" sub={`6-max table · ${MODE_ES[tableMode]} · ${MODE_SUB[tableMode]}`} right={due ? <span className="num text-[12px] text-warn">{due} rep.</span> : undefined} onClick={onStartCash} />
+        <Row cls="cash-row" title={t.playCash} sub={`${t.sixMaxTable} · ${modeTitle[tableMode]} · ${modeSub[tableMode]}`} right={due ? <span className="num text-[12px] text-warn">{due} {t.repShort}</span> : undefined} onClick={onStartCash} />
         <div className="profile-picker flex flex-wrap gap-1 px-3 py-2 border-b border-line">
           {ALL_MODES.map(m => (
             <button
@@ -81,21 +99,21 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onStartDaily, onStartRated
               data-mode={m}
               onClick={e => { e.stopPropagation(); onTableMode(m); }}
             >
-              {MODE_ES[m]}
+              {modeTitle[m]}
             </button>
           ))}
         </div>
-        <Row cls="review-row" title="Hand review" sub="Your hands, street by street" onClick={onOpenReview} />
-        <Row cls="flops-row" title="Flop reports" sub="Texture, c-bet and defense" onClick={onOpenFlops} />
-        <Row cls="rated-row" title="Spots" sub="Single decisions at your level" onClick={onStartRated} />
-        <Row cls="sprint-row" title="Open? 60 s" sub="Open or fold, three misses and out" right={<span className="num text-[13px] text-txt">{stats.sprintBest}</span>} onClick={onStartSprint} />
-        <Row cls="builder-row" title="Build a range" sub="Paint the range from memory" onClick={onStartRangeBuilder} />
+        <Row cls="review-row" title={t.handReview} sub={t.handReviewSub} onClick={onOpenReview} />
+        <Row cls="flops-row" title={t.flopReports} sub={t.flopReportsSub} onClick={onOpenFlops} />
+        <Row cls="rated-row" title={t.spots} sub={t.spotsSub} onClick={onStartRated} />
+        <Row cls="sprint-row" title={t.open60s} sub={t.open60sSub} right={<span className="num text-[13px] text-txt">{stats.sprintBest}</span>} onClick={onStartSprint} />
+        <Row cls="builder-row" title={t.buildRange} sub={t.buildRangeSub} onClick={onStartRangeBuilder} />
       </Panel>
 
       <div>
-        <Title>Tools</Title>
+        <Title>{t.tools}</Title>
         <div className="grid grid-cols-3 gap-1.5">
-          {([['ranges', 'Ranges'], ['hands', 'Hands'], ['odds', 'Calculator']] as const).map(([id, label]) => (
+          {([['ranges', t.ranges], ['hands', t.hands], ['odds', t.calculator]] as const).map(([id, label]) => (
             <button key={id} onClick={() => setModal(id)} className="tool-card h-11 rounded-[4px] bg-panel border border-line text-[13px] font-semibold text-hi active:bg-panel2">
               {label}
             </button>

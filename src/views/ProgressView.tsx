@@ -4,6 +4,7 @@ import { Position, Street } from '../types/poker';
 import { LEAK_POSITIONS, LEAK_STREETS, leakKey } from '../utils/sessionPlanner';
 import { aboveChance } from '../utils/rating';
 import { Panel, Title, Sparkline, BtnPrimary } from '../components/ui';
+import { useI18n } from '../i18n';
 
 const STREET_SHORT: Record<string, string> = { preflop: 'Pre', flop: 'Flop', turn: 'Turn', river: 'River' };
 
@@ -12,6 +13,7 @@ const tone = (v: number | null, n: number) =>
 
 export const ProgressView: React.FC<{ onTrainLeak: (pos: Position, street: Street) => void; onOpenReview: () => void; onOpenFlops: () => void }> = ({ onTrainLeak, onOpenReview, onOpenFlops }) => {
   const { stats } = useGame();
+  const { t } = useI18n();
   const [sel, setSel] = useState<{ pos: Position; street: Street } | null>(null);
   const real = aboveChance(stats.totalCorrectDecisions, stats.totalDecisions, stats.totalChance);
   const provisional = stats.rating.rd > 110;
@@ -23,27 +25,27 @@ export const ProgressView: React.FC<{ onTrainLeak: (pos: Position, street: Stree
       <Panel className="p-3">
         <div className="flex items-baseline gap-2">
           <span className="num text-[40px] leading-none font-semibold text-hi">{Math.round(stats.rating.r)}{provisional ? '?' : ''}</span>
-          <span className="text-[12px] text-dim">Rating · your level</span>
+          <span className="text-[12px] text-dim">{t.ratingYourLevel}</span>
         </div>
         <div className="mt-2"><Sparkline values={stats.ratingHistory} /></div>
         <div className="grid grid-cols-4 gap-1 mt-2 text-center">
           {[
-            ['Decisions', String(stats.totalDecisions)],
-            ['Above chance', real === null ? '—' : `${real} %`],
-            ['Best streak', String(stats.bestStreak)],
-            ['Days', String(stats.dayStreak)]
+            [t.decisions, String(stats.totalDecisions)],
+            [t.aboveChance, real === null ? '—' : `${real} %`],
+            [t.bestStreak, String(stats.bestStreak)],
+            [t.days, String(stats.dayStreak)]
           ].map(([k, v]) => (
             <div key={k}>
               <div className="num text-[17px] font-semibold text-hi">{v}</div>
-              <div className="text-[10px] text-dim">{k}</div>
+              <div className="text-[10px] text-dim truncate">{k}</div>
             </div>
           ))}
         </div>
       </Panel>
 
       <div>
-        <Title right={<span className="text-[10px] text-dim">% vs chance</span>}>Leaks</Title>
-        <p className="text-[11px] text-dim px-0.5 mb-1 leading-snug">Green: you beat chance. Red: you don't. The number is that margin.</p>
+        <Title right={<span className="text-[10px] text-dim">{t.vsChance}</span>}>{t.leaks}</Title>
+        <p className="text-[11px] text-dim px-0.5 mb-1 leading-snug">{t.leaksHint}</p>
         <Panel className="p-1.5">
           <div className="leak-map grid gap-[3px]" style={{ gridTemplateColumns: '40px repeat(4, minmax(0, 1fr))' }}>
             <div />
@@ -73,21 +75,21 @@ export const ProgressView: React.FC<{ onTrainLeak: (pos: Position, street: Stree
             <div className="flex items-center gap-2 pt-2 px-0.5">
               <div className="flex-1 min-w-0 text-[13px] text-txt num">
                 <span className="text-hi font-semibold">{sel.pos} · {STREET_SHORT[sel.street]}</span>{' '}
-                {selStats ? `${selReal ?? 0} % · ${selStats.n} dec.` : 'no data'}
+                {selStats ? `${selReal ?? 0} % · ${selStats.n} dec.` : t.noData}
               </div>
-              <BtnPrimary onClick={() => onTrainLeak(sel.pos, sel.street)} className="train-leak px-4 shrink-0">Train this</BtnPrimary>
+              <BtnPrimary onClick={() => onTrainLeak(sel.pos, sel.street)} className="train-leak px-4 shrink-0">{t.trainThis}</BtnPrimary>
             </div>
           )}
         </Panel>
       </div>
 
       <Panel className="overflow-hidden">
-        <button onClick={onOpenReview} className="progress-review w-full text-left px-3 min-h-[52px] border-b border-line text-[14px] font-semibold text-hi active:bg-panel2">Hand review</button>
-        <button onClick={onOpenFlops} className="progress-flops w-full text-left px-3 min-h-[52px] text-[14px] font-semibold text-hi active:bg-panel2">Flop reports</button>
+        <button onClick={onOpenReview} className="progress-review w-full text-left px-3 min-h-[52px] border-b border-line text-[14px] font-semibold text-hi active:bg-panel2">{t.handReview}</button>
+        <button onClick={onOpenFlops} className="progress-flops w-full text-left px-3 min-h-[52px] text-[14px] font-semibold text-hi active:bg-panel2">{t.flopReports}</button>
       </Panel>
 
       <div className="flex items-center justify-between px-0.5 text-[13px] text-txt num">
-        <span>Reviews due <b className="text-hi">{stats.mistakeQueue.length}</b></span>
+        <span>{t.reviewsDue} <b className="text-hi">{stats.mistakeQueue.length}</b></span>
         <span>Open? <b className="text-hi">{stats.sprintBest}</b></span>
       </div>
     </div>

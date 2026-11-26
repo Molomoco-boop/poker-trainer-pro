@@ -77,7 +77,8 @@ export const DEFAULT_STATS: UserStats = {
     dailyReminder: true,
     displayUnits: 'bb',
     deckColorMode: '4color',
-    trainingPositions: [...CLOCKWISE_POSITIONS]
+    trainingPositions: [...CLOCKWISE_POSITIONS],
+    language: 'auto'
   },
   categoryStats: { ...DEFAULT_CATEGORY_STATS },
   mistakeQueue: []

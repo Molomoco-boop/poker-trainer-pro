@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { HandStep, MistakeRecord, SessionSpec, Grade, CONCEPT_ES, ConceptId, CURRICULUM } from '../types/poker';
+import { HandStep, MistakeRecord, SessionSpec, Grade, ConceptId, CURRICULUM } from '../types/poker';
 import {
   generateRatedHand,
   generateConceptStep,
@@ -16,6 +16,10 @@ import { RangeViewerModal } from '../components/RangeViewerModal';
 import { Panel, Delta, BtnPrimary } from '../components/ui';
 import { playCardSound } from '../utils/audio';
 import { useBackLayer } from '../navigation/BackProvider';
+import { useI18n } from '../i18n';
+import { conceptTitle } from '../i18n/concepts';
+import type { Translations } from '../i18n/translations';
+import type { SupportedLang } from '../types/poker';
 
 interface PracticeViewProps {
   session: SessionSpec;
@@ -28,19 +32,20 @@ const MATH_MIX: ConceptId[] = ['m_mdf', 'm_bluff', 'm_combos', 'm_equity'];
 
 const STREET_ES: Record<string, string> = { preflop: 'Preflop', flop: 'Flop', turn: 'Turn', river: 'River' };
 
-function sessionTitle(s: SessionSpec): string {
+function sessionTitle(s: SessionSpec, t: Translations, lang: SupportedLang): string {
   switch (s.kind) {
-    case 'rated': return 'Spots';
-    case 'cash': return 'Table';
-    case 'daily': return 'Daily session';
-    case 'placement': return 'Placement test';
-    case 'concept': return CONCEPT_ES[s.concept];
+    case 'rated': return t.spots;
+    case 'cash': return t.table;
+    case 'daily': return t.dailySession;
+    case 'placement': return t.placementTest;
+    case 'concept': return conceptTitle(s.concept, lang);
     case 'leak': return `${s.pos} · ${STREET_ES[s.street]}`;
   }
 }
 
 export const PracticeView: React.FC<PracticeViewProps> = ({ session, onExit }) => {
   const { stats, recordStepAnswer, toggleDisplayUnits, markDoubt, finishPlacement } = useGame();
+  const { t, lang } = useI18n();
   const statsRef = useRef(stats);
   useEffect(() => { statsRef.current = stats; }, [stats]);
 
@@ -201,7 +206,7 @@ export const PracticeView: React.FC<PracticeViewProps> = ({ session, onExit }) =
         rating={Math.round(stats.rating.r)}
         delta={isSubmitted ? delta : null}
         streak={stats.consecutiveCorrect}
-        title={`${sessionTitle(session)}${progress}`}
+        title={`${sessionTitle(session, t, lang)}${progress}`}
         recentGrades={grades}
         fastError={fastError}
         doubted={doubted}
@@ -217,22 +222,22 @@ export const PracticeView: React.FC<PracticeViewProps> = ({ session, onExit }) =
       {done && !hideEnd && (
         <div className="session-end fixed inset-0 z-[70] bg-bg flex items-center justify-center p-4">
           <Panel className="w-full max-w-xs p-4 flex flex-col gap-3">
-            <span className="text-[13px] text-dim uppercase tracking-[0.08em]">{session.kind === 'placement' ? 'Test complete' : 'Daily session done'}</span>
+            <span className="text-[13px] text-dim uppercase tracking-[0.08em]">{session.kind === 'placement' ? t.testComplete : t.dailyDone}</span>
             <div className="flex items-baseline gap-2">
               <span className="num text-[40px] leading-none font-semibold text-hi">{Math.round(stats.rating.r)}</span>
               <Delta value={Math.round(stats.rating.r) - startRating.current} className="text-[18px]" />
             </div>
-            <div className="text-[14px] text-txt num">{results.filter(r => r.ok).length}/{results.length} correct</div>
+            <div className="text-[14px] text-txt num">{results.filter(r => r.ok).length}/{results.length} {t.correctCount}</div>
             {session.kind === 'placement' ? (
-              <div className="text-[14px] text-hi">You start at: <b>{CONCEPT_ES[CURRICULUM[placementCurriculum(results)]]}</b></div>
+              <div className="text-[14px] text-hi">{t.youStartAt} <b>{conceptTitle(CURRICULUM[placementCurriculum(results)], lang)}</b></div>
             ) : (
               <div className="text-[13px] text-txt space-y-0.5">
-                <div>Topic: <span className="text-hi">{CONCEPT_ES[curConcept]}</span> <span className="num">{Math.round(curR?.r ?? 1500)} · {Math.min(curR?.n ?? 0, UNLOCK_N)}/{UNLOCK_N}</span></div>
-                <div className="num">Reviews due: {dueTomorrow}</div>
+                <div>{t.topicLabel} <span className="text-hi">{conceptTitle(curConcept, lang)}</span> <span className="num">{Math.round(curR?.r ?? 1500)} · {Math.min(curR?.n ?? 0, UNLOCK_N)}/{UNLOCK_N}</span></div>
+                <div className="num">{t.reviewsDue}: {dueTomorrow}</div>
               </div>
             )}
             <div className="flex gap-2">
-              <BtnPrimary onClick={onExit} className="flex-1">Home</BtnPrimary>
+              <BtnPrimary onClick={onExit} className="flex-1">{t.navHome}</BtnPrimary>
             </div>
           </Panel>
         </div>
