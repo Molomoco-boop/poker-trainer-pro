@@ -1,5 +1,5 @@
 {
-  "appId": "com.pokertrainer.pro",
+  "appId": "com.pokertrainer.myapp",
   "appName": "Free Poker Trainer",
   "webDir": "dist",
   "server": {

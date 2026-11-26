@@ -13,7 +13,7 @@ android {
     namespace = "com.pokertrainer.pro"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.pokertrainer.pro"
+        applicationId "com.pokertrainer.myapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 30
