@@ -24,211 +24,222 @@ const LANGS = [
 
 const COPY = {
   en: {
-    title: 'Free Poker Trainer: GTO 6-Max',
-    short: 'Free 6-max GTO poker trainer: cash tables, ranges & math. Offline, no account.',
-    bannerTag: '6-Max GTO Cash · Ranges · Leak Map · Math',
-    bannerBadge: '100% Free · Offline · No Account',
+    title: 'Free Poker Trainer',
+    short: 'Learn & practice poker for free. Tables, puzzles & odds. No ads, no account.',
+    bannerTag: 'Play · Practice · Improve Your Poker',
+    bannerBadge: '100% Free · No Ads · No Account',
     slides: [
-      { h: 'Play 6-Max GTO Cash', s: 'Instant solver feedback on every street' },
-      { h: 'Track Your True Rating', s: 'Daily sessions, cash bots & 60s sprint' },
-      { h: 'Find & Fix Every Leak', s: 'Position × street accuracy heatmap' },
-      { h: 'Master Flop Textures', s: 'C-bet & defense frequencies at a glance' },
-      { h: 'Build Ranges 13×13', s: 'Paint & score your preflop ranges' }
+      { h: 'Play Full Cash Tables', s: 'Clear feedback after every hand' },
+      { h: 'Track Your Skill Rating', s: 'Daily training, tables & 60s sprint' },
+      { h: 'Spot Your Weaknesses', s: 'See where you make mistakes & fix them' },
+      { h: 'Simple Flop Guides', s: 'Know when to bet, check or fold' },
+      { h: 'Train Starting Hands', s: 'Test your hand memory in seconds' }
     ],
-    full: `Stop losing BB in tough spots. Train 6-Max No-Limit Hold'em with instant GTO solver feedback — 100% FREE, no ads, no subscriptions, and no account required.
+    full: `A fast, clean, 100% free poker trainer built for the community — no ads, no paywalls, no subscriptions, and no account required.
 
-Unlike expensive poker training apps that lock ranges and postflop spots behind monthly paywalls, Free Poker Trainer gives you full access offline on your device.
+Inspired by the best open training apps: open it and start playing or practicing in 1 second. Everything stays saved offline on your device.
 
-WHY PLAYERS SWITCH TO FREE POKER TRAINER
-• 100% Free & No Account: Start training in 1 second. No login, no paywall, no ads.
-• Saved Locally on Your Device: Your Glicko rating, hand history, and mistake queue stay private and offline.
-• Honest Glicko Rating: Measure your real skill from a 12-spot placement test to advanced turn and river decisions.
+WHY FREE POKER TRAINER?
+• Free Forever: Every table, puzzle, and tool is unlocked from day one. No VIP tiers, no locked features.
+• Zero Ads & Zero Tracking: No pop-ups, no banners, no login walls.
+• Works Offline on Your Device: Your rating, hand history, and progress stay saved locally on your phone.
 
-COMPLETE 6-MAX TRAINING SUITE
-• 6-Max Live Cash Table: Play full hands against GTO Regular, Tight/Nit, Loose/Recreational, Aggro, or Mixed opponents.
-• Daily 10-Hand Session: Smart mix of your current curriculum topic, spaced-repetition reviews, and mixed spots.
-• Leak Heatmap (Position × Street): Spot exactly where you lose EV (UTG to BB, Preflop to River) and drill those leaks directly.
-• Flop Reports & Frequency Drills: Learn c-bet and defense frequencies across Ace-high, paired, rainbow, and monotone boards.
-• 60-Second Open? Sprint: Test your preflop opening ranges under clock pressure (3 misses and out).
-• Range Builder (13×13): Paint opening and defense ranges from memory and score your accuracy.
-• Hand-by-Hand Review: Replay every cash hand street by street, filter errors, and mark doubts for spaced review.
-• Built-in Poker Math & Tools: Interactive 13×13 Range Viewer, Pot Odds & Equity Calculator, Hand Rankings, MDF, Combos, and Outs drills.
+EVERYTHING YOU NEED TO IMPROVE
+• Practice Tables: Play full hands against tight, loose, aggressive, or balanced bots and get clear feedback on every move.
+• Daily 10-Hand Training: A quick daily mix of your current lesson, past mistakes, and real spots.
+• Skill Rating & Progress Chart: Watch your rating grow as you learn, from beginner to advanced.
+• Mistake Map: See at a glance which table seats or streets give you trouble and practice them directly.
+• Simple Flop Guides: Clear visual guides showing how often to bet or check on different boards.
+• 60-Second Speed Challenge: Decide fast whether to play or fold your starting hand before time runs out.
+• Hand Memory Grid: Paint starting hands from memory and check your score instantly.
+• Hand-by-Hand Replay: Review your played hands anytime and save tricky spots to practice again.
+• Built-in Poker Tools: Odds & probability calculator, hand ranking chart, and starting hand guide.
 
-BUILT FOR SERIOUS GRINDERS & LEARNERS
-• Clean dark interface with 4-color or 2-color deck.
-• Instant BB / € toggle across NL2, NL5, NL10, NL25, NL50, and NL100 stakes.
-• Automatic language support in 10 languages.
+MADE FOR EVERYONE
+• Clean dark interface with 4-color or classic 2-color cards.
+• Switch between chips/blinds and € values anytime.
+• Automatic support for 10 languages.
 
-Disclaimer: Free Poker Trainer is an educational poker strategy and probability trainer. It does not offer real-money gambling or cash prizes.`
+Disclaimer: Free Poker Trainer is an educational poker training app. It does not offer real-money gambling or cash prizes.`
   },
   es: {
-    title: 'Free Poker Trainer: GTO 6-Max',
-    short: 'Entrena póker 6-max GTO gratis: cash, rangos y mates. Sin anuncios ni cuenta.',
-    bannerTag: 'Cash 6-Max GTO · Rangos · Fugas · Mates',
-    bannerBadge: '100% Gratis · Offline · Sin Cuenta',
+    title: 'Free Poker Trainer',
+    short: 'Aprende y entrena póker gratis. Mesas, ejercicios y odds. Sin anuncios ni cuenta.',
+    bannerTag: 'Juega · Entrena · Mejora tu Póker',
+    bannerBadge: '100% Gratis · Sin Anuncios · Sin Cuenta',
     slides: [
-      { h: 'Mesa Cash 6-Max GTO', s: 'Feedback del solver tras cada decisión' },
-      { h: 'Mide tu Nivel Real', s: 'Sesión diaria, bots cash y sprint 60s' },
-      { h: 'Detecta y Corrige Fugas', s: 'Mapa de precisión por posición y calle' },
-      { h: 'Domina Cada Flop', s: 'Frecuencias de C-bet y defensa al instante' },
-      { h: 'Construye Rangos 13×13', s: 'Pinta y comprueba tus rangos preflop' }
+      { h: 'Juega Mesas Completas', s: 'Explicación clara tras cada jugada' },
+      { h: 'Mide tu Progreso Real', s: 'Entreno diario, mesas y reto de 60s' },
+      { h: 'Detecta tus Fallos', s: 'Mira dónde fallas y corrígelo al momento' },
+      { h: 'Guías Claras de Flop', s: 'Aprende cuándo apostar o pasar' },
+      { h: 'Domina las Manos Iniciales', s: 'Pon a prueba tu memoria en segundos' }
     ],
-    full: `Deja de regalar ciegas en spots difíciles. Entrena Texas Hold'em No-Limit 6-Max con feedback GTO al instante — 100% GRATIS, sin anuncios, sin suscripciones y sin crear cuenta.
+    full: `Un entrenador de póker rápido, limpio y 100% gratis pensado para la comunidad — sin anuncios, sin pagos ocultos, sin suscripciones y sin necesidad de crear cuenta.
 
-A diferencia de otras apps que bloquean rangos y postflop tras pagos mensuales, Free Poker Trainer te da acceso completo offline en tu móvil.
+Inspirado en las mejores plataformas abiertas de entrenamiento: abre la app y empieza a jugar o practicar en 1 segundo. Todo se guarda en tu dispositivo.
 
-¿POR QUÉ ELEGIR FREE POKER TRAINER?
-• 100% Gratis y Sin Cuenta: Empieza en 1 segundo. Sin registro, sin muros de pago ni anuncios.
-• Guardado en tu Dispositivo: Tu rating Glicko, historial de manos y repasos se guardan offline en tu móvil.
-• Rating Glicko Real: Mide tu nivel desde el test inicial de 12 spots hasta decisiones avanzadas de turn y river.
+¿POR QUÉ FREE POKER TRAINER?
+• Gratis para Siempre: Todas las mesas, ejercicios y herramientas desbloqueadas desde el primer día. Sin planes VIP ni muros de pago.
+• Sin Anuncios ni Registro: Sin publicidad, sin ventanas molestas y sin pedirte correo ni contraseña.
+• Funciona Offline en tu Móvil: Tu puntuación, historial de manos y progreso se guardan en la memoria de tu dispositivo.
 
-MODOS DE ENTRENAMIENTO Y HERRAMIENTAS
-• Mesa Cash 6-Max en vivo: Juega manos completas contra rivales GTO, Nits, Recreativos, Aggros o mesa mixta.
-• Sesión Diaria de 10 Manos: Combina tu tema actual, repasos espaciados y spots mixtos.
-• Mapa de Fugas (Posición × Calle): Detecta dónde pierdes EV (UTG a BB, Preflop a River) y entrénalo al momento.
-• Informes de Flop: Aprende frecuencias de C-bet y defensa en boards con As, doblados, rainbow o monocolor.
-• Sprint 60 s ¿Open?: Pon a prueba tus rangos preflop contrarreloj (3 fallos y fuera).
-• Constructor de Rangos (13×13): Pinta rangos de apertura y defensa de memoria y evalúa tu precisión.
-• Revisión de Manos: Repasa cada mano calle a calle, filtra errores y marca dudas para repaso.
-• Matemáticas y Herramientas: Visor de rangos 13×13, Calculadora de Odds y Equity, Jerarquía, MDF, Combos y Outs.
+TODO LO QUE NECESITAS PARA MEJORAR
+• Mesas de Práctica: Juega manos completas contra rivales con distintos estilos (pasivos, agresivos, cerrados o equilibrados) con respuesta clara tras cada acción.
+• Sesión Diaria de 10 Manos: Un entreno rápido cada día que combina tu tema actual y tus errores anteriores.
+• Puntuación y Gráfica de Nivel: Sigue tu evolución real mientras aprendes paso a paso.
+• Mapa de Fallos: Descubre de un vistazo en qué posiciones o momentos de la mano pierdes más y practícalo al instante.
+• Guías Sencillas de Flop: Aprende visualmente con qué frecuencia conviene apostar o pasar según las cartas de la mesa.
+• Reto Rápido de 60 Segundos: Decide en segundos si jugar o retirarte con tus cartas iniciales antes de que acabe el tiempo.
+• Práctica de Manos Iniciales: Marca qué manos jugarías de memoria y comprueba tu acierto al instante.
+• Repaso de Manos Jugadas: Vuelve a ver cualquier mano jugada y guarda las dudas para repasarlas luego.
+• Herramientas Integradas: Calculadora de probabilidades, tabla de jugadas y guía de manos iniciales.
 
-Aviso: Free Poker Trainer es una app educativa de estrategia y matemáticas de póker. No incluye apuestas con dinero real ni premios monetarios.`
+PENSADA PARA JUGADORES DE TODOS LOS NIVELES
+• Interfaz oscura limpia con baraja de 4 colores o clásica de 2 colores.
+• Cambia entre ciegas y € en cualquier momento.
+• Disponible automáticamente en 10 idiomas.
+
+Aviso: Free Poker Trainer es una app educativa de póker. No incluye apuestas con dinero real ni premios monetarios.`
   },
   pt: {
-    title: 'Free Poker Trainer: GTO 6-Max',
-    short: 'Treine poker 6-max GTO grátis: mesas cash, ranges e matemática. Offline.',
-    bannerTag: 'Cash 6-Max GTO · Ranges · Leaks · Mates',
-    bannerBadge: '100% Grátis · Offline · Sem Conta',
+    title: 'Free Poker Trainer',
+    short: 'Aprenda e treine poker grátis. Mesas, exercícios e odds. Sem anúncios ou conta.',
+    bannerTag: 'Jogue · Treine · Evolua no Poker',
+    bannerBadge: '100% Grátis · Sem Anúncios · Sem Conta',
     slides: [
-      { h: 'Mesa Cash 6-Max GTO', s: 'Feedback do solver após cada jogada' },
-      { h: 'Acompanhe seu Rating', s: 'Sessão diária, bots e sprint de 60s' },
-      { h: 'Encontre seus Leaks', s: 'Mapa de precisão por posição e street' },
-      { h: 'Domine Cada Flop', s: 'Frequências de C-bet e defesa' },
-      { h: 'Monte Ranges 13×13', s: 'Pinte e teste seus ranges preflop' }
+      { h: 'Jogue Mesas Completas', s: 'Feedback claro após cada jogada' },
+      { h: 'Acompanhe seu Nível', s: 'Treino diário, mesas e desafio de 60s' },
+      { h: 'Encontre seus Erros', s: 'Veja onde você erra e corrija rápido' },
+      { h: 'Guias Simples de Flop', s: 'Saiba quando apostar ou dar check' },
+      { h: 'Treine Mãos Iniciais', s: 'Teste sua memória em segundos' }
     ],
-    full: `Domine o Texas Hold'em No-Limit 6-Max com um treinador GTO rápido — 100% GRÁTIS, sem anúncios, sem assinaturas e sem precisar criar conta.
+    full: `Um treinador de poker rápido, limpo e 100% gratuito feito para a comunidade — sem anúncios, sem assinaturas e sem precisar criar conta.
 
-• 100% Offline: Todo o progresso, rating Glicko e histórico de mãos ficam salvos no seu dispositivo.
-• Mesa Cash 6-Max, Sessão Diária, Mapa de Leaks, Relatórios de Flop, Sprint 60s e Construtor de Ranges 13×13.`
+• Grátis para Sempre: Todas as mesas, exercícios e ferramentas liberados desde o início.
+• Offline no seu Dispositivo: Seu rating, histórico de mãos e progresso ficam salvos no seu celular.
+• Mesas de Prática, Treino Diário, Mapa de Erros, Desafio de 60s, Calculadora de Odds e Tabela de Mãos.`
   },
   fr: {
-    title: 'Free Poker Trainer: GTO 6-Max',
-    short: 'Entraîneur poker 6-max GTO gratuit : cash, ranges et maths. Hors ligne.',
-    bannerTag: 'Cash 6-Max GTO · Ranges · Fuites · Maths',
-    bannerBadge: '100% Gratuit · Hors Ligne · Sans Compte',
+    title: 'Free Poker Trainer',
+    short: 'Apprenez et pratiquez le poker gratuitement. Sans pub, sans compte, hors ligne.',
+    bannerTag: 'Jouez · Entraînez-vous · Progressez',
+    bannerBadge: '100% Gratuit · Sans Pub · Sans Compte',
     slides: [
-      { h: 'Table Cash 6-Max GTO', s: 'Analyse solver après chaque décision' },
-      { h: 'Suivez Votre Niveau', s: 'Session du jour, bots et sprint 60s' },
-      { h: 'Corrigez Vos Fuites', s: 'Carte de précision position × street' },
-      { h: 'Maîtrisez Chaque Flop', s: 'Fréquences de C-bet et défense' },
-      { h: 'Ranges 13×13', s: 'Dessinez vos ranges preflop de mémoire' }
+      { h: 'Tables Complètes', s: 'Conseils clairs après chaque coup' },
+      { h: 'Suivez Votre Niveau', s: 'Session du jour, tables et sprint 60s' },
+      { h: 'Corrigez Vos Erreurs', s: 'Repérez vos points faibles en un coup d’œil' },
+      { h: 'Guides de Flop Simples', s: 'Savoir quand miser ou checker' },
+      { h: 'Mains de Départ', s: 'Testez votre mémoire en quelques secondes' }
     ],
-    full: `Maîtrisez le Texas Hold'em No-Limit 6-Max avec un entraîneur GTO rapide — 100% GRATUIT, sans publicité, sans abonnement et sans création de compte.
+    full: `Un entraîneur de poker rapide, simple et 100% gratuit conçu pour la communauté — sans publicité, sans abonnement et sans création de compte.
 
-• 100% Hors ligne : Votre classement Glicko, historique de mains et progression restent enregistrés sur votre appareil.
-• Table Cash 6-Max, Session Quotidienne, Carte des Fuites, Rapports de Flop, Sprint 60s et Constructeur de Ranges 13×13.`
+• Gratuit pour Toujours : Toutes les tables, exercices et outils débloqués dès le premier jour.
+• Hors Ligne sur Votre Appareil : Votre niveau, historique de mains et progression restent enregistrés sur votre téléphone.
+• Tables d'entraînement, Session du jour, Carte des erreurs, Défi 60s et Calculateur de probabilités.`
   },
   de: {
-    title: 'Free Poker Trainer: GTO 6-Max',
-    short: 'Kostenloser 6-Max GTO Poker-Trainer: Cash, Ranges & Mathe. Offline.',
-    bannerTag: '6-Max GTO Cash · Ranges · Leaks · Mathe',
-    bannerBadge: '100% Gratis · Offline · Kein Konto',
+    title: 'Free Poker Trainer',
+    short: 'Poker kostenlos lernen & trainieren. Tische, Übungen & Odds. Ohne Werbung.',
+    bannerTag: 'Spielen · Üben · Besser Werden',
+    bannerBadge: '100% Gratis · Keine Werbung · Kein Konto',
     slides: [
-      { h: '6-Max GTO Cash-Tisch', s: 'Sofortiges Solver-Feedback pro Street' },
-      { h: 'Echtes Glicko-Rating', s: 'Tages-Session, Bots & 60s-Sprint' },
-      { h: 'Finde Jeden Leak', s: 'Position × Street Heatmap' },
-      { h: 'Flop-Reports & C-Bet', s: 'Frequenzen auf jeder Textur' },
-      { h: '13×13 Range-Builder', s: 'Preflop-Ranges aus dem Gedächtnis' }
+      { h: 'Komplette Tische spielen', s: 'Klares Feedback nach jeder Hand' },
+      { h: 'Dein Level verfolgen', s: 'Tages-Training, Tische & 60s-Sprint' },
+      { h: 'Schwächen erkennen', s: 'Sieh sofort, wo Fehler passieren' },
+      { h: 'Einfache Flop-Guides', s: 'Wann setzen, checken oder folden' },
+      { h: 'Starthände trainieren', s: 'Teste dein Gedächtnis in Sekunden' }
     ],
-    full: `Meistere 6-Max No-Limit Hold'em mit einem schnellen GTO-Pokertrainer — 100% KOSTENLOS, ohne Werbung, ohne Abo und ohne Konto.
+    full: `Ein schneller, sauberer und 100% kostenloser Poker-Trainer für die Community — ohne Werbung, ohne Abo und ohne Konto.
 
-• 100% Offline: Dein Glicko-Rating, Hand-Verlauf und Fortschritt werden lokal auf deinem Gerät gespeichert.
-• 6-Max Cash-Tisch, Tages-Session, Leak-Heatmap, Flop-Reports, 60s Open?-Sprint und 13×13 Range-Builder.`
+• Dauerhaft Kostenlos: Alle Tische, Übungen und Tools ab Tag eins freigeschaltet.
+• Offline auf deinem Gerät: Dein Rating, Hand-Verlauf und Fortschritt werden lokal gespeichert.
+• Übungstische, Tages-Training, Fehlerkarte, 60s-Sprint und Wahrscheinlichkeits-Rechner.`
   },
   it: {
-    title: 'Free Poker Trainer: GTO 6-Max',
-    short: 'Trainer poker 6-max GTO gratis: tavoli cash, range e matematica. Offline.',
-    bannerTag: 'Cash 6-Max GTO · Range · Leak · Matematica',
-    bannerBadge: '100% Gratis · Offline · Senza Account',
+    title: 'Free Poker Trainer',
+    short: 'Impara e allena il poker gratis. Tavoli, esercizi e odds. Senza pubblicità.',
+    bannerTag: 'Gioca · Allenati · Migliora Gratis',
+    bannerBadge: '100% Gratis · Zero Pub · Senza Account',
     slides: [
-      { h: 'Tavolo Cash 6-Max GTO', s: 'Feedback immediato dopo ogni scelta' },
-      { h: 'Monitora il tuo Rating', s: 'Sessione giornaliera, bot e sprint 60s' },
-      { h: 'Scopri i tuoi Leak', s: 'Mappa precisione posizione × street' },
-      { h: 'Report Flop e C-Bet', s: 'Frequenze su ogni texture del board' },
-      { h: 'Costruisci Range 13×13', s: 'Disegna e verifica i range preflop' }
+      { h: 'Gioca Tavoli Completi', s: 'Feedback chiaro dopo ogni mano' },
+      { h: 'Segui il tuo Livello', s: 'Allenamento quotidiano e sprint 60s' },
+      { h: 'Trova i tuoi Errori', s: 'Scopri subito dove migliorare' },
+      { h: 'Guide Flop Semplici', s: 'Quando puntare, fare check o fold' },
+      { h: 'Allena le Mani Iniziali', s: 'Metti alla prova la tua memoria' }
     ],
-    full: `Padroneggia il Texas Hold'em No-Limit 6-Max con un trainer GTO veloce — 100% GRATIS, senza pubblicità, senza abbonamenti e senza registrazione.
+    full: `Un trainer di poker veloce, pulito e 100% gratuito pensato per la community — senza pubblicità, senza abbonamenti e senza registrazione.
 
-• 100% Offline: Rating Glicko, cronologia mani e progressi salvati localmente sul dispositivo.
-• Tavolo Cash 6-Max, Sessione Giornaliera, Mappa Leak, Report Flop, Sprint 60s e Costruttore Range 13×13.`
+• Gratis per Sempre: Tutti i tavoli, esercizi e strumenti sbloccati fin da subito.
+• Offline sul tuo Dispositivo: Rating, cronologia mani e progressi salvati sul telefono.
+• Tavoli di pratica, Sessione giornaliera, Mappa errori, Sfida 60s e Calcolatore probabilità.`
   },
   ru: {
-    title: 'Free Poker Trainer: GTO 6-Max',
-    short: 'Бесплатный 6-max GTO покер-тренажёр: кэш, диапазоны и математика. Офлайн.',
-    bannerTag: 'Кэш 6-Max GTO · Диапазоны · Лики',
-    bannerBadge: '100% Бесплатно · Офлайн · Без аккаунта',
+    title: 'Free Poker Trainer',
+    short: 'Учись и тренируй покер бесплатно. Столы, задачи и шансы. Без рекламы и аккаунта.',
+    bannerTag: 'Играй · Тренируйся · Расти Бесплатно',
+    bannerBadge: '100% Бесплатно · Без рекламы · Без аккаунта',
     slides: [
-      { h: 'Кэш-стол 6-Max GTO', s: 'Мгновенный разбор солвера' },
-      { h: 'Честный рейтинг Glicko', s: 'Дневная сессия, боты и спринт 60с' },
-      { h: 'Карта ликов', s: 'Точность по позициям и улицам' },
-      { h: 'Отчёты по флопу', s: 'Частоты конт-бета и защиты' },
-      { h: 'Конструктор 13×13', s: 'Рисуй диапазоны по памяти' }
+      { h: 'Игра за полным столом', s: 'Понятный разбор после каждой раздачи' },
+      { h: 'Честный рейтинг уровня', s: 'Дневная тренировка и спринт 60с' },
+      { h: 'Находи свои ошибки', s: 'Карта слабых мест по позициям' },
+      { h: 'Простые гиды по флопу', s: 'Когда ставить, чекать или пасовать' },
+      { h: 'Тренировка стартовых рук', s: 'Проверь память за пару секунд' }
     ],
-    full: `Освойте 6-Max No-Limit Hold'em с быстрым GTO-тренажёром — 100% БЕСПЛАТНО, без рекламы, без подписок и регистрации.
+    full: `Быстрый, понятный и 100% бесплатный покер-тренажёр для сообщества — без рекламы, подписок и регистрации.
 
-• 100% Офлайн: рейтинг Glicko, история раздач и прогресс сохраняются прямо на устройстве.
-• Живой кэш-стол 6-Max, дневная сессия, карта ликов, отчёты по флопу, спринт 60 с и конструктор диапазонов 13×13.`
+• Бесплатно навсегда: все столы, тренировки и инструменты открыты с первого дня.
+• Офлайн на устройстве: рейтинг, история раздач и прогресс хранятся у вас на телефоне.`
   },
   zh: {
-    title: 'Free Poker Trainer: GTO 6-Max',
-    short: '免费 6人桌 GTO 德州扑克训练器：常规桌、范围与赔率计算。离线免登录。',
-    bannerTag: '6人桌 GTO 常规桌 · 范围 · 漏洞图 · 数学',
-    bannerBadge: '100% 免费 · 离线 · 无需账号',
+    title: 'Free Poker Trainer',
+    short: '免费学习与训练德州扑克。实战牌桌、练习题与概率计算。无广告，免登录。',
+    bannerTag: '实战 · 练习 · 免费提升牌技',
+    bannerBadge: '100% 免费 · 无广告 · 无需账号',
     slides: [
-      { h: '6人桌 GTO 实战模拟', s: '每一步决策即时显示 Solver 频率' },
-      { h: '真实 Glicko 积分', s: '每日训练、AI 对战与 60 秒冲刺' },
-      { h: '精准定位漏洞', s: '位置 × 街次胜率热力图' },
-      { h: '翻牌面策略报告', s: '掌握各类牌面的 C-bet 与防守频率' },
-      { h: '13×13 范围构建器', s: '凭记忆绘制并检验翻前范围' }
+      { h: '完整实战牌桌', s: '每手牌后提供清晰解析' },
+      { h: '追踪真实水平', s: '每日训练、牌桌与60秒冲刺' },
+      { h: '定位薄弱环节', s: '一眼看清失误位置并针对练习' },
+      { h: '简明翻牌指南', s: '轻松掌握何时下注或过牌' },
+      { h: '起手牌记忆训练', s: '几秒钟测试你的起手牌记忆' }
     ],
-    full: `100% 免费、无广告、免登录的 6人桌无限注德州扑克 GTO 训练器。
+    full: `专为扑克社区打造的极速、纯净、100% 免费扑克训练器——无广告、无内购、无订阅、无需注册账号。
 
-• 100% 离线本地保存：无需注册账号，积分、牌局复盘和进度安全保存在您的设备上。
-• 6人桌常规桌实战、每日10手训练、漏洞热力图、翻牌报告、60秒开池冲刺及 13×13 范围构建器。`
+• 永久免费：所有牌桌、练习和工具从第一天起全部开放。
+• 本地离线保存：您的积分、牌局记录和学习进度安全保存在您的设备上。`
   },
   ja: {
-    title: 'Free Poker Trainer: GTO 6-Max',
-    short: '無料の6-max GTOポーカートレーナー：キャッシュ、レンジ表、確率計算。オフライン対応。',
-    bannerTag: '6-Max GTO キャッシュ · レンジ · リーク分析',
-    bannerBadge: '完全無料 · オフライン · 登録不要',
+    title: 'Free Poker Trainer',
+    short: '完全無料のポーカートレーナー。テーブル対戦、問題演習、確率計算。広告・登録なし。',
+    bannerTag: '遊ぶ · 学ぶ · 無料で上達',
+    bannerBadge: '完全無料 · 広告なし · 登録不要',
     slides: [
-      { h: '6-Max GTO キャッシュ戦', s: '毎アクション後にソルバー頻度を表示' },
-      { h: 'Glicko レート計測', s: 'デイリー練習・AI対戦・60秒スプリント' },
-      { h: 'リークを可視化', s: 'ポジション×ストリート別ヒートマップ' },
-      { h: 'フロップ別戦略ガイド', s: 'CB頻度とディフェンスを一目で理解' },
-      { h: '13×13 レンジ作成', s: '記憶でプリフロップレンジを塗って採点' }
+      { h: '実戦テーブルで練習', s: '毎ハンドわかりやすい解説付き' },
+      { h: '実力レートを記録', s: '毎日の練習と60秒スピード挑戦' },
+      { h: '弱点をひと目で発見', s: 'ミスしやすい場面をすぐ復習' },
+      { h: 'シンプルなフロップ解説', s: 'ベットかチェックか迷わない' },
+      { h: 'スターティングハンド練習', s: '記憶テストですぐに定着' }
     ],
-    full: `完全無料・広告なし・アカウント登録不要・オフライン対応の本格 6-Max GTO ポーカートレーナー。
+    full: `コミュニティのために作られた、シンプルで完全無料のポーカートレーナー。広告なし・課金なし・アカウント登録不要。
 
-• 端末ローカル保存：レート、ハンド履歴、復習リストはすべて端末内に保存されます。
-• 6-Max キャッシュテーブル、デイリー10ハンド、リーク分析、フロップレポート、60秒スプリント、13×13レンジ作成を搭載。`
+• ずっと無料：すべての練習モードと計算ツールを最初から制限なく使えます。
+• オフライン端末保存：レートやハンド履歴はすべて端末内に保存されます。`
   },
   ko: {
-    title: 'Free Poker Trainer: GTO 6-Max',
-    short: '무료 6-max GTO 포커 트레이너: 캐시 게임, 레인지, 확률 계산. 오프라인 지원.',
-    bannerTag: '6-Max GTO 캐시 · 레인지 · 리크 분석',
-    bannerBadge: '100% 무료 · 오프라인 · 계정 불필요',
+    title: 'Free Poker Trainer',
+    short: '무료로 배우고 연습하는 포커 트레이너. 테이블, 문제 풀이, 확률 계산. 광고·가입 없음.',
+    bannerTag: '플레이 · 연습 · 무료 실력 향상',
+    bannerBadge: '100% 무료 · 광고 없음 · 가입 불필요',
     slides: [
-      { h: '6-Max GTO 캐시 테이블', s: '모든 결정 직후 솔버 빈도 즉시 확인' },
-      { h: '실제 Glicko 레이팅', s: '일일 훈련, 봇 대전 & 60초 스프린트' },
-      { h: '리크 히트맵 분석', s: '포지션 × 스트리트별 정확도 확인' },
-      { h: '플랍 리포트 가이드', s: '보드별 C-bet 및 방어 빈도 마스터' },
-      { h: '13×13 레인지 빌더', s: '기억으로 프리플랍 레인지 그리기' }
+      { h: '실전 테이블 플레이', s: '매 핸드 직후 명확한 피드백' },
+      { h: '실력 레이팅 추적', s: '일일 훈련, 테이블 & 60초 스피드' },
+      { h: '약점 한눈에 파악', s: '실수가 잦은 구간을 바로 복습' },
+      { h: '쉬운 플랍 가이드', s: '베팅과 체크 타이밍 완벽 이해' },
+      { h: '스타팅 핸드 훈련', s: '몇 초 만에 핸드 기억력 테스트' }
     ],
-    full: `완전 무료·광고 없음·회원가입 없이 오프라인으로 즐기는 6-Max 노리미트 홀덤 GTO 트레이너.
+    full: `커뮤니티를 위해 만든 빠르고 깔끔한 100% 무료 포커 트레이너 — 광고 없음, 구독 없음, 회원가입 불필요.
 
-• 100% 기기 로컬 저장: 레이팅, 핸드 기록, 복습 내역이 기기에 안전하게 저장됩니다.
-• 6-Max 캐시 게임, 일일 10핸드 훈련, 리크 히트맵, 플랍 리포트, 60초 스프린트, 13×13 레인지 빌더 제공.`
+• 평생 무료: 모든 테이블, 훈련 모드, 계산기 도구를 첫날부터 제한 없이 이용할 수 있습니다.
+• 기기 오프라인 저장: 레이팅, 핸드 기록, 학습 진행도가 기기에 안전하게 저장됩니다.`
   }
 };
 

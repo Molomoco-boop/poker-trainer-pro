@@ -1,10 +1,8 @@
-# Ficha de Google Play Store — Free Poker Trainer
+# Ficha de Google Play Store — Free Poker Trainer (Estilo Lichess)
 
-## Análisis de Competidores y Estrategia de Conversión (ASO)
-Basado en las fichas líderes de Google Play (*GTO Wizard*, *Postflop+*, *GTO Ranges+*, *DTO Poker*, *Poker Fighter*):
-1. **Principal queja de los usuarios en competidores (reseñas 1★):** Muros de pago tras 5 manos, suscripciones de $30–$90/mes, obligar a crear cuenta y requerir internet.
-2. **Gancho principal de conversión:** Colocar **"Free Poker Trainer"** directamente en el título y abrir la descripción con **"100% FREE, no ads, no subscriptions, and no account required — offline on your device"**.
-3. **Palabras clave de alto volumen integradas:** `free poker trainer`, `GTO 6-Max`, `No-Limit Hold'em`, `cash tables`, `preflop ranges`, `pot odds`, `equity calculator`, `flop reports`, `leak heatmap`, `hand review`, `offline`.
+## Enfoque de Conversión
+- **Sin tecnicismos en el título ni en el gancho:** Fuera "GTO 6-Max" y jerga de *solver*.
+- **Propuesta tipo Lichess:** **100% gratis para siempre, sin anuncios, sin suscripciones, sin cuenta, funciona offline y pensado para la comunidad.**
 
 > **Cómo usar en Google Play Console:**
 > 1. Pega el bloque de **Inglés (`en-US`)** en la ficha predeterminada.
@@ -13,74 +11,71 @@ Basado en las fichas líderes de Google Play (*GTO Wizard*, *Postflop+*, *GTO Ra
 ---
 
 ## 🇺🇸 English (`en-US`) — Default
-- **App Name (29/30):** `Free Poker Trainer: GTO 6-Max`
-- **Short Description (78/80):** `Free 6-max GTO poker trainer: cash tables, ranges & math. Offline, no account.`
+- **App Name (18/30):** `Free Poker Trainer`
+- **Short Description (76/80):** `Learn & practice poker for free. Tables, puzzles & odds. No ads, no account.`
 - **Full Description:**
 ```
-Stop losing BB in tough spots. Train 6-Max No-Limit Hold'em with instant GTO solver feedback — 100% FREE, no ads, no subscriptions, and no account required.
+A fast, clean, 100% free poker trainer built for the community — no ads, no paywalls, no subscriptions, and no account required.
 
-Unlike expensive poker training apps that lock ranges and postflop spots behind monthly paywalls, Free Poker Trainer gives you full access offline on your device.
+Inspired by the best open training apps: open it and start playing or practicing in 1 second. Everything stays saved offline on your device.
 
-WHY PLAYERS SWITCH TO FREE POKER TRAINER
-• 100% Free & No Account: Start training in 1 second. No login, no paywall, no ads.
-• Saved Locally on Your Device: Your Glicko rating, hand history, and mistake queue stay private and offline.
-• Honest Glicko Rating: Measure your real skill from a 12-spot placement test to advanced turn and river decisions.
+WHY FREE POKER TRAINER?
+• Free Forever: Every table, puzzle, and tool is unlocked from day one. No VIP tiers, no locked features.
+• Zero Ads & Zero Tracking: No pop-ups, no banners, no login walls.
+• Works Offline on Your Device: Your rating, hand history, and progress stay saved locally on your phone.
 
-COMPLETE 6-MAX TRAINING SUITE
-• 6-Max Live Cash Table: Play full hands against GTO Regular, Tight/Nit, Loose/Recreational, Aggro, or Mixed opponents.
-• Daily 10-Hand Session: Smart mix of your current curriculum topic, spaced-repetition reviews, and mixed spots.
-• Leak Heatmap (Position × Street): Spot exactly where you lose EV (UTG to BB, Preflop to River) and drill those leaks directly.
-• Flop Reports & Frequency Drills: Learn c-bet and defense frequencies across Ace-high, paired, rainbow, and monotone boards.
-• 60-Second Open? Sprint: Test your preflop opening ranges under clock pressure (3 misses and out).
-• Range Builder (13×13): Paint opening and defense ranges from memory and score your accuracy.
-• Hand-by-Hand Review: Replay every cash hand street by street, filter errors, and mark doubts for spaced review.
-• Built-in Poker Math & Tools: Interactive 13×13 Range Viewer, Pot Odds & Equity Calculator, Hand Rankings, MDF, Combos, and Outs drills.
+EVERYTHING YOU NEED TO IMPROVE
+• Practice Tables: Play full hands against tight, loose, aggressive, or balanced bots and get clear feedback on every move.
+• Daily 10-Hand Training: A quick daily mix of your current lesson, past mistakes, and real spots.
+• Skill Rating & Progress Chart: Watch your rating grow as you learn, from beginner to advanced.
+• Mistake Map: See at a glance which table seats or streets give you trouble and practice them directly.
+• Simple Flop Guides: Clear visual guides showing how often to bet or check on different boards.
+• 60-Second Speed Challenge: Decide fast whether to play or fold your starting hand before time runs out.
+• Hand Memory Grid: Paint starting hands from memory and check your score instantly.
+• Hand-by-Hand Replay: Review your played hands anytime and save tricky spots to practice again.
+• Built-in Poker Tools: Odds & probability calculator, hand ranking chart, and starting hand guide.
 
-BUILT FOR SERIOUS GRINDERS & LEARNERS
-• Clean dark interface with 4-color or 2-color deck.
-• Instant BB / € toggle across NL2, NL5, NL10, NL25, NL50, and NL100 stakes.
-• Automatic language support in 10 languages.
+MADE FOR EVERYONE
+• Clean dark interface with 4-color or classic 2-color cards.
+• Switch between chips/blinds and € values anytime.
+• Automatic support for 10 languages.
 
-Disclaimer: Free Poker Trainer is an educational poker strategy and probability trainer. It does not offer real-money gambling or cash prizes.
+Disclaimer: Free Poker Trainer is an educational poker training app. It does not offer real-money gambling or cash prizes.
 ```
 
 ---
 
 ## 🇪🇸 Español (`es-ES`)
-- **Nombre (29/30):** `Free Poker Trainer: GTO 6-Max`
-- **Descripción breve (77/80):** `Entrena póker 6-max GTO gratis: cash, rangos y mates. Sin anuncios ni cuenta.`
+- **Nombre (18/30):** `Free Poker Trainer`
+- **Descripción breve (79/80):** `Aprende y entrena póker gratis. Mesas, ejercicios y odds. Sin anuncios ni cuenta.`
 - **Descripción completa:**
 ```
-Deja de regalar ciegas en spots difíciles. Entrena Texas Hold'em No-Limit 6-Max con feedback GTO al instante — 100% GRATIS, sin anuncios, sin suscripciones y sin crear cuenta.
+Un entrenador de póker rápido, limpio y 100% gratis pensado para la comunidad — sin anuncios, sin pagos ocultos, sin suscripciones y sin necesidad de crear cuenta.
 
-A diferencia de otras apps que bloquean rangos y postflop tras pagos mensuales, Free Poker Trainer te da acceso completo offline en tu móvil.
+Inspirado en las mejores plataformas abiertas de entrenamiento: abre la app y empieza a jugar o practicar en 1 segundo. Todo se guarda en tu dispositivo.
 
-¿POR QUÉ ELEGIR FREE POKER TRAINER?
-• 100% Gratis y Sin Cuenta: Empieza en 1 segundo. Sin registro, sin muros de pago ni anuncios.
-• Guardado en tu Dispositivo: Tu rating Glicko, historial de manos y repasos se guardan offline en tu móvil.
-• Rating Glicko Real: Mide tu nivel desde el test inicial de 12 spots hasta decisiones avanzadas de turn y river.
+¿POR QUÉ FREE POKER TRAINER?
+• Gratis para Siempre: Todas las mesas, ejercicios y herramientas desbloqueadas desde el primer día. Sin planes VIP ni muros de pago.
+• Sin Anuncios ni Registro: Sin publicidad, sin ventanas molestas y sin pedirte correo ni contraseña.
+• Funciona Offline en tu Móvil: Tu puntuación, historial de manos y progreso se guardan en la memoria de tu dispositivo.
 
-MODOS DE ENTRENAMIENTO Y HERRAMIENTAS
-• Mesa Cash 6-Max en vivo: Juega manos completas contra rivales GTO, Nits, Recreativos, Aggros o mesa mixta.
-• Sesión Diaria de 10 Manos: Combina tu tema actual, repasos espaciados y spots mixtos.
-• Mapa de Fugas (Posición × Calle): Detecta dónde pierdes EV (UTG a BB, Preflop a River) y entrénalo al momento.
-• Informes de Flop: Aprende frecuencias de C-bet y defensa en boards con As, doblados, rainbow o monocolor.
-• Sprint 60 s ¿Open?: Pon a prueba tus rangos preflop contrarreloj (3 fallos y fuera).
-• Constructor de Rangos (13×13): Pinta rangos de apertura y defensa de memoria y evalúa tu precisión.
-• Revisión de Manos: Repasa cada mano calle a calle, filtra errores y marca dudas para repaso.
-• Matemáticas y Herramientas: Visor de rangos 13×13, Calculadora de Odds y Equity, Jerarquía, MDF, Combos y Outs.
+TODO LO QUE NECESITAS PARA MEJORAR
+• Mesas de Práctica: Juega manos completas contra rivales con distintos estilos (pasivos, agresivos, cerrados o equilibrados) con respuesta clara tras cada acción.
+• Sesión Diaria de 10 Manos: Un entreno rápido cada día que combina tu tema actual y tus errores anteriores.
+• Puntuación y Gráfica de Nivel: Sigue tu evolución real mientras aprendes paso a paso.
+• Mapa de Fallos: Descubre de un vistazo en qué posiciones o momentos de la mano pierdes más y practícalo al instante.
+• Guías Sencillas de Flop: Aprende visualmente con qué frecuencia conviene apostar o pasar según las cartas de la mesa.
+• Reto Rápido de 60 Segundos: Decide en segundos si jugar o retirarte con tus cartas iniciales antes de que acabe el tiempo.
+• Práctica de Manos Iniciales: Marca qué manos jugarías de memoria y comprueba tu acierto al instante.
+• Repaso de Manos Jugadas: Vuelve a ver cualquier mano jugada y guarda las dudas para repasarlas luego.
+• Herramientas Integradas: Calculadora de probabilidades, tabla de jugadas y guía de manos iniciales.
 
-Aviso: Free Poker Trainer es una app educativa de estrategia y matemáticas de póker. No incluye apuestas con dinero real ni premios monetarios.
+PENSADA PARA JUGADORES DE TODOS LOS NIVELES
+• Interfaz oscura limpia con baraja de 4 colores o clásica de 2 colores.
+• Cambia entre ciegas y € en cualquier momento.
+• Disponible automáticamente en 10 idiomas.
+
+Aviso: Free Poker Trainer es una app educativa de póker. No incluye apuestas con dinero real ni premios monetarios.
 ```
 
----
-
-## Otros Idiomas (incluidos en `play_store_translations.csv`)
-- **Português (`pt-BR`):** `Free Poker Trainer: GTO 6-Max` · `Treine poker 6-max GTO grátis: mesas cash, ranges e matemática. Offline.`
-- **Français (`fr-FR`):** `Free Poker Trainer: GTO 6-Max` · `Entraîneur poker 6-max GTO gratuit : cash, ranges et maths. Hors ligne.`
-- **Deutsch (`de-DE`):** `Free Poker Trainer: GTO 6-Max` · `Kostenloser 6-Max GTO Poker-Trainer: Cash, Ranges & Mathe. Offline.`
-- **Italiano (`it-IT`):** `Free Poker Trainer: GTO 6-Max` · `Trainer poker 6-max GTO gratis: tavoli cash, range e matematica. Offline.`
-- **Русский (`ru-RU`):** `Free Poker Trainer: GTO 6-Max` · `Бесплатный 6-max GTO покер-тренажёр: кэш, диапазоны и математика. Офлайн.`
-- **中文 (`zh-CN`):** `Free Poker Trainer: GTO 6-Max` · `免费 6人桌 GTO 德州扑克训练器：常规桌、范围与赔率计算。离线免登录。`
-- **日本語 (`ja-JP`):** `Free Poker Trainer: GTO 6-Max` · `無料の6-max GTOポーカートレーナー：キャッシュ、レンジ表、確率計算。オフライン対応。`
-- **한국어 (`ko-KR`):** `Free Poker Trainer: GTO 6-Max` · `무료 6-max GTO 포커 트레이너: 캐시 게임, 레인지, 확률 계산. 오프라인 지원.`
+*(Los 10 idiomas completos están incluidos en `play_store_translations.csv`.)*
